@@ -1,0 +1,31 @@
+{
+  "parent": "chunkbychunk:root",
+  "display": {
+    "icon": {
+      "id": "chunkbychunk:worldforge"
+    },
+    "title": {
+      "translate": "advancement.chunkbychunk.worldforgeobtained.title"
+    },
+    "description": {
+      "translate": "advancement.chunkbychunk.worldforgeobtained.description"
+    }
+  },
+  "criteria": {
+    "obtainworldforge": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "chunkbychunk:worldforge"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "rewards" : {
+    "recipes" : ["chunkbychunk:worldforge"]
+  }
+}
