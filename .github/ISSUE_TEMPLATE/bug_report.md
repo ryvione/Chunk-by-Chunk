@@ -20,6 +20,7 @@ If applicable, add screenshots to help explain your problem.
  - Mod version
  - Loader
  - Minecraft Version
+ - Full Logs of your game
 
 **Additional context**
 Add any other context about the problem here.
