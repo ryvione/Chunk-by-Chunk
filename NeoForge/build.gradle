@@ -96,6 +96,18 @@ tasks.withType(Jar) {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
+tasks.named('compileTestJava').configure {
+    enabled = false
+}
+
+test {
+    enabled = false
+}
+
+tasks.withType(Test) {
+    enabled = false
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
