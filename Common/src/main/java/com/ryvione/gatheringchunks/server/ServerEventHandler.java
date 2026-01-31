@@ -75,7 +75,6 @@ public final class ServerEventHandler {
 
     public static void onServerStarting(MinecraftServer server) {
         configSystem.synchConfig(server.getWorldPath(LevelResource.ROOT).resolve(SERVERCONFIG).resolve(GatheringChunksConstants.CONFIG_FILE), Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH).resolve(GatheringChunksConstants.CONFIG_FILE), ChunkByChunkConfig.get());
-        HardMode.init(server);
         if (ChunkByChunkConfig.get().getGeneration().isEnabled()) {
             GatheringChunksConstants.LOGGER.info("Setting up sky dimensions");
             applySkyDimensionConfig(server.registryAccess());
