@@ -162,7 +162,12 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
     @Override
     public <T> void unfreezeRegistry(MappedRegistry<T> registry) {
         try {
-            java.lang.reflect.Field frozenField = MappedRegistry.class.getDeclaredField("l");
+            java.lang.reflect.Field frozenField = null;
+            try {
+                frozenField = MappedRegistry.class.getDeclaredField("frozen");
+            } catch (NoSuchFieldException e) {
+                frozenField = MappedRegistry.class.getDeclaredField("l");
+            }
             frozenField.setAccessible(true);
             frozenField.setBoolean(registry, false);
         } catch (NoSuchFieldException | IllegalAccessException e) {
