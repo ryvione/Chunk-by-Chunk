@@ -185,16 +185,19 @@ public class CommonRegistry {
     }
 
     public static void registerChunkGenerators() {
+        // Chunk Generators
         Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id("skychunkgenerator"), SkyChunkGenerator.CODEC);
         Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id("netherchunkgenerator"), SkyChunkGenerator.OLD_NETHER_CODEC);
     }
 
+    // Register Creative Tab
     public static void registerCreativeTab() {
         CHUNK_BY_CHUNK_TAB = Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, id("gatheringchunks_tab"),
-                CreativeModeTab.builder()
+                CreativeModeTab.builder(CreativeModeTab.Row.TOP, 0)
                         .title(Component.translatable("itemGroup.gatheringchunks"))
                         .icon(() -> new ItemStack(SPAWN_CHUNK_BLOCK_ITEM))
                         .displayItems((parameters, output) -> {
+                            // Add all main items
                             output.accept(SPAWN_CHUNK_BLOCK_ITEM);
                             output.accept(UNSTABLE_SPAWN_CHUNK_BLOCK_ITEM);
                             output.accept(BEDROCK_CHEST_BLOCK_ITEM);
@@ -206,6 +209,7 @@ public class CommonRegistry {
                             output.accept(WORLD_SHARD_ITEM);
                             output.accept(WORLD_CRYSTAL_ITEM);
 
+                            // Add biome-themed items
                             if (biomeThemedBlockItems != null) {
                                 for (ItemStack stack : biomeThemedBlockItems) {
                                     output.accept(stack);

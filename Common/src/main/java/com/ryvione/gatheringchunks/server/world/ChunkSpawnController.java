@@ -1,13 +1,3 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Chunk By Chunk (Ryvione's Fork).
- * Original: https://github.com/immortius/chunkbychunk
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
-
 package com.ryvione.gatheringchunks.server.world;
 
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
@@ -43,6 +33,7 @@ import net.minecraft.world.phys.Vec3;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+
 public class ChunkSpawnController extends SavedData {
     private final MinecraftServer server;
     private final Deque<SpawnRequest> requests = new ArrayDeque<>();
@@ -58,6 +49,7 @@ public class ChunkSpawnController extends SavedData {
     private transient ServerLevel targetLevel;
     @Nullable
     private transient CompletableFuture<ChunkResult<ChunkAccess>> sourceChunkFuture;
+
     public static ChunkSpawnController get(MinecraftServer server) {
         return server.getLevel(Level.OVERWORLD).getChunkSource().getDataStorage().computeIfAbsent(
                 new SavedData.Factory<>(
@@ -68,11 +60,13 @@ public class ChunkSpawnController extends SavedData {
                 "chunkspawncontroller"
         );
     }
+
     private static ChunkSpawnController load(MinecraftServer server, CompoundTag tag, HolderLookup.Provider provider) {
         ChunkSpawnController chunkSpawnController = new ChunkSpawnController(server);
         chunkSpawnController.loadInternal(tag, provider);
         return chunkSpawnController;
     }
+
     private void loadInternal(CompoundTag tag, HolderLookup.Provider provider) {
         ListTag requestsTag = tag.getList("requests", ListTag.TAG_COMPOUND);
         for (int i = 0; i < requestsTag.size(); i++) {
@@ -93,6 +87,7 @@ public class ChunkSpawnController extends SavedData {
             );
         }
     }
+
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
         ListTag requestsTag = new ListTag();
@@ -108,9 +103,11 @@ public class ChunkSpawnController extends SavedData {
         }
         return tag;
     }
+
     private ChunkSpawnController(MinecraftServer server) {
         this.server = server;
     }
+
     public void tick() {
         if (currentSpawnRequest != null) {
             if (!sourceChunkFuture.isDone()) {
@@ -145,10 +142,15 @@ public class ChunkSpawnController extends SavedData {
                         if (ChunkByChunkConfig.get().getGeneration().spawnNewChunkChest() && !ChunkByChunkConfig.get().getGeneration().spawnChestInInitialChunkOnly()) {
                             SpawnChunkHelper.createNextSpawner(targetLevel, currentSpawnRequest.targetChunkPos);
                         }
-                        phase = SpawnPhase.SYNCH_CHUNKS;
+                        phase = SpawnPhase.UPDATE_BARRIERS;
                     } else {
                         currentLayer = maxLayer;
                     }
+                    setDirty();
+                }
+                case UPDATE_BARRIERS -> {
+                    ChunkBarrierManager.updateBarriersAfterChunkSpawn(targetLevel, currentSpawnRequest.sourceChunkPos, currentSpawnRequest.targetChunkPos);
+                    phase = SpawnPhase.SYNCH_CHUNKS;
                     setDirty();
                 }
                 case SYNCH_CHUNKS -> {
@@ -177,7 +179,7 @@ public class ChunkSpawnController extends SavedData {
                     true
             );
             if (currentSpawnRequest.immediate) {
-                phase = SpawnPhase.SYNCH_CHUNKS;
+                phase = SpawnPhase.UPDATE_BARRIERS;
             } else {
                 phase = SpawnPhase.COPY_BIOMES;
             }
@@ -185,6 +187,7 @@ public class ChunkSpawnController extends SavedData {
             setDirty();
         }
     }
+
     private void spawnChunkEntities() {
         AABB boundingBox = new AABB(
                 currentSpawnRequest.sourceChunkPos().getMinBlockX(),
@@ -207,6 +210,7 @@ public class ChunkSpawnController extends SavedData {
             }
         }
     }
+
     private void completeSpawnRequest() {
         if (forcedTargetChunk) {
             targetLevel.setChunkForced(currentSpawnRequest.targetChunkPos().x, currentSpawnRequest.targetChunkPos().z, false);
@@ -214,6 +218,7 @@ public class ChunkSpawnController extends SavedData {
             currentSpawnRequest = null;
         }
     }
+
     private static void copyBlocks(ServerLevel sourceLevel, ChunkPos sourceChunkPos, ServerLevel targetLevel, ChunkPos targetChunkPos, int fromLayer, int toLayer) {
         int xOffset = targetChunkPos.getMinBlockX() - sourceChunkPos.getMinBlockX();
         int zOffset = targetChunkPos.getMinBlockZ() - sourceChunkPos.getMinBlockZ();
@@ -246,6 +251,7 @@ public class ChunkSpawnController extends SavedData {
             }
         }
     }
+
     private static void updateBiomes(ServerLevel sourceLevel, ChunkAccess sourceChunk, ServerLevel targetLevel, ChunkAccess targetChunk, ChunkPos targetChunkPos) {
         if (sourceChunk.getSections().length != targetChunk.getSections().length) {
             GatheringChunksConstants.LOGGER.warn("Section count mismatch between {} and {} - {} vs {}", sourceLevel.dimension(), targetLevel.dimension(), sourceChunk.getSections().length, targetChunk.getSections().length);
@@ -287,6 +293,7 @@ public class ChunkSpawnController extends SavedData {
             ((ControllableChunkMap) targetLevel.getChunkSource().chunkMap).forceReloadChunk(targetChunkPos);
         }
     }
+
     private void synchChunks() {
         if (targetLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
             for (ResourceKey<Level> synchLevelId : generator.getSynchedLevels()) {
@@ -300,6 +307,7 @@ public class ChunkSpawnController extends SavedData {
             }
         }
     }
+
     public boolean isValidForLevel(ServerLevel level, String biomeTheme, boolean random) {
         if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
             if (!biomeTheme.isEmpty()) {
@@ -312,9 +320,11 @@ public class ChunkSpawnController extends SavedData {
         }
         return false;
     }
+
     public boolean request(ServerLevel level, String biomeTheme, boolean random, BlockPos blockPos) {
         return request(level, biomeTheme, random, blockPos, false);
     }
+
     public boolean request(ServerLevel level, String biomeTheme, boolean random, BlockPos blockPos, boolean immediate) {
         ChunkPos targetChunkPos = new ChunkPos(blockPos);
         if (isValidForLevel(level, biomeTheme, random) && SpawnChunkHelper.isEmptyChunk(level, targetChunkPos) && level.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
@@ -335,6 +345,7 @@ public class ChunkSpawnController extends SavedData {
         }
         return false;
     }
+
     public boolean request(ChunkPos targetChunkPos, ResourceKey<Level> targetLevel, ChunkPos sourceChunkPos, ResourceKey<Level> sourceLevel, boolean immediate) {
         SpawnRequest spawnRequest = new SpawnRequest(targetChunkPos, targetLevel, sourceChunkPos, sourceLevel, immediate);
         if (!spawnRequest.equals(currentSpawnRequest) && !requests.contains(spawnRequest)) {
@@ -354,9 +365,11 @@ public class ChunkSpawnController extends SavedData {
         }
         return false;
     }
+
     public boolean isBusy() {
         return currentSpawnRequest != null || !requests.isEmpty();
     }
+
     private record SpawnRequest(ChunkPos targetChunkPos, ResourceKey<Level> targetLevel, ChunkPos sourceChunkPos,
                                 ResourceKey<Level> sourceLevel, boolean immediate) {
         public static final String TARGET_POS = "targetPos";
@@ -364,6 +377,7 @@ public class ChunkSpawnController extends SavedData {
         public static final String SOURCE_POS = "sourcePos";
         public static final String SOURCE_LEVEL = "sourceLevel";
         public static final String IMMEDIATE = "immediate";
+
         public static SpawnRequest load(CompoundTag tag) {
             ChunkPos targetPos = new ChunkPos(tag.getLong(TARGET_POS));
             ResourceKey<Level> targetLevel = ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, ResourceLocation.parse(tag.getString(TARGET_LEVEL)));
@@ -372,6 +386,7 @@ public class ChunkSpawnController extends SavedData {
             boolean immediate = tag.getBoolean(IMMEDIATE);
             return new SpawnRequest(targetPos, targetLevel, sourcePos, sourceLevel, immediate);
         }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -380,10 +395,12 @@ public class ChunkSpawnController extends SavedData {
             if (!targetChunkPos.equals(that.targetChunkPos)) return false;
             return targetLevel.equals(that.targetLevel);
         }
+
         @Override
         public int hashCode() {
             return Objects.hash(targetChunkPos, targetLevel);
         }
+
         public CompoundTag save() {
             CompoundTag tag = new CompoundTag();
             tag.putLong(TARGET_POS, targetChunkPos.toLong());
@@ -394,9 +411,11 @@ public class ChunkSpawnController extends SavedData {
             return tag;
         }
     }
+
     private enum SpawnPhase {
         COPY_BIOMES,
         SPAWN_BLOCKS,
+        UPDATE_BARRIERS,
         SYNCH_CHUNKS,
         SPAWN_ENTITIES
     }

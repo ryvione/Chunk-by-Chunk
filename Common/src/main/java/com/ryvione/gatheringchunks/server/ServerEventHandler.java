@@ -49,10 +49,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 public final class ServerEventHandler {
     private static final Logger LOGGER = LogManager.getLogger(GatheringChunksConstants.MOD_ID);
@@ -407,11 +404,14 @@ public final class ServerEventHandler {
         ChunkSpawnController chunkSpawnController = ChunkSpawnController.get(level.getServer());
         BlockPos scaledSpawn = new BlockPos(Mth.floor(overworldSpawn.getX() / level.dimensionType().coordinateScale()), overworldSpawn.getY(), Mth.floor(overworldSpawn.getZ() / level.dimensionType().coordinateScale()));
         ChunkPos centerChunkPos = new ChunkPos(scaledSpawn);
+        List<ChunkPos> spawnedChunks = new ArrayList<>();
+
         if (initialChunks > 0 && initialChunks <= CHUNK_SPAWN_OFFSETS.size()) {
             List<int[]> chunkOffsets = CHUNK_SPAWN_OFFSETS.get(initialChunks - 1);
             for (int[] offset : chunkOffsets) {
                 ChunkPos targetPos = new ChunkPos(centerChunkPos.x + offset[0], centerChunkPos.z + offset[1]);
                 if (chunkSpawnController.request(level, "", false, targetPos.getMiddleBlockPosition(0), offset[0] == 0 && offset[1] == 0)) {
+                    spawnedChunks.add(targetPos);
                     if (spawnChest && offset[0] == 0 && offset[1] == 0) {
                         SpawnChunkHelper.createNextSpawner(level, targetPos);
                     }
@@ -422,11 +422,26 @@ public final class ServerEventHandler {
             for (int i = 0; i < initialChunks; i++) {
                 ChunkPos targetPos = new ChunkPos(spiralIterator.getX(), spiralIterator.getY());
                 if (chunkSpawnController.request(level, "", false, targetPos.getMiddleBlockPosition(0), i == 0)) {
+                    spawnedChunks.add(targetPos);
                     if (spawnChest && i == 0) {
                         SpawnChunkHelper.createNextSpawner(level, targetPos);
                     }
                 }
                 spiralIterator.next();
+            }
+        }
+
+        for (ChunkPos chunkPos : spawnedChunks) {
+            ChunkBarrierManager.placeBarriersAroundChunk(level, chunkPos);
+        }
+
+        for (int i = 0; i < spawnedChunks.size(); i++) {
+            for (int j = i + 1; j < spawnedChunks.size(); j++) {
+                ChunkPos chunk1 = spawnedChunks.get(i);
+                ChunkPos chunk2 = spawnedChunks.get(j);
+                if (Math.abs(chunk1.x - chunk2.x) + Math.abs(chunk1.z - chunk2.z) == 1) {
+                    ChunkBarrierManager.removeBarriersBetweenChunks(level, chunk1, chunk2);
+                }
             }
         }
     }
