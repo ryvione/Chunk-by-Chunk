@@ -23,6 +23,7 @@
   "item.gatheringchunks.worldshard" : "World Shard",
   "item.gatheringchunks.worldcrystal" : "World Crystal",
   "itemGroup.gatheringchunks.main": "Chunk By Chunk",
+  "itemGroup.gatheringchunks": "Gathering Chunks",
   "ui.gatheringchunks.bedrockchest.sealedmessage" : "The weight of the chunk seals this chest. %1$s blocks remain.",
   "container.gatheringchunks.bedrockchest" : "Bedrock Chest",
   "container.gatheringchunks.worldforge" : "World Forge",

@@ -233,21 +233,28 @@ public final class ServerEventHandler {
             }
             return valid;
         }).toList();
-        BiomeSource source = null;
-        if (biomeKeys.size() == 0 || !(rootGenerator instanceof NoiseBasedChunkGenerator)) {
+
+        if (biomeKeys.isEmpty()) {
+            GatheringChunksConstants.LOGGER.warn("No valid biomes found for theme {}, skipping", themeName);
             return null;
-        } else if (biomeKeys.size() == 1) {
+        }
+
+        BiomeSource source = null;
+        if (!(rootGenerator instanceof NoiseBasedChunkGenerator)) {
+            GatheringChunksConstants.LOGGER.warn("Root generator is not NoiseBasedChunkGenerator for theme {}, skipping", themeName);
+            return null;
+        }
+
+        if (biomeKeys.size() == 1) {
             source = new FixedBiomeSource(biomeRegistry.getHolderOrThrow(biomeKeys.get(0)));
         } else {
             ImmutableList.Builder<Pair<Climate.ParameterPoint, Holder<Biome>>> builder = ImmutableList.builder();
-            if (rootGenerator instanceof NoiseBasedChunkGenerator noiseGen) {
-                BiomeSource biomeSource = noiseGen.getBiomeSource();
-                if (biomeSource instanceof MultiNoiseBiomeSource multiNoise) {
-                    try {
-                        java.lang.reflect.Method parametersMethod = MultiNoiseBiomeSource.class.getDeclaredMethod("parameters");
-                        parametersMethod.setAccessible(true);
-                        @SuppressWarnings("unchecked")
-                        Climate.ParameterList<Holder<Biome>> params = (Climate.ParameterList<Holder<Biome>>) parametersMethod.invoke(multiNoise);
+            NoiseBasedChunkGenerator noiseGen = (NoiseBasedChunkGenerator) rootGenerator;
+            BiomeSource biomeSource = noiseGen.getBiomeSource();
+
+            if (biomeSource instanceof MultiNoiseBiomeSource multiNoise) {
+                if (multiNoise instanceof com.ryvione.gatheringchunks.mixins.MultiNoiseBiomeSourceAccessor accessor) {
+                    accessor.getParameters().left().ifPresent(params -> {
                         params.values().forEach(pair -> {
                             pair.getSecond().unwrapKey().ifPresent(key -> {
                                 if (biomeKeys.contains(key)) {
@@ -255,18 +262,27 @@ public final class ServerEventHandler {
                                 }
                             });
                         });
-                    } catch (Exception e) {
-                        GatheringChunksConstants.LOGGER.warn("Failed to access MultiNoiseBiomeSource parameters for theme {}: {}", themeName, e.getMessage());
-                    }
+                    });
+                } else {
+                    GatheringChunksConstants.LOGGER.warn("MultiNoiseBiomeSource is not accessible via mixin for theme {}", themeName);
                 }
-                Climate.ParameterList<Holder<Biome>> parameterList = new Climate.ParameterList<>(builder.build());
+            }
+
+            ImmutableList<Pair<Climate.ParameterPoint, Holder<Biome>>> paramList = builder.build();
+            if (paramList.isEmpty()) {
+                GatheringChunksConstants.LOGGER.warn("No matching biome parameters found for theme {}, using first biome as fallback", themeName);
+                source = new FixedBiomeSource(biomeRegistry.getHolderOrThrow(biomeKeys.get(0)));
+            } else {
+                Climate.ParameterList<Holder<Biome>> parameterList = new Climate.ParameterList<>(paramList);
                 source = MultiNoiseBiomeSource.createFromList(parameterList);
             }
         }
+
         if (source == null) {
             GatheringChunksConstants.LOGGER.warn("Failed to create biome source for theme {}", themeName);
             return null;
         }
+
         LevelStem biomeLevel = new LevelStem(themeDimensionType, new NoiseBasedChunkGenerator(source, ChunkGeneratorAccess.getNoiseGeneratorSettings(rootGenerator)));
         dimensions.register(levelKey, biomeLevel, RegistrationInfo.BUILT_IN);
         return ResourceKey.create(Registries.DIMENSION, biomeDimId);

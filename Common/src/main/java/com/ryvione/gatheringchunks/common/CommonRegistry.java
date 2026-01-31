@@ -13,6 +13,7 @@ import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
 import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.flag.FeatureFlags;
@@ -148,7 +149,7 @@ public class CommonRegistry {
     }
 
     public static void registerBlockEntities() {
-        // Block Entities - Platform-specific builders will be used in platform modules
+        // Block Entities
         BEDROCK_CHEST_BLOCK_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id("bedrockchestentity"),
                 BlockEntityType.Builder.of(BedrockChestBlockEntity::new, BEDROCK_CHEST_BLOCK).build(null));
 
@@ -184,9 +185,35 @@ public class CommonRegistry {
     }
 
     public static void registerChunkGenerators() {
-        // Chunk Generators
         Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id("skychunkgenerator"), SkyChunkGenerator.CODEC);
         Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id("netherchunkgenerator"), SkyChunkGenerator.OLD_NETHER_CODEC);
+    }
+
+    public static void registerCreativeTab() {
+        CHUNK_BY_CHUNK_TAB = Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, id("gatheringchunks_tab"),
+                CreativeModeTab.builder()
+                        .title(Component.translatable("itemGroup.gatheringchunks"))
+                        .icon(() -> new ItemStack(SPAWN_CHUNK_BLOCK_ITEM))
+                        .displayItems((parameters, output) -> {
+                            output.accept(SPAWN_CHUNK_BLOCK_ITEM);
+                            output.accept(UNSTABLE_SPAWN_CHUNK_BLOCK_ITEM);
+                            output.accept(BEDROCK_CHEST_BLOCK_ITEM);
+                            output.accept(WORLD_CORE_BLOCK_ITEM);
+                            output.accept(WORLD_FORGE_BLOCK_ITEM);
+                            output.accept(WORLD_SCANNER_BLOCK_ITEM);
+                            output.accept(WORLD_MENDER_BLOCK_ITEM);
+                            output.accept(WORLD_FRAGMENT_ITEM);
+                            output.accept(WORLD_SHARD_ITEM);
+                            output.accept(WORLD_CRYSTAL_ITEM);
+
+                            if (biomeThemedBlockItems != null) {
+                                for (ItemStack stack : biomeThemedBlockItems) {
+                                    output.accept(stack);
+                                }
+                            }
+                        })
+                        .build()
+        );
     }
 
     public static void registerAll() {
@@ -196,6 +223,7 @@ public class CommonRegistry {
         registerMenus();
         registerSounds();
         registerChunkGenerators();
+        registerCreativeTab();
     }
 
     private static ResourceLocation id(String path) {

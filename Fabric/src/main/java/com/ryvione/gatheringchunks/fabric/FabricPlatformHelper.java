@@ -175,12 +175,8 @@ public final class FabricPlatformHelper implements CBCPlatformHelper {
 
     @Override
     public <T> void unfreezeRegistry(MappedRegistry<T> registry) {
-        try {
-            java.lang.reflect.Field frozenField = MappedRegistry.class.getDeclaredField("frozen");
-            frozenField.setAccessible(true);
-            frozenField.setBoolean(registry, false);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException("Failed to unfreeze registry on Fabric", e);
+        if (registry instanceof com.ryvione.gatheringchunks.mixins.DefrostedRegistry defrosted) {
+            defrosted.setFrozen(false);
         }
     }
 }

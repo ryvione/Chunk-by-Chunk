@@ -12,6 +12,7 @@
     "DefrostedRegistry",
     "EntityChangeDimensionMixin",
     "HolderReferenceAccessor",
+    "MultiNoiseBiomeSourceAccessor",
     "NoiseBasedChunkGeneratorMixin",
     "OverworldBiomeBuilderAccessor",
     "PauseScreenMixin",
