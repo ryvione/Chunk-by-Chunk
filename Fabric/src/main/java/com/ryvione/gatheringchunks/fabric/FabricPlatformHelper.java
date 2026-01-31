@@ -10,6 +10,19 @@
 
 package com.ryvione.gatheringchunks.fabric;
 
+import com.ryvione.gatheringchunks.common.CommonRegistry;
+import com.ryvione.gatheringchunks.common.blockEntities.BedrockChestBlockEntity;
+import com.ryvione.gatheringchunks.common.blockEntities.WorldForgeBlockEntity;
+import com.ryvione.gatheringchunks.common.blockEntities.WorldMenderBlockEntity;
+import com.ryvione.gatheringchunks.common.blockEntities.WorldScannerBlockEntity;
+import com.ryvione.gatheringchunks.common.blocks.SpawnChunkBlock;
+import com.ryvione.gatheringchunks.common.menus.BedrockChestMenu;
+import com.ryvione.gatheringchunks.common.menus.WorldForgeMenu;
+import com.ryvione.gatheringchunks.common.menus.WorldMenderMenu;
+import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
+import com.ryvione.gatheringchunks.interop.CBCPlatformHelper;
+import com.ryvione.gatheringchunks.mixins.BucketFluidAccessor;
+import net.minecraft.core.MappedRegistry;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BucketItem;
@@ -18,15 +31,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.material.Fluid;
-import com.ryvione.gatheringchunks.common.CommonRegistry;
-import com.ryvione.gatheringchunks.common.blockEntities.*;
-import com.ryvione.gatheringchunks.common.blocks.SpawnChunkBlock;
-import com.ryvione.gatheringchunks.common.menus.BedrockChestMenu;
-import com.ryvione.gatheringchunks.common.menus.WorldForgeMenu;
-import com.ryvione.gatheringchunks.common.menus.WorldMenderMenu;
-import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
-import com.ryvione.gatheringchunks.mixins.BucketFluidAccessor;
-import com.ryvione.gatheringchunks.interop.CBCPlatformHelper;
 
 import java.util.List;
 
@@ -167,5 +171,16 @@ public final class FabricPlatformHelper implements CBCPlatformHelper {
             return bucketAccess.getFluidContent();
         }
         return null;
+    }
+
+    @Override
+    public <T> void unfreezeRegistry(MappedRegistry<T> registry) {
+        try {
+            java.lang.reflect.Field frozenField = MappedRegistry.class.getDeclaredField("frozen");
+            frozenField.setAccessible(true);
+            frozenField.setBoolean(registry, false);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to unfreeze registry on Fabric", e);
+        }
     }
 }

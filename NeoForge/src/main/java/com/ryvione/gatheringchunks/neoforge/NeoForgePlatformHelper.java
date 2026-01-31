@@ -1,9 +1,16 @@
 package com.ryvione.gatheringchunks.neoforge;
 
-import com.ryvione.gatheringchunks.common.blockEntities.*;
+import com.ryvione.gatheringchunks.common.blockEntities.BedrockChestBlockEntity;
+import com.ryvione.gatheringchunks.common.blockEntities.WorldForgeBlockEntity;
+import com.ryvione.gatheringchunks.common.blockEntities.WorldMenderBlockEntity;
+import com.ryvione.gatheringchunks.common.blockEntities.WorldScannerBlockEntity;
 import com.ryvione.gatheringchunks.common.blocks.SpawnChunkBlock;
-import com.ryvione.gatheringchunks.common.menus.*;
+import com.ryvione.gatheringchunks.common.menus.BedrockChestMenu;
+import com.ryvione.gatheringchunks.common.menus.WorldForgeMenu;
+import com.ryvione.gatheringchunks.common.menus.WorldMenderMenu;
+import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
 import com.ryvione.gatheringchunks.interop.CBCPlatformHelper;
+import net.minecraft.core.MappedRegistry;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BucketItem;
@@ -16,7 +23,7 @@ import net.minecraft.world.level.material.Fluid;
 import java.util.List;
 
 public class NeoForgePlatformHelper implements CBCPlatformHelper {
-    
+
     @Override
     public SpawnChunkBlock spawnChunkBlock() {
         return (SpawnChunkBlock) ModRegistry.SPAWN_CHUNK_BLOCK.get();
@@ -150,5 +157,16 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
     @Override
     public Fluid getFluidContent(BucketItem bucket) {
         return bucket.content;
+    }
+
+    @Override
+    public <T> void unfreezeRegistry(MappedRegistry<T> registry) {
+        try {
+            java.lang.reflect.Field frozenField = MappedRegistry.class.getDeclaredField("l");
+            frozenField.setAccessible(true);
+            frozenField.setBoolean(registry, false);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to unfreeze registry on NeoForge", e);
+        }
     }
 }

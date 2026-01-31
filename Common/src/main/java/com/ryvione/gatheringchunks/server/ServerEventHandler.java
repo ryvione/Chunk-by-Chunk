@@ -14,6 +14,7 @@ import com.ryvione.gatheringchunks.common.util.ChunkUtil;
 import com.ryvione.gatheringchunks.common.util.SpiralIterator;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.config.system.ConfigSystem;
+import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.mixins.HolderReferenceAccessor;
 import com.ryvione.gatheringchunks.server.world.*;
 import net.minecraft.core.*;
@@ -107,8 +108,8 @@ public final class ServerEventHandler {
         Registry<Block> blocks = server.registryAccess().registryOrThrow(Registries.BLOCK);
 
         try {
-            unfreezeRegistry(dimensions);
-            unfreezeRegistry(biomeRegistry);
+            Services.PLATFORM.unfreezeRegistry(dimensions);
+            Services.PLATFORM.unfreezeRegistry(biomeRegistry);
         } catch (Exception e) {
             GatheringChunksConstants.LOGGER.error("Failed to unfreeze registries", e);
             return;
@@ -118,12 +119,6 @@ public final class ServerEventHandler {
             setupDimension(entry.getKey(), entry.getValue(), dimensions, blocks, biomeRegistry, dimensionTypeRegistry);
         }
         configureDimensionSynching(dimensions);
-    }
-
-    private static void unfreezeRegistry(MappedRegistry<?> registry) throws Exception {
-        java.lang.reflect.Field frozenField = MappedRegistry.class.getDeclaredField("frozen");
-        frozenField.setAccessible(true);
-        frozenField.setBoolean(registry, false);
     }
 
     private static void configureDimensionSynching(MappedRegistry<LevelStem> dimensions) {

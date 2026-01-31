@@ -19,6 +19,7 @@ import com.ryvione.gatheringchunks.common.menus.BedrockChestMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldForgeMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldMenderMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
+import net.minecraft.core.MappedRegistry;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BucketItem;
@@ -29,6 +30,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.material.Fluid;
 
 import java.util.List;
+
 public interface CBCPlatformHelper {
     SpawnChunkBlock spawnChunkBlock();
     Block unstableSpawnChunkBlock();
@@ -57,4 +59,6 @@ public interface CBCPlatformHelper {
     MenuType<WorldScannerMenu> worldScannerMenu();
     MenuType<WorldMenderMenu> worldMenderMenu();
     Fluid getFluidContent(BucketItem bucketItem);
+
+    <T> void unfreezeRegistry(MappedRegistry<T> registry);
 }
