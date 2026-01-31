@@ -18,19 +18,19 @@ public abstract class TitleScreenMixin extends Screen {
         super(title);
     }
 
-    @Inject(method = "init", at = @At("TAIL"))
-    private void addGatheringChunksButton(CallbackInfo ci) {
+    @Inject(method = "init", at = @At("RETURN"))
+    private void addGatheringChunksConfigButton(CallbackInfo ci) {
         int x = this.width / 2 + 104;
-        int y = this.height / 4 + 48;
+        int y = this.height / 4 + 48 + 72;
 
         this.addRenderableWidget(Button.builder(
-                        Component.literal("⚙"),
+                        Component.literal("⚙ GC"),
                         button -> {
                             if (this.minecraft != null) {
                                 this.minecraft.setScreen(new GatheringChunksConfigScreen(this));
                             }
                         })
-                .bounds(x, y, 20, 20)
+                .bounds(x, y, 50, 20)
                 .tooltip(Tooltip.create(Component.literal("Gathering Chunks Config")))
                 .build());
     }

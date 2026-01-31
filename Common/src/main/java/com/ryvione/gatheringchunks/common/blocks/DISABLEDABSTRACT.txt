@@ -24,7 +24,7 @@ import net.minecraft.world.level.block.state.BlockState;
 public abstract class DISABLEDABSTRACT extends BaseEntityBlock {
 
     private static final MapCodec<DISABLEDABSTRACT> CODEC =
-            BlockBehaviour.simpleCodec(DISABLEDABSTRACT::new);  // ← key line
+            BlockBehaviour.simpleCodec(DISABLEDABSTRACT::new);
 
     protected DISABLEDABSTRACT(Properties properties) {
         super(properties);

@@ -55,14 +55,12 @@ public class ChunkByChunkMod implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTING.register(ServerEventHandler::onServerStarting);
         ServerTickEvents.END_SERVER_TICK.register(ServerEventHandler::onLevelTick);
 
-        // Player tick event for chunk boundary enforcement
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                 ChunkBoundaryEnforcer.checkPlayerBoundaries(player);
             }
         });
 
-        // Mob death event for fragment drops
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
             MobLootHandler.onMobDeath(entity, entity.level());
         });
