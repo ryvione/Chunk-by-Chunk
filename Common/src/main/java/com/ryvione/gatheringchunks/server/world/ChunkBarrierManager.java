@@ -1,6 +1,5 @@
 package com.ryvione.gatheringchunks.server.world;
 
-import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
@@ -9,12 +8,27 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * TEMPORARILY DISABLED.
+ *
+ * This class previously handled placing and removing barrier blocks
+ * around chunk borders to prevent fluid traversal.
+ *
+ * All logic is currently disabled and these methods are no-ops.
+ */
 public class ChunkBarrierManager {
 
     private static final Logger LOGGER = LogManager.getLogger(ChunkBarrierManager.class);
+
+    // Flip this back to false to re-enable barrier logic
+    private static final boolean TEMP_DISABLED = true;
+
     private static final BlockState BARRIER = Blocks.BARRIER.defaultBlockState();
 
     public static void placeBarriersAroundChunk(ServerLevel level, ChunkPos chunkPos) {
+        if (TEMP_DISABLED) return;
+
+        /*
         if (!ChunkByChunkConfig.get().getGameplayConfig().isEnableChunkBarriers()) {
             return;
         }
@@ -30,23 +44,21 @@ public class ChunkBarrierManager {
         for (int y = minY; y < maxY; y++) {
             for (int x = minX; x <= maxX; x++) {
                 placeBarrier(level, new BlockPos(x, y, minZ));
-            }
-
-            for (int x = minX; x <= maxX; x++) {
                 placeBarrier(level, new BlockPos(x, y, maxZ));
             }
 
             for (int z = minZ + 1; z < maxZ; z++) {
                 placeBarrier(level, new BlockPos(minX, y, z));
-            }
-
-            for (int z = minZ + 1; z < maxZ; z++) {
                 placeBarrier(level, new BlockPos(maxX, y, z));
             }
         }
+        */
     }
 
     public static void removeBarriersAroundChunk(ServerLevel level, ChunkPos chunkPos) {
+        if (TEMP_DISABLED) return;
+
+        /*
         if (!ChunkByChunkConfig.get().getGameplayConfig().isEnableChunkBarriers()) {
             return;
         }
@@ -62,23 +74,21 @@ public class ChunkBarrierManager {
         for (int y = minY; y < maxY; y++) {
             for (int x = minX; x <= maxX; x++) {
                 removeBarrier(level, new BlockPos(x, y, minZ));
-            }
-
-            for (int x = minX; x <= maxX; x++) {
                 removeBarrier(level, new BlockPos(x, y, maxZ));
             }
 
             for (int z = minZ + 1; z < maxZ; z++) {
                 removeBarrier(level, new BlockPos(minX, y, z));
-            }
-
-            for (int z = minZ + 1; z < maxZ; z++) {
                 removeBarrier(level, new BlockPos(maxX, y, z));
             }
         }
+        */
     }
 
     public static void removeBarriersBetweenChunks(ServerLevel level, ChunkPos chunk1, ChunkPos chunk2) {
+        if (TEMP_DISABLED) return;
+
+        /*
         if (!ChunkByChunkConfig.get().getGameplayConfig().isEnableChunkBarriers()) {
             return;
         }
@@ -88,13 +98,7 @@ public class ChunkBarrierManager {
 
         if (chunk1.x == chunk2.x) {
             int x = chunk1.getMinBlockX();
-            int sharedZ;
-
-            if (chunk1.z < chunk2.z) {
-                sharedZ = chunk1.getMaxBlockZ();
-            } else {
-                sharedZ = chunk1.getMinBlockZ();
-            }
+            int sharedZ = chunk1.z < chunk2.z ? chunk1.getMaxBlockZ() : chunk1.getMinBlockZ();
 
             for (int y = minY; y < maxY; y++) {
                 for (int dx = 0; dx < 16; dx++) {
@@ -103,13 +107,7 @@ public class ChunkBarrierManager {
             }
         } else if (chunk1.z == chunk2.z) {
             int z = chunk1.getMinBlockZ();
-            int sharedX;
-
-            if (chunk1.x < chunk2.x) {
-                sharedX = chunk1.getMaxBlockX();
-            } else {
-                sharedX = chunk1.getMinBlockX();
-            }
+            int sharedX = chunk1.x < chunk2.x ? chunk1.getMaxBlockX() : chunk1.getMinBlockX();
 
             for (int y = minY; y < maxY; y++) {
                 for (int dz = 0; dz < 16; dz++) {
@@ -117,15 +115,14 @@ public class ChunkBarrierManager {
                 }
             }
         }
+        */
     }
 
     public static void updateBarriersAfterChunkSpawn(ServerLevel level, ChunkPos existingChunk, ChunkPos newChunk) {
-        if (!ChunkByChunkConfig.get().getGameplayConfig().isEnableChunkBarriers()) {
-            return;
-        }
+        if (TEMP_DISABLED) return;
 
+        /*
         removeBarriersBetweenChunks(level, existingChunk, newChunk);
-
         placeBarriersAroundChunk(level, newChunk);
 
         ChunkPos[] adjacentPositions = {
@@ -140,7 +137,10 @@ public class ChunkBarrierManager {
                 removeBarriersBetweenChunks(level, newChunk, adjacent);
             }
         }
+        */
     }
+
+    // --- Original helpers (currently unused) ---
 
     private static void placeBarrier(ServerLevel level, BlockPos pos) {
         BlockState currentState = level.getBlockState(pos);
