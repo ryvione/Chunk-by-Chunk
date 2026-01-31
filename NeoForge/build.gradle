@@ -92,6 +92,10 @@ jar {
     }
 }
 
+tasks.withType(Jar) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
