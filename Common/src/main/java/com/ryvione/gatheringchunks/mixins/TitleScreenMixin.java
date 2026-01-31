@@ -21,7 +21,7 @@ public abstract class TitleScreenMixin extends Screen {
     @Inject(method = "init", at = @At("RETURN"))
     private void addGatheringChunksConfigButton(CallbackInfo ci) {
         int x = this.width / 2 + 104;
-        int y = this.height / 4 + 48 + 72;
+        int y = this.height / 4 + 48 + 24;
 
         this.addRenderableWidget(Button.builder(
                         Component.literal("⚙ GC"),
