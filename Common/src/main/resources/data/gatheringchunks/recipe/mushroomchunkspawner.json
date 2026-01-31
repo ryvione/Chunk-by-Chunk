@@ -1,0 +1,23 @@
+{
+  "type" : "minecraft:crafting_shaped",
+  "pattern": [
+    "mCm",
+    "CXC",
+    "mCm"
+  ],
+  "key" : {
+    "m": {
+      "tag": "gatheringchunks:mushrooms"
+    },
+    "C" : {
+      "item": "minecraft:copper_ingot"
+    },
+    "X" : {
+      "item": "gatheringchunks:worldcore"
+    }
+  },
+  "result" : {
+    "id" : "gatheringchunks:mushroomchunkspawner",
+    "count" : 1
+  }
+}

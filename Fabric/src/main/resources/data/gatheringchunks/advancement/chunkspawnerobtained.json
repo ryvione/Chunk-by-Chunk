@@ -1,0 +1,44 @@
+{
+  "parent": "gatheringchunks:worldcoreobtained",
+  "display": {
+    "icon": {
+      "id": "gatheringchunks:chunkspawner"
+    },
+    "title": {
+      "translate": "advancement.gatheringchunks.chunkspawnerobtained.title"
+    },
+    "description": {
+      "translate": "advancement.gatheringchunks.chunkspawnerobtained.description"
+    }
+  },
+  "criteria": {
+    "obtainspawnchunkblock": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "gatheringchunks:chunkspawner"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "recipes": [
+      "gatheringchunks:unstablechunkspawner",
+      "gatheringchunks:badlandschunkspawner",
+      "gatheringchunks:desertchunkspawner",
+      "gatheringchunks:forestchunkspawner",
+      "gatheringchunks:junglechunkspawner",
+      "gatheringchunks:mushroomchunkspawner",
+      "gatheringchunks:plainschunkspawner",
+      "gatheringchunks:rockychunkspawner",
+      "gatheringchunks:savannachunkspawner",
+      "gatheringchunks:snowchunkspawner",
+      "gatheringchunks:swampchunkspawner",
+      "gatheringchunks:disassemble_chunkspawner"
+    ]
+  }
+}

@@ -22,3 +22,12 @@ build
 eclipse
 run
 runs
+
+# backup folders
+**/recipes_backup_*/
+**/recipes_backup_*
+
+
+# temp files
+temp/
+temp.sh

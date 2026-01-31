@@ -1,0 +1,27 @@
+{
+  "parent" : "gatheringchunks:worldshardobtained",
+  "display": {
+    "icon": {
+      "item": "gatheringchunks:worldcrystal"
+    },
+    "title": {
+      "translate" : "advancement.gatheringchunks.worldcrystalobtained.title"
+    },
+    "description": {
+      "translate" : "advancement.gatheringchunks.worldcrystalobtained.description"
+    }
+  },
+  "criteria" : {
+    "obtainworldcrystal" : {
+      "trigger" : "minecraft:inventory_changed",
+      "conditions" : {
+        "items" : [{
+          "items" : ["gatheringchunks:worldcrystal"]
+        }]
+      }
+    }
+  },
+  "rewards" : {
+    "recipes" : ["gatheringchunks:worldcore","gatheringchunks:disassemble_worldcrystal","gatheringchunks:worldcrystal"]
+  }
+}

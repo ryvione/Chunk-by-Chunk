@@ -1,0 +1,18 @@
+{
+  "replace" : false,
+  "values" : [
+    "gatheringchunks:chunkspawner",
+    "gatheringchunks:unstablechunkspawner",
+    "gatheringchunks:badlandschunkspawner",
+    "gatheringchunks:desertchunkspawner",
+    "gatheringchunks:forestchunkspawner",
+    "gatheringchunks:junglechunkspawner",
+    "gatheringchunks:mountainchunkspawner",
+    "gatheringchunks:mushroomchunkspawner",
+    "gatheringchunks:plainschunkspawner",
+    "gatheringchunks:rockychunkspawner",
+    "gatheringchunks:savannachunkspawner",
+    "gatheringchunks:snowchunkspawner",
+    "gatheringchunks:swampchunkspawner"
+  ]
+}

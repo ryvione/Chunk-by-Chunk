@@ -1,37 +1,37 @@
 {
   "schemaVersion": 1,
-  "id": "chunkbychunk",
+  "id": "gatheringchunks",
   "version": "${version}",
 
-  "name": "Chunk By Chunk",
+  "name": "Gathering Chunks",
   "description": "This mod starts the overworld with a single chunk, but provides the tools to expand to world one chunk at a time.",
   "authors": [
     "Ryvione"
   ],
   "contact": {
-    "homepage": "https://ryvione.vercel.app/minecraft/mod/chunkbychunk",
-    "sources": "https://github.com/ryvione/chunkbychunk"
+    "homepage": "https://ryvione.vercel.app/minecraft/mod/gatheringchunks",
+    "sources": "https://github.com/ryvione/gatheringchunks"
   },
 
   "license": "MIT License",
-  "icon": "assets/chunkbychunk/textures/block/chunkspawner-north.png",
+  "icon": "assets/gatheringchunks/textures/block/chunkspawner-north.png",
 
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.ryvione.chunkbychunk.fabric.ChunkByChunkMod"
+      "com.ryvione.gatheringchunks.fabric.ChunkByChunkMod"
     ],
     "client": [
-      "com.ryvione.chunkbychunk.fabric.ChunkByChunkClientMod"
+      "com.ryvione.gatheringchunks.fabric.ChunkByChunkClientMod"
     ],
-    "modmenu": [ "com.ryvione.chunkbychunk.fabric.ModMenuApiImpl" ]
+    "modmenu": [ "com.ryvione.gatheringchunks.fabric.ModMenuApiImpl" ]
   },
   "mixins": [
-    "chunkbychunk.mixins.json"
+    "gatheringchunks.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.16.9",
-    "fabric": "*",
+    "fabric-api": "*",
     "minecraft": ">=1.21.1",
     "java": ">=21"
   },

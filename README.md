@@ -6,7 +6,7 @@ core concept.
 
 ## Usage 
 
-See the [wiki](https://github.com/immortius/chunkbychunk/wiki) for information on configuration
+See the [wiki](https://github.com/immortius/gatheringchunks/wiki) for information on configuration
 
 ## Developing
 

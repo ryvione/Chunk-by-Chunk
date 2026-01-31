@@ -1,12 +1,10 @@
 plugins {
-    id 'fabric-loom' version '1.9-SNAPSHOT'
+    id 'dev.architectury.loom' version '1.13.467'
     id 'maven-publish'
-    id 'idea'
 }
 
 version = rootProject.version
 group = rootProject.group
-
 archivesBaseName = "${mod_name}-fabric-${minecraft_version}"
 
 repositories {
@@ -18,20 +16,28 @@ repositories {
 
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
-    mappings loom.layered() {
-        officialMojangMappings()
-    }
+    mappings loom.officialMojangMappings() // THIS STAYS - IT'S THE KEY!
     modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
-    modImplementation "com.terraformersmc:modmenu:11.0.2"
-    implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
 
-    modCompileOnlyApi("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
-    modCompileOnlyApi("mezz.jei:jei-${minecraft_version}-fabric-api:${jei_version}")
-    modRuntimeOnly("mezz.jei:jei-${minecraft_version}-fabric:${jei_version}")
+    // Common module
+    implementation(project(path: ':Common', configuration: 'namedElements'))
+
+    // ModMenu
+    modImplementation "com.terraformersmc:modmenu:11.0.2"
+
+    // JEI for Fabric
+    modCompileOnly "mezz.jei:jei-${minecraft_version}-fabric-api:${jei_version}"
+    modRuntimeOnly "mezz.jei:jei-${minecraft_version}-fabric:${jei_version}"
+
+    // Annotations
+    implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.2'
 }
 
 loom {
+    mixin {
+        defaultRefmapName = "${mod_name}-fabric-${minecraft_version}-refmap.json"
+    }
     runs {
         client {
             client()
@@ -50,14 +56,17 @@ loom {
 
 processResources {
     inputs.property "version", project.version
-
     filesMatching("fabric.mod.json") {
         expand "version": project.version
     }
+}
 
-    filesMatching("${mod_id}.mixins.json") {
-        expand "refmap_target": "${mod_name}-fabric-${minecraft_version}-refmap.json"
-    }
+tasks.withType(Javadoc).configureEach {
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+tasks.withType(JavaCompile).configureEach {
+    source(project(':Common').sourceSets.main.allSource)
 }
 
 jar {
@@ -93,7 +102,6 @@ publishing {
             from components.java
         }
     }
-
     repositories {
         maven {
             url "file://" + System.getenv("local_maven")

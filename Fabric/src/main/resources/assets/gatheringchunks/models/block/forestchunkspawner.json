@@ -1,0 +1,12 @@
+{
+  "parent" : "block/cube",
+  "textures" : {
+    "up" : "gatheringchunks:block/forestchunkspawner",
+    "down" : "gatheringchunks:block/forestchunkspawner",
+    "north" : "gatheringchunks:block/forestchunkspawner",
+    "east" : "gatheringchunks:block/forestchunkspawner",
+    "south" : "gatheringchunks:block/forestchunkspawner",
+    "west" : "gatheringchunks:block/forestchunkspawner",
+    "particle": "gatheringchunks:block/forestchunkspawner"
+  }
+}

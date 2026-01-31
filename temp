@@ -1,0 +1,16 @@
+```bash
+# Refresh Gradle
+./gradlew --refresh-dependencies
+
+# Build all modules
+./gradlew build
+
+# Run Fabric client
+./gradlew :Fabric:runClient
+
+# Run NeoForge client
+./gradlew :NeoForge:runClient
+
+# Build both and copy to Releases
+./gradlew copyToReleases
+```

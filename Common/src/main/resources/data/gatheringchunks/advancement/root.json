@@ -1,0 +1,19 @@
+{
+  "display": {
+    "icon": {
+      "id": "gatheringchunks:worldcore"
+    },
+    "title": {
+      "translate": "advancement.gatheringchunks.root.title"
+    },
+    "description": {
+      "translate": "advancement.gatheringchunks.root.description"
+    },
+    "background": "gatheringchunks:textures/gui/advancements/backgrounds/background.png"
+  },
+  "criteria": {
+    "login": {
+      "trigger": "minecraft:tick"
+    }
+  }
+}

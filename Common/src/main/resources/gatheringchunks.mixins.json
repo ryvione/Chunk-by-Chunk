@@ -1,0 +1,23 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.ryvione.gatheringchunks.mixins",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "BucketFluidAccessor",
+    "ChunkGeneratorAccessor",
+    "ChunkGeneratorStructureAccessor",
+    "ChunkMapMixin",
+    "DefrostedRegistry",
+    "EntityChangeDimensionMixin",
+    "HolderReferenceAccessor",
+    "NoiseBasedChunkGeneratorMixin",
+    "OverworldBiomeBuilderAccessor"
+  ],
+  "client": [
+    "PauseScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

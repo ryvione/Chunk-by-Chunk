@@ -1,0 +1,17 @@
+{
+  "type" : "minecraft:crafting_shaped",
+  "pattern": [
+    "ss ",
+    "ss ",
+    "   "
+  ],
+  "key" : {
+    "s" : {
+      "item": "gatheringchunks:worldfragment"
+    }
+  },
+  "result" : {
+    "id" : "gatheringchunks:worldshard",
+    "count" : 1
+  }
+}

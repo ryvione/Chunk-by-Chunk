@@ -1,0 +1,28 @@
+{
+  "parent": "gatheringchunks:worldcoreobtained",
+  "display": {
+    "icon": {
+      "item": "gatheringchunks:worldscanner"
+    },
+    "title": {
+      "translate": "advancement.gatheringchunks.worldscannerobtained.title"
+    },
+    "description": {
+      "translate": "advancement.gatheringchunks.worldscannerobtained.description"
+    }
+  },
+  "criteria": {
+    "obtainspawnchunkblock": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "gatheringchunks:worldscanner"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

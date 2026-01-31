@@ -1,0 +1,27 @@
+{
+  "parent" : "gatheringchunks:worldforgeobtained",
+  "display": {
+    "icon": {
+      "item": "gatheringchunks:worldfragment"
+    },
+    "title": {
+      "translate" : "advancement.gatheringchunks.worldfragmentobtained.title"
+    },
+    "description": {
+      "translate" : "advancement.gatheringchunks.worldfragmentobtained.description"
+    }
+  },
+  "criteria" : {
+    "obtainworldfragment" : {
+      "trigger" : "minecraft:inventory_changed",
+      "conditions" : {
+        "items" : [{
+          "items" : ["gatheringchunks:worldfragment"]
+        }]
+      }
+    }
+  },
+  "rewards" : {
+    "recipes" : ["gatheringchunks:worldshard"]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "parent": "gatheringchunks:worldfragmentobtained",
+  "display": {
+    "icon": {
+      "item": "gatheringchunks:worldshard"
+    },
+    "title": {
+      "translate": "advancement.gatheringchunks.worldshardobtained.title"
+    },
+    "description": {
+      "translate": "advancement.gatheringchunks.worldshardobtained.description"
+    }
+  },
+  "criteria": {
+    "obtainworldshard": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "gatheringchunks:worldshard"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "recipes": [
+      "gatheringchunks:worldcrystal",
+      "gatheringchunks:disassemble_worldshard",
+      "gatheringchunks:worldfragment"
+    ]
+  }
+}

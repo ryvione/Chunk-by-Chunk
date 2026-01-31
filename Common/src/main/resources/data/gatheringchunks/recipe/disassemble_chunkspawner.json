@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "tag": "gatheringchunks:chunkspawners"
+    }
+  ],
+  "result": {
+    "id": "gatheringchunks:worldcore",
+    "count": 1
+  }
+}

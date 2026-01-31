@@ -1,9 +1,0 @@
-{
-  "replace" : false,
-  "values" : [
-    "chunkbychunk:worldcore",
-    "chunkbychunk:worldforge",
-    "chunkbychunk:worldscanner",
-    "chunkbychunk:worldmender"
-  ]
-}
