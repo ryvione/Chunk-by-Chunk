@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.*;
 import com.ryvione.gatheringchunks.common.blockEntities.WorldScannerBlockEntity;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
@@ -36,7 +37,7 @@ public class ExperimentalScannerRenderer {
     private static long lastCacheClearTime = 0;
     private static final long CACHE_EXPIRY_MS = 10000; // 10 seconds
 
-    public static void render(PoseStack poseStack, float partialTick, long gameTime, boolean renderBlockOutline, net.minecraft.client.Camera camera, net.minecraft.client.renderer.GameRenderer gameRenderer, net.minecraft.client.renderer.LightTexture lightTexture, Matrix4f projectionMatrix) {
+    public static void render(PoseStack poseStack, DeltaTracker deltaTracker, boolean renderBlockOutline, net.minecraft.client.Camera camera, net.minecraft.client.renderer.GameRenderer gameRenderer, net.minecraft.client.renderer.LightTexture lightTexture, Matrix4f modelViewMatrix, Matrix4f projectionMatrix) {
         if (!ChunkByChunkConfig.get().getWorldScannerConfig().isExperimentalMode()) {
             return;
         }
