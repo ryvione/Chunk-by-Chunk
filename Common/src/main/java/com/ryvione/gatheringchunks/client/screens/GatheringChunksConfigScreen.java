@@ -24,6 +24,7 @@ public class GatheringChunksConfigScreen extends Screen {
     private static final int BUTTON_WIDTH = 200;
     private static final int BUTTON_HEIGHT = 20;
     private static final int SPACING = 24;
+    private int experimentalLabelY;
 
     public GatheringChunksConfigScreen(Screen parentScreen) {
         super(Component.literal("Gathering Chunks Configuration"));
@@ -109,6 +110,17 @@ public class GatheringChunksConfigScreen extends Screen {
                         (button, value) -> ChunkByChunkConfig.get().getGeneration().setAlwaysSpawnVillage(value)));
         currentY += SPACING + 10;
 
+        this.experimentalLabelY = currentY;
+        currentY += 15;
+
+        this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getWorldScannerConfig().isExperimentalMode())
+                .withTooltip(value -> Tooltip.create(
+                        Component.literal("Enable experimental mode for the world scanner which highlights blocks in the world")))
+                .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
+                        Component.literal("World Scanner: Experimental Mode"),
+                        (button, value) -> ChunkByChunkConfig.get().getWorldScannerConfig().setExperimentalMode(value)));
+        currentY += SPACING + 10;
+
         this.addRenderableWidget(Button.builder(
                         Component.literal("Done"),
                         button -> this.onClose())
@@ -121,6 +133,7 @@ public class GatheringChunksConfigScreen extends Screen {
         this.renderBackground(graphics, mouseX, mouseY, partialTick);
         super.render(graphics, mouseX, mouseY, partialTick);
         graphics.drawCenteredString(this.font, this.title, this.width / 2, 20, 0xFFFFFF);
+        graphics.drawCenteredString(this.font, Component.literal("Experimental"), this.width / 2, experimentalLabelY, 0xFF5555);
     }
 
     @Override

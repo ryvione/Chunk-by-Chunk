@@ -52,13 +52,10 @@ public class WorldScannerScreen extends AbstractContainerScreen<WorldScannerMenu
             guiGraphics.renderTooltip(font, Component.literal("Chunk: [" + chunkX + ", " + chunkZ + "]"), mouseX, mouseY);
         }
 
-        // Help icon hover check (absolute screen coordinates)
-        // Positioned at 285 horizontally inside the 310-wide GUI
         int helpX = 285;
         int helpY = 6;
         if (mouseX >= leftPos + helpX && mouseX <= leftPos + helpX + 10 && 
             mouseY >= topPos + helpY && mouseY <= topPos + helpY + 10) {
-            // Render tooltip slightly below the icon to prevent it being pushed off the top of the screen
             guiGraphics.renderTooltip(font, java.util.List.of(
                 Component.literal("§6Resource Density:").getVisualOrderText(),
                 Component.literal("§f- §fWhite: §7Extremely High (16k+)").getVisualOrderText(),

@@ -128,17 +128,13 @@ public class TreePlacementHandler {
 
         Random random = new Random();
         
-        // Place first tree
         BlockPos treePos1 = validPositions.get(random.nextInt(validPositions.size()));
         Holder<Biome> biomeHolder1 = level.getBiome(treePos1);
         placeTreeAt(level, treePos1, random, biomeHolder1);
         
-        // Place second tree at a different location if possible
         if (validPositions.size() > 1) {
-            // Remove the first position to avoid placing trees too close
             validPositions.remove(treePos1);
             
-            // Filter positions that are at least 8 blocks away from the first tree
             List<BlockPos> farPositions = validPositions.stream()
                 .filter(pos -> pos.distSqr(treePos1) >= 64) // 8 blocks squared = 64
                 .toList();
@@ -148,7 +144,6 @@ public class TreePlacementHandler {
                 Holder<Biome> biomeHolder2 = level.getBiome(treePos2);
                 placeTreeAt(level, treePos2, random, biomeHolder2);
             } else if (!validPositions.isEmpty()) {
-                // If no far positions, just place anywhere else
                 BlockPos treePos2 = validPositions.get(random.nextInt(validPositions.size()));
                 Holder<Biome> biomeHolder2 = level.getBiome(treePos2);
                 placeTreeAt(level, treePos2, random, biomeHolder2);

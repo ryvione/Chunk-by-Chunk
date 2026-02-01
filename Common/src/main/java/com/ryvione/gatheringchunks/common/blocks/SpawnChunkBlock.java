@@ -66,23 +66,19 @@ public class SpawnChunkBlock extends Block {
                 for (BlockPos targetPos : targetPositions) {
                     ChunkPos targetChunkPos = new ChunkPos(targetPos);
                     
-                    // Check if the target chunk is empty
                     boolean isChunkEmpty = isEmptyChunk(level, targetChunkPos);
                     boolean shouldOverwrite = false;
                     
                     if (!isChunkEmpty) {
-                        // Chunk is occupied - check if player has confirmed overwrite
                         ChunkOverwriteConfirmation.PendingOverwrite pending = 
                             ChunkOverwriteConfirmation.getPendingOverwrite(serverPlayer, targetChunkPos);
                         
                         if (pending != null && pending.biomeTheme.equals(effectiveBiomeTheme) && pending.random == effectiveRandom) {
-                            // Player has confirmed, proceed with overwrite
                             ChunkOverwriteConfirmation.removePendingOverwrite(serverPlayer);
                             serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                                 "§6[ChunkByChunk] §eOverwriting chunk at [" + targetChunkPos.x + ", " + targetChunkPos.z + "]"));
                             shouldOverwrite = true;
                         } else {
-                            // Request confirmation
                             ChunkOverwriteConfirmation.addPendingOverwrite(serverPlayer, targetChunkPos, effectiveBiomeTheme, effectiveRandom);
                             serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                                 "§c[ChunkByChunk] §6WARNING: §eChunk at [" + targetChunkPos.x + ", " + targetChunkPos.z + "] is already occupied!"));
@@ -92,7 +88,6 @@ public class SpawnChunkBlock extends Block {
                         }
                     }
                     
-                    // Attempt to spawn the chunk
                     if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, targetPos, false, shouldOverwrite)) {
                         level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
                         level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);

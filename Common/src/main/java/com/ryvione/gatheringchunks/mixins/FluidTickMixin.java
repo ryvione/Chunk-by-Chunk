@@ -25,12 +25,10 @@ public class FluidTickMixin {
      */
     @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
     private void preventFlowIntoVoid(Level level, BlockPos pos, FluidState state, CallbackInfo ci) {
-        // Early exit if not in a server-side world
         if (level.isClientSide) {
             return;
         }
 
-        // Check all adjacent positions where fluid might flow
         BlockPos[] adjacentPositions = {
             pos.north(),
             pos.south(),
@@ -44,14 +42,10 @@ public class FluidTickMixin {
         for (BlockPos adjacentPos : adjacentPositions) {
             ChunkPos adjacentChunk = new ChunkPos(adjacentPos);
             
-            // Only check if we're flowing into a different chunk (optimization)
             if (!currentChunk.equals(adjacentChunk)) {
-                // Check if the adjacent chunk is void/empty
                 if (SpawnChunkHelper.isEmptyChunk(level, adjacentChunk)) {
-                    // Check if the adjacent position would be affected by this fluid
                     if (level.getBlockState(adjacentPos).isAir() || 
                         level.getBlockState(adjacentPos).getBlock() == Blocks.CAVE_AIR) {
-                        // Cancel the fluid tick to prevent flow into void
                         ci.cancel();
                         return;
                     }

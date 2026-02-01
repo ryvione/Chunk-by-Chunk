@@ -13,6 +13,7 @@
     "ChunkMapMixin",
     "DefrostedRegistry",
     "EntityChangeDimensionMixin",
+    "LevelRendererMixin",
     "HolderReferenceAccessor",
     "MultiNoiseBiomeSourceAccessor",
     "NoiseBasedChunkGeneratorMixin",

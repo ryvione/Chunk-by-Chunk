@@ -240,7 +240,6 @@ public class ChunkSpawnController extends SavedData {
                         if (ChunkByChunkConfig.get().getGameplayConfig().isChunkSpawnLeafDecayDisabled() && newBlock.getBlock() instanceof LeavesBlock) {
                             newBlock = newBlock.setValue(LeavesBlock.PERSISTENT, true);
                         }
-                        // Use UPDATE_CLIENTS | UPDATE_KNOWN_SHAPE to avoid redundant neighbor updates during bulk copy
                         targetLevel.setBlock(targetBlock, newBlock, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
                         BlockEntity fromBlockEntity = sourceLevel.getBlockEntity(sourceBlock);
                         BlockEntity toBlockEntity = targetLevel.getBlockEntity(targetBlock);
@@ -324,8 +323,6 @@ public class ChunkSpawnController extends SavedData {
             int waterBlockCount = 0;
             int totalSurfaceBlocks = 0;
             
-            // Optimization: Sampling instead of checking every single block
-            // and using Heightmap to find the surface quickly
             for (int x = 0; x < 16; x += 2) {
                 for (int z = 0; z < 16; z += 2) {
                     int y = chunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, x, z);
@@ -339,7 +336,6 @@ public class ChunkSpawnController extends SavedData {
                 }
             }
             
-            // If more than 85% of sampled surface blocks are water, consider it water-only
             return totalSurfaceBlocks > 0 && ((float) waterBlockCount / totalSurfaceBlocks) > 0.85f;
         } catch (Exception e) {
             GatheringChunksConstants.LOGGER.warn("Failed to check for water-only chunk: " + e.getMessage());
@@ -377,20 +373,15 @@ public class ChunkSpawnController extends SavedData {
             ResourceKey<Level> sourceLevel;
             String effectiveBiomeTheme = biomeTheme;
             
-            // For biome-themed spawners, always use random chunks to generate unique terrain
-            // For regular random spawners, also use random chunks
             if (!biomeTheme.isEmpty()) {
-                // Determine a large stable offset for this theme to ensure adjacent spawners produce continuous terrain
                 Random themeRng = new Random(biomeTheme.hashCode());
                 int offsetX = themeRng.nextInt(-1000000, 1000000);
                 int offsetZ = themeRng.nextInt(-1000000, 1000000);
                 sourceChunkPos = new ChunkPos(targetChunkPos.x + offsetX, targetChunkPos.z + offsetZ);
             } else if (random) {
-                // For regular random spawners, keep using a random chunk
                 Random rng = new Random(blockPos.asLong());
                 sourceChunkPos = new ChunkPos(rng.nextInt(Short.MIN_VALUE, Short.MAX_VALUE), rng.nextInt(Short.MIN_VALUE, Short.MAX_VALUE));
             } else {
-                // Only use matching coordinates for non-themed, non-random spawners
                 sourceChunkPos = new ChunkPos(targetChunkPos.x, targetChunkPos.z);
             }
             
@@ -400,16 +391,13 @@ public class ChunkSpawnController extends SavedData {
                 sourceLevel = generator.getBiomeDimension(biomeTheme);
             }
             
-            // Check if the source chunk would be water-only, and if so, use plains instead (ONLY for non-themed spawners)
             ServerLevel sourceLevelInstance = server.getLevel(sourceLevel);
             if (biomeTheme.isEmpty() && sourceLevelInstance != null && isWaterOnlyChunk(sourceLevelInstance, sourceChunkPos)) {
                 GatheringChunksConstants.LOGGER.info("Detected water-only chunk at " + sourceChunkPos + ", spawning plains chunk instead");
-                // Try to get plains biome dimension
                 ResourceKey<Level> plainsDimension = generator.getBiomeDimension("plains");
                 if (plainsDimension != null) {
                     sourceLevel = plainsDimension;
                     effectiveBiomeTheme = "plains";
-                    // Generate a new random chunk position for plains
                     Random rng = new Random(blockPos.asLong() + 12345); // Different seed for variety
                     sourceChunkPos = new ChunkPos(rng.nextInt(Short.MIN_VALUE, Short.MAX_VALUE), rng.nextInt(Short.MIN_VALUE, Short.MAX_VALUE));
                 }

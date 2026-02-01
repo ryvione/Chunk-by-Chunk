@@ -20,7 +20,6 @@ public class ChunkBarrierManager {
 
     private static final Logger LOGGER = LogManager.getLogger(ChunkBarrierManager.class);
 
-    // Flip this back to false to re-enable barrier logic
     private static final boolean TEMP_DISABLED = true;
 
     private static final BlockState BARRIER = Blocks.BARRIER.defaultBlockState();

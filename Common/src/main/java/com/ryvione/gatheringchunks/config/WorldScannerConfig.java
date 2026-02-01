@@ -25,6 +25,10 @@ public class WorldScannerConfig {
     @Comment("The amount of fuel consumed each tick")
     @IntRange(min = 1, max = Short.MAX_VALUE * 2)
     private int fuelConsumedPerTick = 1;
+
+    @Name("experimental_mode")
+    @Comment("Enable experimental mode for the world scanner which highlights blocks in the world")
+    private boolean experimentalMode = false;
     public int getFuelConsumedPerTick() {
         return fuelConsumedPerTick;
     }
@@ -40,7 +44,16 @@ public class WorldScannerConfig {
     public int getFuelRequiredPerChunk() {
         return fuelRequiredPerChunk;
     }
+
     public void setFuelRequiredPerChunk(int fuelRequiredPerChunk) {
         this.fuelRequiredPerChunk = fuelRequiredPerChunk;
+    }
+
+    public boolean isExperimentalMode() {
+        return experimentalMode;
+    }
+
+    public void setExperimentalMode(boolean experimentalMode) {
+        this.experimentalMode = experimentalMode;
     }
 }

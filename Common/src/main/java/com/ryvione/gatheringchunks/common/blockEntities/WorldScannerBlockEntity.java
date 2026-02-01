@@ -55,7 +55,7 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
     private static final int[] SLOTS_FOR_UP = new int[]{SLOT_INPUT};
     private static final int[] SLOTS_FOR_SIDES = new int[]{SLOT_FUEL};
     private static final int[] SLOTS_FOR_DOWN = new int[]{SLOT_FUEL};
-    private static final byte[] SCAN_COLOR_PALETTE = {
+    public static final byte[] SCAN_COLOR_PALETTE = {
             MapColor.COLOR_BLACK.getPackedId(MapColor.Brightness.NORMAL),
             MapColor.NETHER.getPackedId(MapColor.Brightness.LOWEST),
             MapColor.NETHER.getPackedId(MapColor.Brightness.LOW),
@@ -70,14 +70,14 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
             MapColor.GOLD.getPackedId(MapColor.Brightness.HIGH),
             MapColor.SNOW.getPackedId(MapColor.Brightness.HIGH)
     };
-    private static final Multimap<Item, Block> scanItemMappings = ArrayListMultimap.create();
-    private static final int[] SCAN_COLOR_THRESHOLD = {0, 1, 4, 8, 16, 32, 64, 128, 256, 512, 2048, 8192, 16384};
+    public static final Multimap<Item, Block> scanItemMappings = ArrayListMultimap.create();
+    public static final int[] SCAN_COLOR_THRESHOLD = {0, 1, 4, 8, 16, 32, 64, 128, 256, 512, 2048, 8192, 16384};
     private MapId map = null;
     private int scanCharge = 0;
     private final SpiralIterator scanIterator = new SpiralIterator();
     private int tickUntilReplicate = 0;
 
-    protected final ContainerData dataAccess = new ContainerData() {
+    public final ContainerData dataAccess = new ContainerData() {
         public int get(int id) {
             return switch (id) {
                 case DATA_MAP -> map != null ? map.id() : NO_MAP;
@@ -270,7 +270,6 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
                                 for (int innerZ = 0; innerZ < SCAN_ZOOM; innerZ++) {
                                     int pixelX = entity.scanIterator.getX() * SCAN_ZOOM + innerX;
                                     int pixelY = entity.scanIterator.getY() * SCAN_ZOOM + innerZ;
-                                    // Ensure we're within map bounds
                                     if (pixelX >= 0 && pixelX < MapItem.IMAGE_WIDTH && pixelY >= 0 && pixelY < MapItem.IMAGE_HEIGHT) {
                                         data.setColor(pixelX, pixelY, color);
                                     }
@@ -334,7 +333,6 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
                 map = serverLevel.getFreeMapId();
                 serverLevel.setMapData(map, data);
                 
-                // Initialize the map with empty color
                 for (int x = 0; x < MapItem.IMAGE_WIDTH; x++) {
                     for (int y = 0; y < MapItem.IMAGE_HEIGHT; y++) {
                         data.setColor(x, y, MapColor.NONE.getPackedId(MapColor.Brightness.NORMAL));
