@@ -4,6 +4,8 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import com.ryvione.gatheringchunks.common.blockEntities.WorldScannerBlockEntity;
 import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
@@ -11,6 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
+import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 
 public class WorldScannerScreen extends AbstractContainerScreen<WorldScannerMenu> {
 
@@ -24,6 +27,7 @@ public class WorldScannerScreen extends AbstractContainerScreen<WorldScannerMenu
     private static final int NUM_FRAMES = 8;
 
     private float animCounter = 0f;
+    private Button espButton;
 
     public WorldScannerScreen(WorldScannerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -32,7 +36,26 @@ public class WorldScannerScreen extends AbstractContainerScreen<WorldScannerMenu
     }
 
     @Override
+    protected void init() {
+        super.init();
+        if (ChunkByChunkConfig.get().getWorldScannerConfig().isExperimentalMode()) {
+            espButton = this.addRenderableWidget(Button.builder(getEspMessage(), (button) -> {
+                this.minecraft.gameMode.handleInventoryButtonClick(menu.containerId, 0);
+            }).bounds(leftPos + 80, topPos + 20, 60, 20).build());
+        }
+    }
+
+    private Component getEspMessage() {
+        return Component.literal("ESP: ").append(menu.isEspEnabled() ? 
+                Component.literal("ON").withStyle(ChatFormatting.GREEN) : 
+                Component.literal("OFF").withStyle(ChatFormatting.RED));
+    }
+
+    @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        if (espButton != null) {
+            espButton.setMessage(getEspMessage());
+        }
         renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         renderTooltip(guiGraphics, mouseX, mouseY);

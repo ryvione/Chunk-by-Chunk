@@ -1,23 +1,22 @@
 package com.ryvione.gatheringchunks.client.render;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.ryvione.gatheringchunks.common.blockEntities.WorldScannerBlockEntity;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
-import com.mojang.blaze3d.vertex.BufferUploader;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
@@ -37,7 +36,7 @@ public class ExperimentalScannerRenderer {
     private static long lastCacheClearTime = 0;
     private static final long CACHE_EXPIRY_MS = 10000; // 10 seconds
 
-    public static void render(PoseStack poseStack, DeltaTracker deltaTracker, boolean renderBlockOutline, net.minecraft.client.Camera camera, net.minecraft.client.renderer.GameRenderer gameRenderer, net.minecraft.client.renderer.LightTexture lightTexture, Matrix4f modelViewMatrix, Matrix4f projectionMatrix) {
+    public static void render(PoseStack poseStack, MultiBufferSource bufferSource, net.minecraft.client.Camera camera) {
         if (!ChunkByChunkConfig.get().getWorldScannerConfig().isExperimentalMode()) {
             return;
         }
@@ -66,14 +65,16 @@ public class ExperimentalScannerRenderer {
 
                 for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
                     if (blockEntity instanceof WorldScannerBlockEntity scanner) {
-                        renderScannerHighlights(poseStack, level, scanner, camPos);
+                        if (scanner.isEspEnabled()) {
+                            renderScannerHighlights(poseStack, bufferSource, level, scanner, camPos);
+                        }
                     }
                 }
             }
         }
     }
 
-    private static void renderScannerHighlights(PoseStack poseStack, Level level, WorldScannerBlockEntity scanner, Vec3 camPos) {
+    private static void renderScannerHighlights(PoseStack poseStack, MultiBufferSource bufferSource, Level level, WorldScannerBlockEntity scanner, Vec3 camPos) {
         ItemStack input = scanner.getItem(WorldScannerBlockEntity.SLOT_INPUT);
         if (input.isEmpty()) return;
 
@@ -119,12 +120,12 @@ public class ExperimentalScannerRenderer {
                 if (colorId == MapColor.NONE.getPackedId(MapColor.Brightness.NORMAL)) continue;
                 if (colorId == MapColor.COLOR_BLACK.getPackedId(MapColor.Brightness.NORMAL)) continue;
 
-                renderTargetBlocksInChunk(poseStack, chunk, targetBlocks, colorId, camPos);
+                renderTargetBlocksInChunk(poseStack, bufferSource, chunk, targetBlocks, colorId, camPos);
             }
         }
     }
 
-    private static void renderTargetBlocksInChunk(PoseStack poseStack, LevelChunk chunk, Collection<Block> targetBlocks, byte colorId, Vec3 camPos) {
+    private static void renderTargetBlocksInChunk(PoseStack poseStack, MultiBufferSource bufferSource, LevelChunk chunk, Collection<Block> targetBlocks, byte colorId, Vec3 camPos) {
         // Find MapColor by its packed ID
         MapColor mapColor = getMapColorFromPackedId(colorId);
 
@@ -135,6 +136,8 @@ public class ExperimentalScannerRenderer {
 
         ChunkPos cp = chunk.getPos();
         Map<Block, List<BlockPos>> chunkCache = blockCache.computeIfAbsent(cp, k -> new HashMap<>());
+
+        VertexConsumer vertexConsumer = bufferSource.getBuffer(RenderType.lines());
 
         for (Block targetBlock : targetBlocks) {
             List<BlockPos> positions = chunkCache.get(targetBlock);
@@ -150,7 +153,7 @@ public class ExperimentalScannerRenderer {
             }
 
             for (BlockPos pos : positions) {
-                renderHighlight(poseStack, pos, r, g, b, camPos);
+                renderHighlight(poseStack, vertexConsumer, pos, r, g, b, camPos);
             }
         }
     }
@@ -173,25 +176,11 @@ public class ExperimentalScannerRenderer {
         return MapColor.COLOR_BLACK;
     }
 
-    private static void renderHighlight(PoseStack poseStack, BlockPos pos, float r, float g, float b, Vec3 camPos) {
+    private static void renderHighlight(PoseStack poseStack, VertexConsumer vertexConsumer, BlockPos pos, float r, float g, float b, Vec3 camPos) {
         poseStack.pushPose();
+        // Modern approach: translate by world coordinates relative to the camera
         poseStack.translate(pos.getX() - camPos.x, pos.getY() - camPos.y, pos.getZ() - camPos.z);
-
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        RenderSystem.disableCull();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableDepthTest();
-
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder bufferBuilder = tesselator.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
-        LevelRenderer.renderLineBox(poseStack, bufferBuilder, 0, 0, 0, 1, 1, 1, r, g, b, 1.0f);
-        BufferUploader.drawWithShader(bufferBuilder.buildOrThrow());
-
-        RenderSystem.enableDepthTest();
-        RenderSystem.enableCull();
-        RenderSystem.disableBlend();
-        
+        LevelRenderer.renderLineBox(poseStack, vertexConsumer, 0, 0, 0, 1, 1, 1, r, g, b, 1.0f);
         poseStack.popPose();
     }
 }

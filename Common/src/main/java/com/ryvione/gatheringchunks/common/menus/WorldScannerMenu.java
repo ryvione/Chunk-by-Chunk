@@ -16,6 +16,7 @@ import com.ryvione.gatheringchunks.interop.Services;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
@@ -53,6 +54,17 @@ public class WorldScannerMenu extends BaseInventoryContainerMenu {
     public MapId getMapId() {
         int mapId = this.containerData.get(WorldScannerBlockEntity.DATA_MAP);
         return mapId == WorldScannerBlockEntity.NO_MAP ? null : new MapId(mapId);
+    }
+    public boolean isEspEnabled() {
+        return this.containerData.get(WorldScannerBlockEntity.DATA_ESP_ENABLED) != 0;
+    }
+    @Override
+    public boolean clickMenuButton(Player player, int id) {
+        if (id == 0) {
+            this.containerData.set(WorldScannerBlockEntity.DATA_ESP_ENABLED, isEspEnabled() ? 0 : 1);
+            return true;
+        }
+        return super.clickMenuButton(player, id);
     }
     @Override
     protected boolean quickMoveToContainer(ItemStack stack) {

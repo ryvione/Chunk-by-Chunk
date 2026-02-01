@@ -17,6 +17,8 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
@@ -46,7 +48,8 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
     public static final int DATA_MAX_ENERGY = 2;
     public static final int DATA_SCANNING_X = 3;
     public static final int DATA_SCANNING_Z = 4;
-    public static final int NUM_DATA_ITEMS = 5;
+    public static final int DATA_ESP_ENABLED = 5;
+    public static final int NUM_DATA_ITEMS = 6;
     public static final int SCAN_CENTER = 15;
     public static final int SCAN_ZOOM = 4;
     public static final int NO_MAP = -1;
@@ -76,6 +79,7 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
     private int scanCharge = 0;
     private final SpiralIterator scanIterator = new SpiralIterator();
     private int tickUntilReplicate = 0;
+    private boolean espEnabled = false;
 
     public final ContainerData dataAccess = new ContainerData() {
         public int get(int id) {
@@ -85,12 +89,14 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
                 case DATA_MAX_ENERGY -> getChargedFuel();
                 case DATA_SCANNING_X -> scanIterator.getX();
                 case DATA_SCANNING_Z -> scanIterator.getY();
+                case DATA_ESP_ENABLED -> espEnabled ? 1 : 0;
                 default -> 0;
             };
         }
 
         public void set(int id, int value) {
             switch (id) {
+                case DATA_ESP_ENABLED -> setEspEnabled(value != 0);
                 case DATA_MAP -> {
                     if (value == NO_MAP) {
                         map = null;
@@ -150,6 +156,7 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
         map = mapId == NO_MAP ? null : new MapId(mapId);
         scanIterator.load(tag.getCompound("ScanIterator"));
         scanCharge = tag.getInt("ScanCharge");
+        espEnabled = tag.getBoolean("EspEnabled");
     }
 
     @Override
@@ -158,6 +165,7 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
         tag.putInt("Map", map != null ? map.id() : NO_MAP);
         tag.put("ScanIterator", scanIterator.createTag());
         tag.putInt("ScanCharge", scanCharge);
+        tag.putBoolean("EspEnabled", espEnabled);
     }
 
     private boolean validTarget() {
@@ -373,6 +381,28 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
         if (!targetUnchanged) {
             resetScan();
         }
+    }
+
+    public boolean isEspEnabled() {
+        return espEnabled;
+    }
+
+    public void setEspEnabled(boolean enabled) {
+        this.espEnabled = enabled;
+        setChanged();
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider provider) {
+        return saveWithoutMetadata(provider);
     }
 
     private void resetScan() {
