@@ -21,12 +21,12 @@ public final class ConfigUtil {
     private static final ConfigSystem system = new ConfigSystem();
     public static void loadDefaultConfig() {
         synchronized (system) {
-            system.synchConfig(Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH).resolve(GatheringChunksConstants.CONFIG_FILE), ChunkByChunkConfig.get());
+            system.synchConfig(Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH).resolve(GatheringChunksConstants.CONFIG_SUBDIR).resolve(GatheringChunksConstants.CONFIG_FILE), ChunkByChunkConfig.get());
         }
     }
     public static void saveDefaultConfig() {
         synchronized (system) {
-            system.write(Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH).resolve(GatheringChunksConstants.CONFIG_FILE), ChunkByChunkConfig.get());
+            system.write(Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH).resolve(GatheringChunksConstants.CONFIG_SUBDIR).resolve(GatheringChunksConstants.CONFIG_FILE), ChunkByChunkConfig.get());
         }
     }
 }

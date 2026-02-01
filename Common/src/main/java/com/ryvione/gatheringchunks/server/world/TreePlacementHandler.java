@@ -26,21 +26,31 @@ public class TreePlacementHandler {
             return;
         }
 
+        TreePlacementSavedData data = TreePlacementSavedData.get(level);
+        if (data.areTreesPlaced()) {
+            return;
+        }
+
         LevelChunk chunk = level.getChunk(chunkPos.x, chunkPos.z);
 
         if (hasVillage(level, chunk)) {
+            data.setTreesPlaced(true);
             return;
         }
 
         if (hasWoodInChunk(level, chunk)) {
+            data.setTreesPlaced(true);
             return;
         }
 
         if (hasMinimumWoodInDimension(level, chunkPos)) {
+            data.setTreesPlaced(true);
             return;
         }
 
-        placeTreeInChunk(level, chunk);
+        if (placeTreeInChunk(level, chunk)) {
+            data.setTreesPlaced(true);
+        }
     }
 
     private static boolean hasVillage(ServerLevel level, LevelChunk chunk) {
@@ -109,18 +119,42 @@ public class TreePlacementHandler {
         return false;
     }
 
-    private static void placeTreeInChunk(ServerLevel level, LevelChunk chunk) {
+    private static boolean placeTreeInChunk(ServerLevel level, LevelChunk chunk) {
         List<BlockPos> validPositions = findValidTreePositions(level, chunk);
 
         if (validPositions.isEmpty()) {
-            return;
+            return false;
         }
 
         Random random = new Random();
-        BlockPos treePos = validPositions.get(random.nextInt(validPositions.size()));
-
-        Holder<Biome> biomeHolder = level.getBiome(treePos);
-        placeTreeAt(level, treePos, random, biomeHolder);
+        
+        // Place first tree
+        BlockPos treePos1 = validPositions.get(random.nextInt(validPositions.size()));
+        Holder<Biome> biomeHolder1 = level.getBiome(treePos1);
+        placeTreeAt(level, treePos1, random, biomeHolder1);
+        
+        // Place second tree at a different location if possible
+        if (validPositions.size() > 1) {
+            // Remove the first position to avoid placing trees too close
+            validPositions.remove(treePos1);
+            
+            // Filter positions that are at least 8 blocks away from the first tree
+            List<BlockPos> farPositions = validPositions.stream()
+                .filter(pos -> pos.distSqr(treePos1) >= 64) // 8 blocks squared = 64
+                .toList();
+            
+            if (!farPositions.isEmpty()) {
+                BlockPos treePos2 = farPositions.get(random.nextInt(farPositions.size()));
+                Holder<Biome> biomeHolder2 = level.getBiome(treePos2);
+                placeTreeAt(level, treePos2, random, biomeHolder2);
+            } else if (!validPositions.isEmpty()) {
+                // If no far positions, just place anywhere else
+                BlockPos treePos2 = validPositions.get(random.nextInt(validPositions.size()));
+                Holder<Biome> biomeHolder2 = level.getBiome(treePos2);
+                placeTreeAt(level, treePos2, random, biomeHolder2);
+            }
+        }
+        return true;
     }
 
     private static List<BlockPos> findValidTreePositions(ServerLevel level, LevelChunk chunk) {
@@ -159,7 +193,7 @@ public class TreePlacementHandler {
 
     private static boolean isExposedToAir(ServerLevel level, BlockPos pos) {
         BlockPos above = pos.above();
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 5; i++) {
             if (!level.getBlockState(above.above(i)).isAir()) {
                 return false;
             }

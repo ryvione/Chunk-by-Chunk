@@ -21,7 +21,8 @@ public final class GatheringChunksConstants {
     }
     public static final Logger LOGGER = LogManager.getLogger(GatheringChunksConstants.MOD_ID);
     public static final String MOD_ID = "gatheringchunks";
-    public static final String DEFAULT_CONFIG_PATH = "defaultconfigs";
+    public static final String DEFAULT_CONFIG_PATH = "config";
+    public static final String CONFIG_SUBDIR = "GatheringChunks";
     public static final String CONFIG_FILE = MOD_ID + ".toml";
     public static final String SCANNER_DATA_PATH = "scanner_data";
     public static final String SKY_DIMENSION_DATA_PATH = "skydimensions";

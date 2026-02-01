@@ -97,8 +97,38 @@ public class WorldForgeBlockEntity extends BaseFueledBlockEntity {
         return new WorldForgeMenu(menuId, inventory, this, this.dataAccess);
     }
 
+    @Override
+    public boolean isFuel(ItemStack itemStack) {
+        return isWorldForgeFuel(itemStack);
+    }
+
+    @Override
+    public int getFuelValue(ItemStack itemStack) {
+        Item item = itemStack.getItem();
+        if (itemStack.is(SOIL_FUEL_TAG) || item.toString().contains("dirt") || item.toString().contains("sand") || item.toString().contains("gravel")) {
+            return 2;
+        }
+        if (itemStack.is(STONE_FUEL_TAG) || item.toString().contains("stone") || item.toString().contains("cobblestone")) {
+            return 4;
+        }
+        if (itemStack.is(STRONG_FUEL_TAG)) {
+            return 128;
+        }
+        return super.getFuelValue(itemStack);
+    }
+
     public static boolean isWorldForgeFuel(ItemStack itemStack) {
-        return FUEL.containsKey(itemStack.getItem()) || itemStack.is(SOIL_FUEL_TAG) || itemStack.is(STONE_FUEL_TAG) || itemStack.is(STRONG_FUEL_TAG);
+        Item item = itemStack.getItem();
+        String name = item.toString();
+        return FUEL.containsKey(item) 
+                || itemStack.is(SOIL_FUEL_TAG) 
+                || itemStack.is(STONE_FUEL_TAG) 
+                || itemStack.is(STRONG_FUEL_TAG)
+                || name.contains("dirt") 
+                || name.contains("stone") 
+                || name.contains("cobblestone")
+                || name.contains("sand")
+                || name.contains("gravel");
     }
 
     @Override

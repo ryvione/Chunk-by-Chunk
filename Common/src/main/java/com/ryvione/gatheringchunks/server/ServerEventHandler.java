@@ -72,7 +72,7 @@ public final class ServerEventHandler {
     }
 
     public static void onServerStarting(MinecraftServer server) {
-        configSystem.synchConfig(server.getWorldPath(LevelResource.ROOT).resolve(SERVERCONFIG).resolve(GatheringChunksConstants.CONFIG_FILE), Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH).resolve(GatheringChunksConstants.CONFIG_FILE), ChunkByChunkConfig.get());
+        configSystem.synchConfig(server.getWorldPath(LevelResource.ROOT).resolve(SERVERCONFIG).resolve(GatheringChunksConstants.CONFIG_SUBDIR).resolve(GatheringChunksConstants.CONFIG_FILE), Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH).resolve(GatheringChunksConstants.CONFIG_SUBDIR).resolve(GatheringChunksConstants.CONFIG_FILE), ChunkByChunkConfig.get());
         if (ChunkByChunkConfig.get().getGeneration().isEnabled()) {
             GatheringChunksConstants.LOGGER.info("Setting up sky dimensions");
             applySkyDimensionConfig(server.registryAccess());
@@ -323,13 +323,17 @@ public final class ServerEventHandler {
         Set<Block> copper = ImmutableSet.of(Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE, Blocks.RAW_COPPER_BLOCK);
         BlockPos spawnPos = overworldLevel.getSharedSpawnPos();
         if (!ChunkByChunkConfig.get().getGatheringChunksConfig().isHardMode()) {
-            switch (ChunkByChunkConfig.get().getGameplayConfig().getStartRestriction()) {
-                case Village -> {
-                    spawnPos = findVillage(generationLevel, registryAccess, spawnPos);
-                }
-                case Biome -> {
-                    String startingBiome = ChunkByChunkConfig.get().getGameplayConfig().getStartingBiome();
-                    spawnPos = findBiome(overworldLevel, generationLevel, registryAccess, spawnPos, startingBiome);
+            if (ChunkByChunkConfig.get().getGeneration().isAlwaysSpawnVillage()) {
+                spawnPos = findVillage(generationLevel, registryAccess, spawnPos);
+            } else {
+                switch (ChunkByChunkConfig.get().getGameplayConfig().getStartRestriction()) {
+                    case Village -> {
+                        spawnPos = findVillage(generationLevel, registryAccess, spawnPos);
+                    }
+                    case Biome -> {
+                        String startingBiome = ChunkByChunkConfig.get().getGameplayConfig().getStartingBiome();
+                        spawnPos = findBiome(overworldLevel, generationLevel, registryAccess, spawnPos, startingBiome);
+                    }
                 }
             }
         } else {

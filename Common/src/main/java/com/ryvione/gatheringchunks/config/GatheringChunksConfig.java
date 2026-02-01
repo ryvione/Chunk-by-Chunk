@@ -49,6 +49,10 @@ public class GatheringChunksConfig {
     @Name("Auto-Spawn Trees")
     private boolean autoSpawnTrees = true;
 
+    @Comment("Prevent fluids from flowing into the void")
+    @Name("Prevent Fluid Flow Into Void")
+    private boolean preventFluidFlowIntoVoid = true;
+
     public boolean isHardMode() {
         return hardMode;
     }
@@ -114,5 +118,13 @@ public class GatheringChunksConfig {
 
     public void setAutoSpawnTrees(boolean autoSpawnTrees) {
         this.autoSpawnTrees = autoSpawnTrees;
+    }
+
+    public boolean isPreventFluidFlowIntoVoid() {
+        return preventFluidFlowIntoVoid;
+    }
+
+    public void setPreventFluidFlowIntoVoid(boolean preventFluidFlowIntoVoid) {
+        this.preventFluidFlowIntoVoid = preventFluidFlowIntoVoid;
     }
 }

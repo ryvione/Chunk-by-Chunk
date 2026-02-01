@@ -33,8 +33,26 @@ public final class SpawnChunkHelper {
     }
 
     public static boolean isEmptyChunk(Level level, ChunkPos chunkPos) {
+        // Check middle bedrock
         BlockPos bedrockCheckBlock = chunkPos.getMiddleBlockPosition(level.getMinBuildHeight());
-        return !Blocks.BEDROCK.equals(level.getBlockState(bedrockCheckBlock).getBlock());
+        if (Blocks.BEDROCK.equals(level.getBlockState(bedrockCheckBlock).getBlock())) {
+            return false;
+        }
+
+        // Check for any non-air blocks at the bottom layer (min + 1) to detect other terrain
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        int minY = level.getMinBuildHeight();
+        
+        // Sample 5 points (center + 4 mid-points to corners)
+        int[][] samples = {{8, 8}, {2, 2}, {13, 13}, {2, 13}, {13, 2}};
+        for (int[] sample : samples) {
+            pos.set(chunkPos.getMinBlockX() + sample[0], minY + 1, chunkPos.getMinBlockZ() + sample[1]);
+            if (!level.getBlockState(pos).isAir()) {
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     public static void createNextSpawner(ServerLevel targetLevel, ChunkPos chunkPos) {

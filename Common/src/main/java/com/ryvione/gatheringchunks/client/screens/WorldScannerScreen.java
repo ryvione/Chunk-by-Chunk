@@ -49,25 +49,26 @@ public class WorldScannerScreen extends AbstractContainerScreen<WorldScannerMenu
             int chunkX = mapX / WorldScannerBlockEntity.SCAN_ZOOM - WorldScannerBlockEntity.SCAN_CENTER;
             int chunkZ = mapY / WorldScannerBlockEntity.SCAN_ZOOM - WorldScannerBlockEntity.SCAN_CENTER;
 
-            StringBuilder builder = new StringBuilder();
-            if (chunkZ < 0) {
-                builder.append(-chunkZ);
-                builder.append(" N ");
-            } else if (chunkZ > 0) {
-                builder.append(chunkZ);
-                builder.append(" S ");
-            }
-            if (chunkX < 0) {
-                builder.append(-chunkX);
-                builder.append(" W");
-            } else if (chunkX > 0) {
-                builder.append(chunkX);
-                builder.append(" E");
-            }
+            guiGraphics.renderTooltip(font, Component.literal("Chunk: [" + chunkX + ", " + chunkZ + "]"), mouseX, mouseY);
+        }
 
-            if (!builder.isEmpty()) {
-                guiGraphics.renderTooltip(font, Component.literal(builder.toString()), mouseX, mouseY);
-            }
+        // Help icon hover check (absolute screen coordinates)
+        // Positioned at 285 horizontally inside the 310-wide GUI
+        int helpX = 285;
+        int helpY = 6;
+        if (mouseX >= leftPos + helpX && mouseX <= leftPos + helpX + 10 && 
+            mouseY >= topPos + helpY && mouseY <= topPos + helpY + 10) {
+            // Render tooltip slightly below the icon to prevent it being pushed off the top of the screen
+            guiGraphics.renderTooltip(font, java.util.List.of(
+                Component.literal("§6Resource Density:").getVisualOrderText(),
+                Component.literal("§f- §fWhite: §7Extremely High (16k+)").getVisualOrderText(),
+                Component.literal("§f- §6Gold: §7High (8k+)").getVisualOrderText(),
+                Component.literal("§f- §eYellow: §7Common (2k+)").getVisualOrderText(),
+                Component.literal("§f- §6Orange: §7Uncommon (512+)").getVisualOrderText(),
+                Component.literal("§f- §cRed: §7Rare (32+)").getVisualOrderText(),
+                Component.literal("§f- §4Dark Red: §7Very Rare (1-16)").getVisualOrderText(),
+                Component.literal("§f- §0Black: §7None").getVisualOrderText()
+            ), mouseX, topPos + helpY + 12);
         }
     }
 
@@ -122,5 +123,8 @@ public class WorldScannerScreen extends AbstractContainerScreen<WorldScannerMenu
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         guiGraphics.drawString(font, title, titleLabelX, titleLabelY, 0x404040, false);
+        
+        // Render help icon '?' (relative coordinates)
+        guiGraphics.drawString(font, "?", 285, 6, 0xAAAAAA, false);
     }
 }

@@ -1,0 +1,44 @@
+{
+  "parent" : "gatheringchunks:worldcrystalobtained",
+  "display" : {
+    "icon" : {
+      "id": "gatheringchunks:worldcore"
+    },
+    "title" : {
+      "translate": "advancement.gatheringchunks.worldcoreobtained.title"
+    },
+    "description" : {
+      "translate" : "advancement.gatheringchunks.worldcoreobtained.description"
+    }
+  },
+  "criteria" : {
+    "obtainworldcore" : {
+      "trigger" : "minecraft:inventory_changed",
+      "conditions" : {
+        "items" : [{
+          "items" : ["gatheringchunks:worldcore"]
+        }]
+      }
+    }
+  },
+  "rewards" : {
+    "recipes" : [
+      "gatheringchunks:chunkspawner",
+      "gatheringchunks:disassemble_worldcore",
+      "gatheringchunks:worldcore",
+      "gatheringchunks:worldforge",
+      "gatheringchunks:worldscanner",
+      "gatheringchunks:worldmender",
+      "gatheringchunks:unstablechunkspawner",
+      "gatheringchunks:badlandschunkspawner",
+      "gatheringchunks:desertchunkspawner",
+      "gatheringchunks:forestchunkspawner",
+      "gatheringchunks:junglechunkspawner",
+      "gatheringchunks:mushroomchunkspawner",
+      "gatheringchunks:plainschunkspawner",
+      "gatheringchunks:rockychunkspawner",
+      "gatheringchunks:savannachunkspawner",
+      "gatheringchunks:snowchunkspawner",
+      "gatheringchunks:swampchunkspawner"]
+  }
+}

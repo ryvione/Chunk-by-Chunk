@@ -3,6 +3,7 @@ package com.ryvione.gatheringchunks.common.blockEntities;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
+import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
 import com.ryvione.gatheringchunks.common.util.ChunkUtil;
 import com.ryvione.gatheringchunks.common.util.SpiralIterator;
@@ -127,8 +128,19 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
         return new WorldScannerMenu(menuId, inventory, this, this.dataAccess);
     }
 
+    @Override
+    public boolean isFuel(ItemStack itemStack) {
+        return isWorldScannerFuel(itemStack);
+    }
+
+    @Override
+    public int getFuelValue(ItemStack itemStack) {
+        FuelValueSupplier supplier = FUEL.get(itemStack.getItem());
+        return supplier != null ? supplier.get() : 0;
+    }
+
     public static boolean isWorldScannerFuel(ItemStack itemStack) {
-        return FUEL.getOrDefault(itemStack.getItem(), () -> 0).get() > 0;
+        return FUEL.containsKey(itemStack.getItem());
     }
 
     @Override
@@ -183,6 +195,10 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
                 if (entity.scanCharge >= chunkCost) {
                     if (entity.map == null) {
                         entity.createMap();
+                        if (entity.map == null) {
+                            GatheringChunksConstants.LOGGER.error("Failed to create scanner map at " + blockPos);
+                            return;
+                        }
                     }
 
                     ChunkPos originChunkPos = new ChunkPos(blockPos);
@@ -199,6 +215,7 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
                             }
                         }
                     } catch (Exception e) {
+                        GatheringChunksConstants.LOGGER.warn("Failed to get generation level for scanner: " + e.getMessage());
                         scanLevel = serverLevel;
                     }
 
@@ -227,7 +244,9 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
                             try {
                                 scanForBlocks.add(Services.PLATFORM.getFluidContent(bucket).defaultFluidState().createLegacyBlock().getBlock());
                             } catch (Exception e) {
+                                GatheringChunksConstants.LOGGER.warn("Failed to get fluid content for bucket: " + e.getMessage());
                                 blockCount = 0;
+                                scanForBlocks.clear();
                             }
                         } else if (targetItem.getItem() instanceof BlockItem blockItem) {
                             scanForBlocks.add(blockItem.getBlock());
@@ -251,11 +270,18 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
                                 for (int innerZ = 0; innerZ < SCAN_ZOOM; innerZ++) {
                                     int pixelX = entity.scanIterator.getX() * SCAN_ZOOM + innerX;
                                     int pixelY = entity.scanIterator.getY() * SCAN_ZOOM + innerZ;
-                                    data.setColor(pixelX, pixelY, color);
+                                    // Ensure we're within map bounds
+                                    if (pixelX >= 0 && pixelX < MapItem.IMAGE_WIDTH && pixelY >= 0 && pixelY < MapItem.IMAGE_HEIGHT) {
+                                        data.setColor(pixelX, pixelY, color);
+                                    }
                                 }
                             }
+                            data.setDirty(true);
                         } catch (Exception e) {
+                            GatheringChunksConstants.LOGGER.error("Failed to update map data: " + e.getMessage(), e);
                         }
+                    } else {
+                        GatheringChunksConstants.LOGGER.warn("Map data is null for scanner at " + blockPos);
                     }
 
                     entity.scanIterator.next();
@@ -264,8 +290,7 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
                 }
             }
         } catch (Exception e) {
-            System.err.println("WorldScanner error: " + e.getMessage());
-            e.printStackTrace();
+            GatheringChunksConstants.LOGGER.error("WorldScanner error at " + blockPos + ": " + e.getMessage(), e);
         }
 
         if (changed) {
@@ -285,6 +310,7 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
                     }
                 }
             } catch (Exception e) {
+                GatheringChunksConstants.LOGGER.warn("Failed to send map update packets: " + e.getMessage());
             }
             entity.tickUntilReplicate = TICKS_BETWEEN_REPLICATES;
         } else {
@@ -296,11 +322,30 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
         if (map == null && level instanceof ServerLevel serverLevel) {
             try {
                 ChunkPos pos = new ChunkPos(getBlockPos());
-                MapItemSavedData data = MapItemSavedData.createFresh(pos.getMaxBlockX(), pos.getMaxBlockZ(), (byte) 2, false, false, serverLevel.dimension()).locked();
+                MapItemSavedData data = MapItemSavedData.createFresh(
+                    pos.getMaxBlockX(), 
+                    pos.getMaxBlockZ(), 
+                    (byte) 2, 
+                    false, 
+                    false, 
+                    serverLevel.dimension()
+                );
+                
                 map = serverLevel.getFreeMapId();
                 serverLevel.setMapData(map, data);
+                
+                // Initialize the map with empty color
+                for (int x = 0; x < MapItem.IMAGE_WIDTH; x++) {
+                    for (int y = 0; y < MapItem.IMAGE_HEIGHT; y++) {
+                        data.setColor(x, y, MapColor.NONE.getPackedId(MapColor.Brightness.NORMAL));
+                    }
+                }
+                data.setDirty(true);
+                
+                GatheringChunksConstants.LOGGER.info("Created scanner map with ID: " + map.id() + " at " + getBlockPos());
             } catch (Exception e) {
-                System.err.println("Failed to create scanner map: " + e.getMessage());
+                GatheringChunksConstants.LOGGER.error("Failed to create scanner map: " + e.getMessage(), e);
+                map = null;
             }
         }
     }

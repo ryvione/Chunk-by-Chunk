@@ -91,6 +91,22 @@ public class GatheringChunksConfigScreen extends Screen {
                 .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
                         Component.literal("Auto-Spawn Trees"),
                         (button, value) -> config.setAutoSpawnTrees(value)));
+        currentY += SPACING;
+
+        this.addRenderableWidget(CycleButton.onOffBuilder(config.isPreventFluidFlowIntoVoid())
+                .withTooltip(value -> Tooltip.create(
+                        Component.literal("Prevent fluids (water/lava) from flowing into empty/void chunks")))
+                .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
+                        Component.literal("Prevent Fluid Flow Into Void"),
+                        (button, value) -> config.setPreventFluidFlowIntoVoid(value)));
+        currentY += SPACING;
+
+        this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getGeneration().isAlwaysSpawnVillage())
+                .withTooltip(value -> Tooltip.create(
+                        Component.literal("Always attempt to spawn the initial chunk in a village")))
+                .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
+                        Component.literal("Always Spawn Village"),
+                        (button, value) -> ChunkByChunkConfig.get().getGeneration().setAlwaysSpawnVillage(value)));
         currentY += SPACING + 10;
 
         this.addRenderableWidget(Button.builder(

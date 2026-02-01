@@ -49,7 +49,7 @@ public class ChunkBoundaryEnforcer {
             Long lastWarning = lastWarningTime.get(player.getUUID());
 
             if (lastWarning == null || currentTime - lastWarning >= WARNING_COOLDOWN) {
-                player.sendSystemMessage(Component.literal("§c§lYou cannot leave spawned chunks in Hard Mode!"));
+                player.sendSystemMessage(Component.literal("§c§lYou cannot leave spawned chunks when 'Chunk boundaries' Option is enabled ! (Or you are in Hard mode)"));
                 player.sendSystemMessage(Component.literal("§eSpawn more chunks using a Chunk Spawner."));
                 lastWarningTime.put(player.getUUID(), currentTime);
             }

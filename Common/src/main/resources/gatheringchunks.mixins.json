@@ -4,6 +4,7 @@
   "package": "com.ryvione.gatheringchunks.mixins",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "FluidTickMixin"
   ],
   "client": [
     "BucketFluidAccessor",

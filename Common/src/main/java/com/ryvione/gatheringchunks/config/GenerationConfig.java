@@ -57,6 +57,9 @@ public class GenerationConfig {
     @Comment("Number of chunk layers to spawn per tick")
     @IntRange(min = 1, max = 512)
     private int chunkLayerSpawnRate = 8;
+    @Name("always_spawn_village")
+    @Comment("Always attempt to spawn the initial chunk in a village (Enabled by default)")
+    private boolean alwaysSpawnVillage = true;
     public boolean isEnabled() {
         return enabled;
     }
@@ -132,5 +135,11 @@ public class GenerationConfig {
     }
     public void setSpawnChunkStrip(boolean spawnChunkStrip) {
         this.spawnChunkStrip = spawnChunkStrip;
+    }
+    public boolean isAlwaysSpawnVillage() {
+        return alwaysSpawnVillage;
+    }
+    public void setAlwaysSpawnVillage(boolean alwaysSpawnVillage) {
+        this.alwaysSpawnVillage = alwaysSpawnVillage;
     }
 }
