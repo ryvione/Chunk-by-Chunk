@@ -36,7 +36,7 @@ public class PlayerProgressionHelper {
     private static final int SEARCH_RADIUS = 32;
 
     public static void checkPlayers(MinecraftServer server) {
-        if (!ChunkByChunkConfig.get().getGatheringChunksConfig().isEnableProgressionHelper()) {
+        if (!ChunkByChunkConfig.get().getDifficulty().isEnableProgressionHelper()) {
             return;
         }
 

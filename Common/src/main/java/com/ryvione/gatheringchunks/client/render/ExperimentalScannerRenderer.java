@@ -1,14 +1,13 @@
 package com.ryvione.gatheringchunks.client.render;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.ryvione.gatheringchunks.common.blockEntities.WorldScannerBlockEntity;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.item.Item;
@@ -21,14 +20,8 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Matrix4f;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class ExperimentalScannerRenderer {
     
@@ -53,7 +46,6 @@ public class ExperimentalScannerRenderer {
 
         Vec3 camPos = camera.getPosition();
         
-        // Find all active scanners by iterating over loaded chunks
         int renderDistance = mc.options.getEffectiveRenderDistance();
         int playerChunkX = SectionPos.blockToSectionCoord(camPos.x);
         int playerChunkZ = SectionPos.blockToSectionCoord(camPos.z);
@@ -95,13 +87,11 @@ public class ExperimentalScannerRenderer {
         BlockPos scannerPos = scanner.getBlockPos();
         ChunkPos scannerChunk = new ChunkPos(scannerPos);
 
-        // Iterate over chunks in range of the scanner (31x31 chunks)
         for (int xOffset = -WorldScannerBlockEntity.SCAN_CENTER; xOffset <= WorldScannerBlockEntity.SCAN_CENTER; xOffset++) {
             for (int zOffset = -WorldScannerBlockEntity.SCAN_CENTER; zOffset <= WorldScannerBlockEntity.SCAN_CENTER; zOffset++) {
                 int chunkX = scannerChunk.x + xOffset;
                 int chunkZ = scannerChunk.z + zOffset;
 
-                // Check if chunk is within distance of camera for performance (e.g. 64 blocks)
                 double distSq = (chunkX * 16 + 8 - camPos.x) * (chunkX * 16 + 8 - camPos.x) + 
                                (chunkZ * 16 + 8 - camPos.z) * (chunkZ * 16 + 8 - camPos.z);
                 if (distSq > 64 * 64) continue;
@@ -109,14 +99,12 @@ public class ExperimentalScannerRenderer {
                 LevelChunk chunk = level.getChunkSource().getChunk(chunkX, chunkZ, false);
                 if (chunk == null) continue;
 
-                // Get color from map data
                 int pixelX = (xOffset + WorldScannerBlockEntity.SCAN_CENTER) * WorldScannerBlockEntity.SCAN_ZOOM;
                 int pixelY = (zOffset + WorldScannerBlockEntity.SCAN_CENTER) * WorldScannerBlockEntity.SCAN_ZOOM;
                 
                 if (pixelX < 0 || pixelX >= 128 || pixelY < 0 || pixelY >= 128) continue;
                 byte colorId = mapData.colors[pixelX + pixelY * 128];
                 
-                // Determine if this is a "valid" color representing density
                 if (colorId == MapColor.NONE.getPackedId(MapColor.Brightness.NORMAL)) continue;
                 if (colorId == MapColor.COLOR_BLACK.getPackedId(MapColor.Brightness.NORMAL)) continue;
 
@@ -126,7 +114,6 @@ public class ExperimentalScannerRenderer {
     }
 
     private static void renderTargetBlocksInChunk(PoseStack poseStack, MultiBufferSource bufferSource, LevelChunk chunk, Collection<Block> targetBlocks, byte colorId, Vec3 camPos) {
-        // Find MapColor by its packed ID
         MapColor mapColor = getMapColorFromPackedId(colorId);
 
         int color = mapColor.col;
@@ -159,7 +146,6 @@ public class ExperimentalScannerRenderer {
     }
 
     private static MapColor getMapColorFromPackedId(byte packedId) {
-        // Check standard colors used in WorldScannerBlockEntity
         MapColor[] possibleColors = {
             MapColor.COLOR_BLACK, MapColor.NETHER, MapColor.COLOR_RED, 
             MapColor.TERRACOTTA_YELLOW, MapColor.COLOR_YELLOW, MapColor.GOLD, MapColor.SNOW
@@ -178,7 +164,7 @@ public class ExperimentalScannerRenderer {
 
     private static void renderHighlight(PoseStack poseStack, VertexConsumer vertexConsumer, BlockPos pos, float r, float g, float b, Vec3 camPos) {
         poseStack.pushPose();
-        // Modern approach: translate by world coordinates relative to the camera
+
         poseStack.translate(pos.getX() - camPos.x, pos.getY() - camPos.y, pos.getZ() - camPos.z);
         LevelRenderer.renderLineBox(poseStack, vertexConsumer, 0, 0, 0, 1, 1, 1, r, g, b, 1.0f);
         poseStack.popPose();

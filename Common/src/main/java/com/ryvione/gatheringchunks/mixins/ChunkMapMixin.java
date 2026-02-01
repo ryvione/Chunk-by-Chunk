@@ -66,7 +66,7 @@ public abstract class ChunkMapMixin extends ChunkStorage implements Controllable
     }
     @Inject(method = "onFullChunkStatusChange", at = @At("HEAD"))
     public void onFullStatusChange(ChunkPos pos, FullChunkStatus status, CallbackInfo ci) {
-        if (ChunkByChunkConfig.get().getGeneration().isSpawnChunkStrip()
+        if (ChunkByChunkConfig.get().getDifficulty().isSpawnChunkStrip()
                 && status.isOrAfter(FullChunkStatus.ENTITY_TICKING)
                 && level.dimension().equals(Level.OVERWORLD)
                 && new ChunkPos(level.getSharedSpawnPos()).x == pos.x) {

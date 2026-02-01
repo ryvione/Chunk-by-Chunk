@@ -52,42 +52,42 @@ public class SpawnChunkBlock extends Block {
 
             if (chunkSpawnController.isValidForLevel(serverLevel, effectiveBiomeTheme, effectiveRandom)) {
                 List<BlockPos> targetPositions = new ArrayList<>();
-                BlockPos initialPos = pos.atY(level.getMaxBuildHeight() - 1);
-                targetPositions.add(initialPos);
                 Direction targetDirection = hit.getDirection();
                 if (!HORIZONTAL_DIR.contains(targetDirection)) {
                     targetDirection = Direction.NORTH;
                 }
-                targetPositions.add(initialPos.relative(targetDirection.getOpposite()));
-                targetPositions.add(initialPos.relative(targetDirection.getCounterClockWise()));
-                targetPositions.add(initialPos.relative(targetDirection.getClockWise()));
-                targetPositions.add(initialPos.relative(targetDirection));
-                
+
+                targetPositions.add(pos.relative(targetDirection));
+                targetPositions.add(pos.relative(targetDirection.getCounterClockWise()));
+                targetPositions.add(pos.relative(targetDirection.getClockWise()));
+                targetPositions.add(pos.relative(targetDirection.getOpposite()));
+                targetPositions.add(pos);
+
                 for (BlockPos targetPos : targetPositions) {
                     ChunkPos targetChunkPos = new ChunkPos(targetPos);
-                    
+
                     boolean isChunkEmpty = isEmptyChunk(level, targetChunkPos);
                     boolean shouldOverwrite = false;
-                    
+
                     if (!isChunkEmpty) {
-                        ChunkOverwriteConfirmation.PendingOverwrite pending = 
-                            ChunkOverwriteConfirmation.getPendingOverwrite(serverPlayer, targetChunkPos);
-                        
+                        ChunkOverwriteConfirmation.PendingOverwrite pending =
+                                ChunkOverwriteConfirmation.getPendingOverwrite(serverPlayer, targetChunkPos);
+
                         if (pending != null && pending.biomeTheme.equals(effectiveBiomeTheme) && pending.random == effectiveRandom) {
                             ChunkOverwriteConfirmation.removePendingOverwrite(serverPlayer);
                             serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                "§6[ChunkByChunk] §eOverwriting chunk at [" + targetChunkPos.x + ", " + targetChunkPos.z + "]"));
+                                    "§6[ChunkByChunk] §eOverwriting chunk at [" + targetChunkPos.x + ", " + targetChunkPos.z + "]"));
                             shouldOverwrite = true;
                         } else {
                             ChunkOverwriteConfirmation.addPendingOverwrite(serverPlayer, targetChunkPos, effectiveBiomeTheme, effectiveRandom);
                             serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                "§c[ChunkByChunk] §6WARNING: §eChunk at [" + targetChunkPos.x + ", " + targetChunkPos.z + "] is already occupied!"));
+                                    "§c[ChunkByChunk] §6WARNING: §eChunk at [" + targetChunkPos.x + ", " + targetChunkPos.z + "] is already occupied!"));
                             serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                "§eClick the spawner again within 30 seconds to confirm overwrite."));
+                                    "§eClick the spawner again within 30 seconds to confirm overwrite."));
                             return InteractionResult.CONSUME;
                         }
                     }
-                    
+
                     if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, targetPos, false, shouldOverwrite)) {
                         level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
                         level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);

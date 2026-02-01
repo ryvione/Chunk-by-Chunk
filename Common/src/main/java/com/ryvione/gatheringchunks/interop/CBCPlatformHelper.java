@@ -14,11 +14,13 @@ import com.ryvione.gatheringchunks.common.blockEntities.BedrockChestBlockEntity;
 import com.ryvione.gatheringchunks.common.blockEntities.WorldForgeBlockEntity;
 import com.ryvione.gatheringchunks.common.blockEntities.WorldMenderBlockEntity;
 import com.ryvione.gatheringchunks.common.blockEntities.WorldScannerBlockEntity;
+import com.ryvione.gatheringchunks.common.blockEntities.ChunkEngineBlockEntity;
 import com.ryvione.gatheringchunks.common.blocks.SpawnChunkBlock;
 import com.ryvione.gatheringchunks.common.menus.BedrockChestMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldForgeMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldMenderMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
+import com.ryvione.gatheringchunks.common.menus.ChunkEngineMenu;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.inventory.MenuType;
@@ -38,6 +40,8 @@ public interface CBCPlatformHelper {
     Block worldCoreBlock();
     Block worldForgeBlock();
     Block worldScannerBlock();
+    Block worldMenderBlock();
+    Block chunkEngineBlock();
     Item spawnChunkBlockItem();
     Item unstableChunkSpawnBlockItem();
     Item bedrockChestItem();
@@ -45,6 +49,7 @@ public interface CBCPlatformHelper {
     Item worldForgeBlockItem();
     Item worldScannerBlockItem();
     Item worldMenderBlockItem();
+    Item chunkEngineBlockItem();
     Item worldFragmentItem();
     Item worldShardItem();
     Item worldCrystalItem();
@@ -53,11 +58,13 @@ public interface CBCPlatformHelper {
     BlockEntityType<WorldForgeBlockEntity> worldForgeEntity();
     BlockEntityType<WorldScannerBlockEntity> worldScannerEntity();
     BlockEntityType<WorldMenderBlockEntity> worldMenderEntity();
+    BlockEntityType<ChunkEngineBlockEntity> chunkEngineEntity();
     SoundEvent spawnChunkSoundEffect();
     MenuType<BedrockChestMenu> bedrockChestMenu();
     MenuType<WorldForgeMenu> worldForgeMenu();
     MenuType<WorldScannerMenu> worldScannerMenu();
     MenuType<WorldMenderMenu> worldMenderMenu();
+    MenuType<ChunkEngineMenu> chunkEngineMenu();
     Fluid getFluidContent(BucketItem bucketItem);
 
     <T> void unfreezeRegistry(MappedRegistry<T> registry);

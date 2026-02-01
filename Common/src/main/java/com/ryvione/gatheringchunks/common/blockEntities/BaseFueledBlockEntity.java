@@ -168,6 +168,10 @@ public abstract class BaseFueledBlockEntity extends BaseContainerBlockEntity imp
         return canPlaceItem(slot, itemStack);
     }
     @Override
+    public boolean canTakeItemThroughFace(int slot, ItemStack itemStack, Direction direction) {
+        return true;
+    }
+    @Override
     public boolean canPlaceItem(int slot, ItemStack item) {
         if (slot == fuelSlot) {
             return isFuel(item);

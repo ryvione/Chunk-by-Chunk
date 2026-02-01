@@ -17,6 +17,7 @@ import com.ryvione.gatheringchunks.client.screens.BedrockChestScreen;
 import com.ryvione.gatheringchunks.client.screens.WorldForgeScreen;
 import com.ryvione.gatheringchunks.client.screens.WorldMenderScreen;
 import com.ryvione.gatheringchunks.client.screens.WorldScannerScreen;
+import com.ryvione.gatheringchunks.client.screens.ChunkEngineScreen;
 import com.ryvione.gatheringchunks.common.CommonRegistry;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 public class ChunkByChunkClientMod implements ClientModInitializer {
@@ -28,6 +29,7 @@ public class ChunkByChunkClientMod implements ClientModInitializer {
         MenuScreens.register(CommonRegistry.WORLD_FORGE_MENU, WorldForgeScreen::new);
         MenuScreens.register(CommonRegistry.WORLD_SCANNER_MENU, WorldScannerScreen::new);
         MenuScreens.register(CommonRegistry.WORLD_MENDER_MENU, WorldMenderScreen::new);
+        MenuScreens.register(CommonRegistry.CHUNK_ENGINE_MENU, ChunkEngineScreen::new);
         LOGGER.debug("Client networking disabled (API changed in 1.21.1)");
     }
 }

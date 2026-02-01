@@ -49,6 +49,32 @@ public class ChunkSpawnController extends SavedData {
     private transient ServerLevel targetLevel;
     @Nullable
     private transient CompletableFuture<ChunkResult<ChunkAccess>> sourceChunkFuture;
+    private Map<String, Integer> maxChunks = new HashMap<>(); // Dimension ID -> Limit
+    private Map<String, Integer> spawnedChunkCount = new HashMap<>(); // Dimension ID -> Count
+
+    public int getMaxChunks(String dimensionId) {
+        if (dimensionId.equals("minecraft:the_nether")) {
+             return maxChunks.getOrDefault(dimensionId, 1);
+        }
+        return maxChunks.getOrDefault(dimensionId, 4);
+    }
+
+    public void setMaxChunks(String dimensionId, int max) {
+        this.maxChunks.put(dimensionId, max);
+        setDirty();
+    }
+
+    public int getSpawnedChunkCount(String dimensionId) {
+        return spawnedChunkCount.getOrDefault(dimensionId, 0);
+    }
+
+    public void decreaseSpawnedChunkCount(String dimensionId) {
+        int val = spawnedChunkCount.getOrDefault(dimensionId, 0);
+        if (val > 0) {
+            spawnedChunkCount.put(dimensionId, val - 1);
+            setDirty();
+        }
+    }
 
     public static ChunkSpawnController get(MinecraftServer server) {
         return server.getLevel(Level.OVERWORLD).getChunkSource().getDataStorage().computeIfAbsent(
@@ -86,6 +112,24 @@ public class ChunkSpawnController extends SavedData {
                     true
             );
         }
+        if (tag.contains("maxChunksMap")) {
+            CompoundTag map = tag.getCompound("maxChunksMap");
+            for(String key : map.getAllKeys()) {
+                maxChunks.put(key, map.getInt(key));
+            }
+        } else if (tag.contains("maxChunks")) {
+            // Upgrade old config
+            maxChunks.put("minecraft:overworld", tag.getInt("maxChunks"));
+        }
+
+        if (tag.contains("spawnedChunkCountMap")) {
+            CompoundTag map = tag.getCompound("spawnedChunkCountMap");
+             for(String key : map.getAllKeys()) {
+                spawnedChunkCount.put(key, map.getInt(key));
+            }
+        } else if (tag.contains("spawnedChunkCount")) {
+             spawnedChunkCount.put("minecraft:overworld", tag.getInt("spawnedChunkCount"));
+        }
     }
 
     @Override
@@ -100,7 +144,15 @@ public class ChunkSpawnController extends SavedData {
             tag.putString("phase", phase.name());
             tag.putBoolean("forcedTargetChunk", forcedTargetChunk);
             tag.putInt("currentLayer", currentLayer);
+            tag.putInt("currentLayer", currentLayer);
         }
+        CompoundTag maxChunksMap = new CompoundTag();
+        maxChunks.forEach(maxChunksMap::putInt);
+        tag.put("maxChunksMap", maxChunksMap);
+
+        CompoundTag spawnedCountMap = new CompoundTag();
+        spawnedChunkCount.forEach(spawnedCountMap::putInt);
+        tag.put("spawnedChunkCountMap", spawnedCountMap);
         return tag;
     }
 
@@ -140,7 +192,7 @@ public class ChunkSpawnController extends SavedData {
                             currentSpawnRequest.overwrite); // Added overwrite flag
                     if (maxLayer > targetLevel.getMaxBuildHeight()) {
                         TreePlacementHandler.ensureTreesInChunk(targetLevel, currentSpawnRequest.targetChunkPos);
-                        if (ChunkByChunkConfig.get().getGeneration().spawnNewChunkChest() && !ChunkByChunkConfig.get().getGeneration().spawnChestInInitialChunkOnly()) {
+                        if (ChunkByChunkConfig.get().getDifficulty().spawnNewChunkChest() && !ChunkByChunkConfig.get().getDifficulty().spawnChestInInitialChunkOnly()) {
                             SpawnChunkHelper.createNextSpawner(targetLevel, currentSpawnRequest.targetChunkPos);
                         }
                         phase = SpawnPhase.UPDATE_BARRIERS;
@@ -214,8 +266,18 @@ public class ChunkSpawnController extends SavedData {
 
     private void completeSpawnRequest() {
         if (forcedTargetChunk) {
-            targetLevel.setChunkForced(currentSpawnRequest.targetChunkPos().x, currentSpawnRequest.targetChunkPos().z, false);
-            sourceLevel.setChunkForced(currentSpawnRequest.sourceChunkPos().x, currentSpawnRequest.sourceChunkPos().z, false);
+            targetLevel.setChunkForced(currentSpawnRequest.targetChunkPos.x, currentSpawnRequest.targetChunkPos.z, false);
+            sourceLevel.setChunkForced(currentSpawnRequest.sourceChunkPos.x, currentSpawnRequest.sourceChunkPos.z, false);
+            if (currentSpawnRequest.isInitial()) {
+                ChunkEngineManager.get(server).notifyInitialChunkSpawned(targetLevel, currentSpawnRequest.targetChunkPos);
+            } else {
+                ChunkEngineManager.get(server).notifyChunkSpawned(targetLevel, currentSpawnRequest.targetChunkPos);
+            }
+            if (!currentSpawnRequest.overwrite) {
+                String dim = targetLevel.dimension().location().toString();
+                spawnedChunkCount.put(dim, spawnedChunkCount.getOrDefault(dim, 0) + 1);
+                setDirty();
+            }
             currentSpawnRequest = null;
         }
     }
@@ -365,14 +427,30 @@ public class ChunkSpawnController extends SavedData {
     }
 
     public boolean request(ServerLevel level, String biomeTheme, boolean random, BlockPos blockPos, boolean immediate, boolean overwrite) {
+        return request(level, biomeTheme, random, blockPos, immediate, overwrite, false);
+    }
+
+    public boolean request(ServerLevel level, String biomeTheme, boolean random, BlockPos blockPos, boolean immediate, boolean overwrite, boolean isInitial) {
         ChunkPos targetChunkPos = new ChunkPos(blockPos);
         boolean canSpawn = SpawnChunkHelper.isEmptyChunk(level, targetChunkPos) || overwrite;
         
+        boolean experimentalLimit = ChunkByChunkConfig.get().getDifficulty().isExperimentalChunkLimit();
+        String dim = level.dimension().location().toString();
+        int max = getMaxChunks(dim);
+        int current = getSpawnedChunkCount(dim);
+        
+        if (experimentalLimit && !overwrite && current >= max) {
+            if (!isInitial) {
+                 GatheringChunksConstants.LOGGER.info("Spawn prevented: Chunk Limit Reached (" + current + "/" + max + ")");
+                 return false;
+            }
+        }
+
         if (isValidForLevel(level, biomeTheme, random) && canSpawn && level.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
             ChunkPos sourceChunkPos;
             ResourceKey<Level> sourceLevel;
             String effectiveBiomeTheme = biomeTheme;
-            
+
             if (!biomeTheme.isEmpty()) {
                 Random themeRng = new Random(biomeTheme.hashCode());
                 int offsetX = themeRng.nextInt(-1000000, 1000000);
@@ -403,13 +481,17 @@ public class ChunkSpawnController extends SavedData {
                 }
             }
             
-            return request(targetChunkPos, level.dimension(), sourceChunkPos, sourceLevel, immediate, overwrite);
+            return request(targetChunkPos, level.dimension(), sourceChunkPos, sourceLevel, immediate, overwrite, isInitial);
         }
         return false;
     }
 
     public boolean request(ChunkPos targetChunkPos, ResourceKey<Level> targetLevel, ChunkPos sourceChunkPos, ResourceKey<Level> sourceLevel, boolean immediate, boolean overwrite) {
-        SpawnRequest spawnRequest = new SpawnRequest(targetChunkPos, targetLevel, sourceChunkPos, sourceLevel, immediate, overwrite);
+        return request(targetChunkPos, targetLevel, sourceChunkPos, sourceLevel, immediate, overwrite, false);
+    }
+
+    public boolean request(ChunkPos targetChunkPos, ResourceKey<Level> targetLevel, ChunkPos sourceChunkPos, ResourceKey<Level> sourceLevel, boolean immediate, boolean overwrite, boolean isInitial) {
+        SpawnRequest spawnRequest = new SpawnRequest(targetChunkPos, targetLevel, sourceChunkPos, sourceLevel, immediate, overwrite, isInitial);
         if (!spawnRequest.equals(currentSpawnRequest) && !requests.contains(spawnRequest)) {
             if (immediate) {
                 ServerLevel toLevel = server.getLevel(targetLevel);
@@ -433,13 +515,14 @@ public class ChunkSpawnController extends SavedData {
     }
 
     private record SpawnRequest(ChunkPos targetChunkPos, ResourceKey<Level> targetLevel, ChunkPos sourceChunkPos,
-                                ResourceKey<Level> sourceLevel, boolean immediate, boolean overwrite) {
+                                ResourceKey<Level> sourceLevel, boolean immediate, boolean overwrite, boolean isInitial) {
         public static final String TARGET_POS = "targetPos";
         public static final String TARGET_LEVEL = "targetLevel";
         public static final String SOURCE_POS = "sourcePos";
         public static final String SOURCE_LEVEL = "sourceLevel";
         public static final String IMMEDIATE = "immediate";
         public static final String OVERWRITE = "overwrite";
+        public static final String IS_INITIAL = "isInitial";
 
         public static SpawnRequest load(CompoundTag tag) {
             ChunkPos targetPos = new ChunkPos(tag.getLong(TARGET_POS));
@@ -448,7 +531,8 @@ public class ChunkSpawnController extends SavedData {
             ResourceKey<Level> sourceLevel = ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, ResourceLocation.parse(tag.getString(SOURCE_LEVEL)));
             boolean immediate = tag.getBoolean(IMMEDIATE);
             boolean overwrite = tag.getBoolean(OVERWRITE);
-            return new SpawnRequest(targetPos, targetLevel, sourcePos, sourceLevel, immediate, overwrite);
+            boolean isInitial = tag.getBoolean(IS_INITIAL);
+            return new SpawnRequest(targetPos, targetLevel, sourcePos, sourceLevel, immediate, overwrite, isInitial);
         }
 
         @Override
@@ -473,6 +557,7 @@ public class ChunkSpawnController extends SavedData {
             tag.putString(SOURCE_LEVEL, sourceLevel.location().toString());
             tag.putBoolean(IMMEDIATE, immediate);
             tag.putBoolean(OVERWRITE, overwrite);
+            tag.putBoolean(IS_INITIAL, isInitial);
             return tag;
         }
     }

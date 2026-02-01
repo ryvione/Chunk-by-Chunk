@@ -20,6 +20,8 @@
     import com.ryvione.gatheringchunks.common.menus.WorldForgeMenu;
     import com.ryvione.gatheringchunks.common.menus.WorldMenderMenu;
     import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
+    import com.ryvione.gatheringchunks.common.blockEntities.ChunkEngineBlockEntity;
+    import com.ryvione.gatheringchunks.common.menus.ChunkEngineMenu;
     import com.ryvione.gatheringchunks.interop.CBCPlatformHelper;
     import com.ryvione.gatheringchunks.mixins.BucketFluidAccessor;
     import net.minecraft.core.MappedRegistry;
@@ -66,6 +68,16 @@
         }
 
         @Override
+        public Block worldMenderBlock() {
+            return CommonRegistry.WORLD_MENDER_BLOCK;
+        }
+
+        @Override
+        public Block chunkEngineBlock() {
+            return CommonRegistry.CHUNK_ENGINE_BLOCK;
+        }
+
+        @Override
         public Item spawnChunkBlockItem() {
             return CommonRegistry.SPAWN_CHUNK_BLOCK_ITEM;
         }
@@ -98,6 +110,11 @@
         @Override
         public Item worldMenderBlockItem() {
             return CommonRegistry.WORLD_MENDER_BLOCK_ITEM;
+        }
+
+        @Override
+        public Item chunkEngineBlockItem() {
+            return CommonRegistry.CHUNK_ENGINE_BLOCK_ITEM;
         }
 
         @Override
@@ -141,6 +158,11 @@
         }
 
         @Override
+        public BlockEntityType<ChunkEngineBlockEntity> chunkEngineEntity() {
+            return CommonRegistry.CHUNK_ENGINE_BLOCK_ENTITY;
+        }
+
+        @Override
         public SoundEvent spawnChunkSoundEffect() {
             return CommonRegistry.SPAWN_CHUNK_SOUND_EVENT;
         }
@@ -163,6 +185,11 @@
         @Override
         public MenuType<WorldMenderMenu> worldMenderMenu() {
             return CommonRegistry.WORLD_MENDER_MENU;
+        }
+
+        @Override
+        public MenuType<ChunkEngineMenu> chunkEngineMenu() {
+            return CommonRegistry.CHUNK_ENGINE_MENU;
         }
 
         @Override

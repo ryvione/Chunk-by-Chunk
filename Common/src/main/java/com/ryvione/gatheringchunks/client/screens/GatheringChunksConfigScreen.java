@@ -40,12 +40,12 @@ public class GatheringChunksConfigScreen extends Screen {
         int startY = 40;
         int currentY = startY;
 
-        this.addRenderableWidget(CycleButton.onOffBuilder(config.isHardMode())
+        this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled())
                 .withTooltip(value -> Tooltip.create(
                         Component.literal("Disables village spawning and enforces chunk boundaries")))
                 .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
                         Component.literal("Hard Mode"),
-                        (button, value) -> config.setHardMode(value)));
+                        (button, value) -> ChunkByChunkConfig.get().getDifficulty().getHardMode().setEnabled(value)));
         currentY += SPACING;
 
         this.addRenderableWidget(CycleButton.onOffBuilder(config.isMobsDropFragments())
@@ -70,20 +70,20 @@ public class GatheringChunksConfigScreen extends Screen {
                 .build());
         currentY += SPACING;
 
-        this.addRenderableWidget(CycleButton.onOffBuilder(config.isEnforceChunkBoundaries())
+        this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnforceChunkBoundaries())
                 .withTooltip(value -> Tooltip.create(
                         Component.literal("Prevent players from leaving spawned chunks")))
                 .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
                         Component.literal("Enforce Chunk Boundaries"),
-                        (button, value) -> config.setEnforceChunkBoundaries(value)));
+                        (button, value) -> ChunkByChunkConfig.get().getDifficulty().getHardMode().setEnforceChunkBoundaries(value)));
         currentY += SPACING;
 
-        this.addRenderableWidget(CycleButton.onOffBuilder(config.isEnableProgressionHelper())
+        this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getDifficulty().isEnableProgressionHelper())
                 .withTooltip(value -> Tooltip.create(
                         Component.literal("Automatically give chunk spawner if player gets stuck")))
                 .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
                         Component.literal("Enable Progression Helper"),
-                        (button, value) -> config.setEnableProgressionHelper(value)));
+                        (button, value) -> ChunkByChunkConfig.get().getDifficulty().setEnableProgressionHelper(value)));
         currentY += SPACING;
 
         this.addRenderableWidget(CycleButton.onOffBuilder(config.isAutoSpawnTrees())
@@ -102,12 +102,12 @@ public class GatheringChunksConfigScreen extends Screen {
                         (button, value) -> config.setPreventFluidFlowIntoVoid(value)));
         currentY += SPACING;
 
-        this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getGeneration().isAlwaysSpawnVillage())
+        this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getDifficulty().isAlwaysSpawnVillage())
                 .withTooltip(value -> Tooltip.create(
                         Component.literal("Always attempt to spawn the initial chunk in a village")))
                 .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
                         Component.literal("Always Spawn Village"),
-                        (button, value) -> ChunkByChunkConfig.get().getGeneration().setAlwaysSpawnVillage(value)));
+                        (button, value) -> ChunkByChunkConfig.get().getDifficulty().setAlwaysSpawnVillage(value)));
         currentY += SPACING + 10;
 
         this.experimentalLabelY = currentY;

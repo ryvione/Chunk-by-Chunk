@@ -19,7 +19,7 @@ public class ChunkBoundaryEnforcer {
     private static final long WARNING_COOLDOWN = 100;
 
     public static void checkPlayerBoundaries(ServerPlayer player) {
-        if (!ChunkByChunkConfig.get().getGatheringChunksConfig().isEnforceChunkBoundaries()) {
+        if (!ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnforceChunkBoundaries()) {
             return;
         }
 

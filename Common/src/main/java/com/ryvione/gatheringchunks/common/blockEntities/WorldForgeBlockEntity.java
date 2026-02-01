@@ -105,10 +105,11 @@ public class WorldForgeBlockEntity extends BaseFueledBlockEntity {
     @Override
     public int getFuelValue(ItemStack itemStack) {
         Item item = itemStack.getItem();
-        if (itemStack.is(SOIL_FUEL_TAG) || item.toString().contains("dirt") || item.toString().contains("sand") || item.toString().contains("gravel")) {
+        String name = item.toString();
+        if (itemStack.is(SOIL_FUEL_TAG) || name.contains("dirt") || name.contains("sand") || name.contains("gravel")) {
             return 2;
         }
-        if (itemStack.is(STONE_FUEL_TAG) || item.toString().contains("stone") || item.toString().contains("cobblestone")) {
+        if (itemStack.is(STONE_FUEL_TAG) || name.contains("stone") || name.contains("cobblestone") || name.contains("andesite") || name.contains("diorite") || name.contains("granite") || name.contains("deepslate") || name.contains("tuff")) {
             return 4;
         }
         if (itemStack.is(STRONG_FUEL_TAG)) {
@@ -128,7 +129,12 @@ public class WorldForgeBlockEntity extends BaseFueledBlockEntity {
                 || name.contains("stone") 
                 || name.contains("cobblestone")
                 || name.contains("sand")
-                || name.contains("gravel");
+                || name.contains("gravel")
+                || name.contains("andesite")
+                || name.contains("diorite")
+                || name.contains("granite")
+                || name.contains("deepslate")
+                || name.contains("tuff");
     }
 
     @Override

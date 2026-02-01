@@ -9,6 +9,8 @@ import com.ryvione.gatheringchunks.common.menus.BedrockChestMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldForgeMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldMenderMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
+import com.ryvione.gatheringchunks.common.blockEntities.ChunkEngineBlockEntity;
+import com.ryvione.gatheringchunks.common.menus.ChunkEngineMenu;
 import com.ryvione.gatheringchunks.interop.CBCPlatformHelper;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.sounds.SoundEvent;
@@ -55,6 +57,16 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
     }
 
     @Override
+    public Block worldMenderBlock() {
+        return ModRegistry.WORLD_MENDER_BLOCK.get();
+    }
+
+    @Override
+    public Block chunkEngineBlock() {
+        return ModRegistry.CHUNK_ENGINE_BLOCK.get();
+    }
+
+    @Override
     public Item spawnChunkBlockItem() {
         return ModRegistry.SPAWN_CHUNK_BLOCK_ITEM.get();
     }
@@ -87,6 +99,11 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
     @Override
     public Item worldMenderBlockItem() {
         return ModRegistry.WORLD_MENDER_BLOCK_ITEM.get();
+    }
+
+    @Override
+    public Item chunkEngineBlockItem() {
+        return ModRegistry.CHUNK_ENGINE_BLOCK_ITEM.get();
     }
 
     @Override
@@ -130,6 +147,11 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
     }
 
     @Override
+    public BlockEntityType<ChunkEngineBlockEntity> chunkEngineEntity() {
+        return ModRegistry.CHUNK_ENGINE_BLOCK_ENTITY.get();
+    }
+
+    @Override
     public SoundEvent spawnChunkSoundEffect() {
         return ModRegistry.SPAWN_CHUNK_SOUND_EVENT.get();
     }
@@ -152,6 +174,11 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
     @Override
     public MenuType<WorldMenderMenu> worldMenderMenu() {
         return ModRegistry.WORLD_MENDER_MENU.get();
+    }
+
+    @Override
+    public MenuType<ChunkEngineMenu> chunkEngineMenu() {
+        return ModRegistry.CHUNK_ENGINE_MENU.get();
     }
 
     @Override

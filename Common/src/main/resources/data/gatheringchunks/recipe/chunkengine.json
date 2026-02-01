@@ -1,0 +1,24 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "misc",
+    "key": {
+        "C": {
+            "item": "gatheringchunks:worldcore"
+        },
+        "F": {
+            "item": "minecraft:furnace"
+        },
+        "S": {
+            "item": "minecraft:iron_ingot"
+        }
+    },
+    "pattern": [
+        "SSS",
+        "FCF",
+        "SSS"
+    ],
+    "result": {
+        "count": 1,
+        "item": "gatheringchunks:chunkengine"
+    }
+}

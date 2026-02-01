@@ -21,6 +21,9 @@ public class ChunkByChunkConfig {
     @Name("ChunkGeneration")
     private final GenerationConfig generation = new GenerationConfig();
 
+    @Name("Difficulty")
+    private final DifficultyConfig difficulty = new DifficultyConfig();
+
     @Name("Gameplay")
     private final GameplayConfig gameplayConfig = new GameplayConfig();
 
@@ -65,5 +68,9 @@ public class ChunkByChunkConfig {
 
     public WorldMenderConfig getWorldMenderConfig() {
         return worldMenderConfig;
+    }
+
+    public DifficultyConfig getDifficulty() {
+        return difficulty;
     }
 }

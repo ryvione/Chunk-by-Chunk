@@ -8,6 +8,6 @@ public class HardMode {
     }
 
     public static boolean isHardModeEnabled() {
-        return ChunkByChunkConfig.get().getGatheringChunksConfig().isHardMode();
+        return ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled();
     }
 }

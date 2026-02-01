@@ -10,6 +10,8 @@ import com.ryvione.gatheringchunks.common.menus.BedrockChestMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldForgeMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldMenderMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
+import com.ryvione.gatheringchunks.common.blockEntities.ChunkEngineBlockEntity;
+import com.ryvione.gatheringchunks.common.menus.ChunkEngineMenu;
 import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -40,6 +42,7 @@ public class CommonRegistry {
     public static WorldForgeBlock WORLD_FORGE_BLOCK;
     public static WorldScannerBlock WORLD_SCANNER_BLOCK;
     public static WorldMenderBlock WORLD_MENDER_BLOCK;
+    public static ChunkEngineBlock CHUNK_ENGINE_BLOCK;
 
     // ========== ITEMS ==========
     public static BlockItem SPAWN_CHUNK_BLOCK_ITEM;
@@ -49,6 +52,7 @@ public class CommonRegistry {
     public static BlockItem WORLD_FORGE_BLOCK_ITEM;
     public static BlockItem WORLD_SCANNER_BLOCK_ITEM;
     public static BlockItem WORLD_MENDER_BLOCK_ITEM;
+    public static BlockItem CHUNK_ENGINE_BLOCK_ITEM;
     public static Item WORLD_FRAGMENT_ITEM;
     public static Item WORLD_SHARD_ITEM;
     public static Item WORLD_CRYSTAL_ITEM;
@@ -58,12 +62,14 @@ public class CommonRegistry {
     public static BlockEntityType<WorldForgeBlockEntity> WORLD_FORGE_BLOCK_ENTITY;
     public static BlockEntityType<WorldScannerBlockEntity> WORLD_SCANNER_BLOCK_ENTITY;
     public static BlockEntityType<WorldMenderBlockEntity> WORLD_MENDER_BLOCK_ENTITY;
+    public static BlockEntityType<ChunkEngineBlockEntity> CHUNK_ENGINE_BLOCK_ENTITY;
 
     // ========== MENUS ==========
     public static MenuType<BedrockChestMenu> BEDROCK_CHEST_MENU;
     public static MenuType<WorldForgeMenu> WORLD_FORGE_MENU;
     public static MenuType<WorldScannerMenu> WORLD_SCANNER_MENU;
     public static MenuType<WorldMenderMenu> WORLD_MENDER_MENU;
+    public static MenuType<ChunkEngineMenu> CHUNK_ENGINE_MENU;
 
     // ========== SOUNDS ==========
     public static SoundEvent SPAWN_CHUNK_SOUND_EVENT;
@@ -96,6 +102,9 @@ public class CommonRegistry {
         WORLD_MENDER_BLOCK = new WorldMenderBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F).lightLevel(state -> 4));
         Registry.register(BuiltInRegistries.BLOCK, id("worldmender"), WORLD_MENDER_BLOCK);
 
+        CHUNK_ENGINE_BLOCK = new ChunkEngineBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F));
+        Registry.register(BuiltInRegistries.BLOCK, id("chunkengine"), CHUNK_ENGINE_BLOCK);
+
         // Biome-themed spawn blocks
         List<String> biomeThemesList = new ArrayList<>(GatheringChunksConstants.BIOME_THEMES);
         for (String biomeTheme : biomeThemesList) {
@@ -126,6 +135,9 @@ public class CommonRegistry {
 
         WORLD_MENDER_BLOCK_ITEM = new BlockItem(WORLD_MENDER_BLOCK, new Item.Properties());
         Registry.register(BuiltInRegistries.ITEM, id("worldmender"), WORLD_MENDER_BLOCK_ITEM);
+
+        CHUNK_ENGINE_BLOCK_ITEM = new BlockItem(CHUNK_ENGINE_BLOCK, new Item.Properties());
+        Registry.register(BuiltInRegistries.ITEM, id("chunkengine"), CHUNK_ENGINE_BLOCK_ITEM);
 
         WORLD_FRAGMENT_ITEM = new Item(new Item.Properties());
         Registry.register(BuiltInRegistries.ITEM, id("worldfragment"), WORLD_FRAGMENT_ITEM);
@@ -161,6 +173,9 @@ public class CommonRegistry {
 
         WORLD_MENDER_BLOCK_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id("worldmenderentity"),
                 BlockEntityType.Builder.of(WorldMenderBlockEntity::new, WORLD_MENDER_BLOCK).build(null));
+
+        CHUNK_ENGINE_BLOCK_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id("chunkengineentity"),
+                BlockEntityType.Builder.of(ChunkEngineBlockEntity::new, CHUNK_ENGINE_BLOCK).build(null));
     }
 
     public static void registerMenus() {
@@ -176,6 +191,9 @@ public class CommonRegistry {
 
         WORLD_MENDER_MENU = Registry.register(BuiltInRegistries.MENU, id("worldmendermenu"),
                 new MenuType<>(WorldMenderMenu::new, FeatureFlags.VANILLA_SET));
+
+        CHUNK_ENGINE_MENU = Registry.register(BuiltInRegistries.MENU, id("chunkenginemenu"),
+                new MenuType<>(ChunkEngineMenu::new, FeatureFlags.VANILLA_SET));
     }
 
     public static void registerSounds() {
@@ -205,6 +223,7 @@ public class CommonRegistry {
                             output.accept(WORLD_FORGE_BLOCK_ITEM);
                             output.accept(WORLD_SCANNER_BLOCK_ITEM);
                             output.accept(WORLD_MENDER_BLOCK_ITEM);
+                            output.accept(CHUNK_ENGINE_BLOCK_ITEM);
                             output.accept(WORLD_FRAGMENT_ITEM);
                             output.accept(WORLD_SHARD_ITEM);
                             output.accept(WORLD_CRYSTAL_ITEM);

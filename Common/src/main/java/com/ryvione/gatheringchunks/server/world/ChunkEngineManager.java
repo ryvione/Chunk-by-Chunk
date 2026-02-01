@@ -1,0 +1,268 @@
+package com.ryvione.gatheringchunks.server.world;
+
+import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
+import com.ryvione.gatheringchunks.common.blockEntities.ChunkEngineBlockEntity;
+import com.ryvione.gatheringchunks.interop.Services;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.LongTag;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.datafix.DataFixTypes;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.saveddata.SavedData;
+
+import java.util.*;
+
+public class ChunkEngineManager extends SavedData {
+    private final MinecraftServer server;
+
+    public record ChunkId(String level, long pos) {
+        public static ChunkId from(ServerLevel level, ChunkPos pos) {
+            return new ChunkId(level.dimension().location().toString(), pos.toLong());
+        }
+
+        public CompoundTag save() {
+            CompoundTag tag = new CompoundTag();
+            tag.putString("level", level);
+            tag.putLong("pos", pos);
+            return tag;
+        }
+
+        public static ChunkId load(CompoundTag tag) {
+            return new ChunkId(tag.getString("level"), tag.getLong("pos"));
+        }
+    }
+
+    private static class ResetTask {
+        final ChunkId id;
+        int currentLayer;
+        boolean forced;
+
+        ResetTask(ChunkId id, int startLayer) {
+            this.id = id;
+            this.currentLayer = startLayer;
+        }
+    }
+
+    private final Map<ChunkId, Long> pendingChunks = new HashMap<>();
+    private final Map<ChunkId, Long> activeChunks = new HashMap<>();
+    private final Map<ChunkId, ResetTask> resettingChunks = new HashMap<>();
+
+    private static final long GRACE_PERIOD_TICKS = 1200; // 1 minute
+    private static final long MAINTENANCE_TIMEOUT_TICKS = 200; // 10 seconds leeway
+
+    public ChunkEngineManager(MinecraftServer server) {
+        this.server = server;
+    }
+
+    public static ChunkEngineManager get(MinecraftServer server) {
+        return server.getLevel(Level.OVERWORLD).getChunkSource().getDataStorage().computeIfAbsent(
+                new SavedData.Factory<>(
+                        () -> new ChunkEngineManager(server),
+                        (tag, provider) -> ChunkEngineManager.load(server, tag, provider),
+                        DataFixTypes.LEVEL
+                ),
+                "chunkenginemanager"
+        );
+    }
+
+    private static ChunkEngineManager load(MinecraftServer server, CompoundTag tag, HolderLookup.Provider provider) {
+        ChunkEngineManager manager = new ChunkEngineManager(server);
+        ListTag pendingList = tag.getList("PendingChunks", CompoundTag.TAG_COMPOUND);
+        for (int i = 0; i < pendingList.size(); i++) {
+            CompoundTag entry = pendingList.getCompound(i);
+            manager.pendingChunks.put(ChunkId.load(entry.getCompound("id")), entry.getLong("time"));
+        }
+        ListTag activeList = tag.getList("ActiveChunks", CompoundTag.TAG_COMPOUND);
+        for (int i = 0; i < activeList.size(); i++) {
+            CompoundTag entry = activeList.getCompound(i);
+            manager.activeChunks.put(ChunkId.load(entry.getCompound("id")), entry.getLong("time"));
+        }
+        return manager;
+    }
+
+    @Override
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
+        ListTag pendingList = new ListTag();
+        for (Map.Entry<ChunkId, Long> entry : pendingChunks.entrySet()) {
+            CompoundTag entryTag = new CompoundTag();
+            entryTag.put("id", entry.getKey().save());
+            entryTag.putLong("time", entry.getValue());
+            pendingList.add(entryTag);
+        }
+        tag.put("PendingChunks", pendingList);
+
+        ListTag activeList = new ListTag();
+        for (Map.Entry<ChunkId, Long> entry : activeChunks.entrySet()) {
+            CompoundTag entryTag = new CompoundTag();
+            entryTag.put("id", entry.getKey().save());
+            entryTag.putLong("time", entry.getValue());
+            activeList.add(entryTag);
+        }
+        tag.put("ActiveChunks", activeList);
+        return tag;
+    }
+
+    public void notifyInitialChunkSpawned(ServerLevel level, ChunkPos pos) {
+        if (!ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled()) return;
+
+        int x = pos.getMiddleBlockX();
+        int z = pos.getMiddleBlockZ();
+        int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, x, z);
+        
+        BlockPos enginePos = new BlockPos(x, y, z);
+        
+        if (ChunkByChunkConfig.get().getDifficulty().getHardMode().isSpawnInitialEngine()) {
+            level.setBlock(enginePos, Services.PLATFORM.chunkEngineBlock().defaultBlockState(), 3);
+            
+            BlockEntity be = level.getBlockEntity(enginePos);
+            if (be instanceof ChunkEngineBlockEntity engine && ChunkByChunkConfig.get().getDifficulty().getHardMode().isInitialEngineFuel()) {
+
+                engine.setItem(ChunkEngineBlockEntity.SLOT_FUEL, new ItemStack(Services.PLATFORM.worldShardItem(), 16));
+                engine.setChanged();
+            }
+            
+            registerEngine(level, enginePos);
+        }
+    }
+
+    public void notifyChunkSpawned(ServerLevel level, ChunkPos pos) {
+        if (!ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled()) return;
+        
+        ChunkId id = ChunkId.from(level, pos);
+        if (!activeChunks.containsKey(id) && !resettingChunks.containsKey(id)) {
+            pendingChunks.put(id, server.getTickCount() + 0L);
+            setDirty();
+        }
+    }
+
+    public void registerEngine(ServerLevel level, BlockPos pos) {
+        if (!ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled()) return;
+        
+        ChunkId id = ChunkId.from(level, new ChunkPos(pos));
+        activeChunks.put(id, (long) server.getTickCount());
+        pendingChunks.remove(id);
+        resettingChunks.remove(id);
+        setDirty();
+    }
+
+    public void tick() {
+        if (!ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled()) return;
+
+        long currentTick = server.getTickCount();
+        
+        pendingChunks.entrySet().removeIf(entry -> {
+            if (currentTick - entry.getValue() > GRACE_PERIOD_TICKS) {
+                startReset(entry.getKey());
+                return true;
+            }
+            return false;
+        });
+
+        activeChunks.entrySet().removeIf(entry -> {
+            if (currentTick - entry.getValue() > MAINTENANCE_TIMEOUT_TICKS) {
+                startReset(entry.getKey());
+                return true;
+            }
+            return false;
+        });
+
+        processResets();
+        
+        if (currentTick % 100 == 0) setDirty();
+    }
+
+    private void startReset(ChunkId id) {
+        if (resettingChunks.containsKey(id)) return;
+        
+        server.getAllLevels().forEach(level -> {
+            if (level.dimension().location().toString().equals(id.level)) {
+                resettingChunks.put(id, new ResetTask(id, level.getMinBuildHeight()));
+                setDirty();
+            }
+        });
+    }
+
+    private void processResets() {
+        if (resettingChunks.isEmpty()) return;
+
+        int layersPerTick = ChunkByChunkConfig.get().getGeneration().getChunkLayerSpawnRate();
+        Iterator<Map.Entry<ChunkId, ResetTask>> it = resettingChunks.entrySet().iterator();
+        
+        while (it.hasNext()) {
+            Map.Entry<ChunkId, ResetTask> entry = it.next();
+            ChunkId id = entry.getKey();
+            ResetTask task = entry.getValue();
+            
+            ServerLevel level = null;
+            for (ServerLevel l : server.getAllLevels()) {
+                if (l.dimension().location().toString().equals(id.level)) {
+                    level = l;
+                    break;
+                }
+            }
+
+            if (level == null) {
+                it.remove();
+                continue;
+            }
+
+            if (!task.forced) {
+                level.setChunkForced(new ChunkPos(id.pos).x, new ChunkPos(id.pos).z, true);
+                task.forced = true;
+            }
+
+            int minLayer = task.currentLayer;
+            int maxLayer = Math.min(minLayer + layersPerTick, level.getMaxBuildHeight());
+            
+            performResetStep(level, new ChunkPos(id.pos), minLayer, maxLayer);
+            
+            if (maxLayer >= level.getMaxBuildHeight()) {
+                level.setChunkForced(new ChunkPos(id.pos).x, new ChunkPos(id.pos).z, false);
+                it.remove();
+                if (ChunkByChunkConfig.get().getDifficulty().isExperimentalChunkLimit()) {
+                    ChunkSpawnController.get(server).decreaseSpawnedChunkCount(id.level);
+                }
+            } else {
+                task.currentLayer = maxLayer;
+            }
+        }
+        setDirty();
+    }
+
+    private void performResetStep(ServerLevel level, ChunkPos pos, int fromY, int toY) {
+        BlockState defaultState = Blocks.AIR.defaultBlockState();
+        
+        if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator skyGen) {
+            switch (skyGen.getGenerationType()) {
+                case Sealed -> {
+                }
+                case Nether -> {
+                }
+            }
+        }
+
+        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
+        for (int y = fromY; y < toY; y++) {
+            for (int x = pos.getMinBlockX(); x <= pos.getMaxBlockX(); x++) {
+                for (int z = pos.getMinBlockZ(); z <= pos.getMaxBlockZ(); z++) {
+                    mutable.set(x, y, z);
+                    level.setBlock(mutable, defaultState, 3 | 16);
+                }
+            }
+        }
+        
+        if (fromY == level.getMinBuildHeight()) {
+            BlockPos bedrockPos = pos.getMiddleBlockPosition(level.getMinBuildHeight());
+            level.setBlock(bedrockPos, Blocks.AIR.defaultBlockState(), 3);
+        }
+    }
+}

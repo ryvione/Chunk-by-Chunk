@@ -55,6 +55,7 @@ public class GatheringChunksMod {
             event.register(ModRegistry.WORLD_FORGE_MENU.get(), WorldForgeScreen::new);
             event.register(ModRegistry.WORLD_SCANNER_MENU.get(), WorldScannerScreen::new);
             event.register(ModRegistry.WORLD_MENDER_MENU.get(), WorldMenderScreen::new);
+            event.register(ModRegistry.CHUNK_ENGINE_MENU.get(), ChunkEngineScreen::new);
         }
     }
 }

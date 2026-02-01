@@ -18,7 +18,8 @@
    "block.gatheringchunks.bedrockchest": "基岩宝箱",
    "block.gatheringchunks.worldforge": "世界锻造器",
    "block.gatheringchunks.worldscanner": "世界扫描器",
-   "block.gatheringchunks.worldmender": "世界修复器",
+   "block.gatheringchunks.worldmender": "World Mender",
+   "block.gatheringchunks.chunkengine": "Chunk Engine",
    "item.gatheringchunks.worldfragment": "世界碎片",
    "item.gatheringchunks.worldshard": "世界段片",
    "item.gatheringchunks.worldcrystal": "世界水晶",
@@ -26,7 +27,8 @@
    "container.gatheringchunks.bedrockchest": "基岩宝箱",
    "container.gatheringchunks.worldforge": "世界锻造器",
    "container.gatheringchunks.worldscanner": "世界扫描器",
-   "container.gatheringchunks.worldmender": "世界修复器",
+   "container.gatheringchunks.worldmender": "World Mender",
+   "container.gatheringchunks.chunkengine": "Chunk Engine",
    "config.gatheringchunks.title": "Chunk by Chunk 设置",
    "config.gatheringchunks.section.chunkgeneration": "区块生成",
    "config.gatheringchunks.option.enabled": "启用",
@@ -58,7 +60,7 @@
    "config.gatheringchunks.option.blockPlacementAllowedOutsideSpawnedChunks": "允许加入区块外的方块",
    "config.gatheringchunks.section.worldscanner": "世界扫描器",
    "config.gatheringchunks.option.fuelPerFragment": "碎片可以提供燃料",
-	"config.gatheringchunks.option.fuelRequiredPerChunk": "每个区块的所需燃料",
+   "config.gatheringchunks.option.fuelRequiredPerChunk": "每个区块的所需燃料",
    "config.gatheringchunks.option.fuelConsumedPerTick": "每时间刻所需的燃料",
    "config.gatheringchunks.option.startingBiome": "初始区块的生物群落",
    "config.gatheringchunks.option.chunkSpawnLeafDecayDisabled": "停止区块生成器显生的树叶腐烂",
@@ -99,8 +101,5 @@
    "commands.gatheringchunks.spawnchunk.invalidlevel": "无效的区块生成维度",
    "commands.gatheringchunks.spawnchunk.nonemptychunk": "拒绝生成到现有的区块中",
    "commands.gatheringchunks.spawnchunk.invalidtheme": "无效的生物群落类别",
-   "itemGroup.gatheringchunks.main": "收集区块",
-   "container.gatheringchunks.worldscanner": "世界扫描仪",
-   "container.gatheringchunks.worldmender": "世界修补仪",
-   "container.gatheringchunks.worldforge": "世界熔炉"
+   "itemGroup.gatheringchunks.main": "收集区块"
 }

@@ -12,40 +12,36 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Prevents fluids from flowing into void/empty chunks in the ChunkByChunk dimension.
- * This mixin intercepts fluid tick events and cancels them if the destination is void.
- */
 @Mixin(FlowingFluid.class)
 public class FluidTickMixin {
 
-    /**
-     * Intercepts the fluid tick to prevent flow into void chunks.
-     * This is optimized to only check when necessary and uses efficient chunk position checks.
-     */
-    @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "tick", at = @At("HEAD"), cancellable = true, require = 0)
     private void preventFlowIntoVoid(Level level, BlockPos pos, FluidState state, CallbackInfo ci) {
+        if (!com.ryvione.gatheringchunks.config.ChunkByChunkConfig.get().getGatheringChunksConfig().isPreventFluidFlowIntoVoid()) {
+            return;
+        }
+
         if (level.isClientSide) {
             return;
         }
 
         BlockPos[] adjacentPositions = {
-            pos.north(),
-            pos.south(),
-            pos.east(),
-            pos.west(),
-            pos.below()
+                pos.north(),
+                pos.south(),
+                pos.east(),
+                pos.west(),
+                pos.below()
         };
 
         ChunkPos currentChunk = new ChunkPos(pos);
-        
+
         for (BlockPos adjacentPos : adjacentPositions) {
             ChunkPos adjacentChunk = new ChunkPos(adjacentPos);
-            
+
             if (!currentChunk.equals(adjacentChunk)) {
                 if (SpawnChunkHelper.isEmptyChunk(level, adjacentChunk)) {
-                    if (level.getBlockState(adjacentPos).isAir() || 
-                        level.getBlockState(adjacentPos).getBlock() == Blocks.CAVE_AIR) {
+                    if (level.getBlockState(adjacentPos).isAir() ||
+                            level.getBlockState(adjacentPos).getBlock() == Blocks.CAVE_AIR) {
                         ci.cancel();
                         return;
                     }

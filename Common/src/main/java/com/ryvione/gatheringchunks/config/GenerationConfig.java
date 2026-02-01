@@ -22,12 +22,6 @@ public class GenerationConfig {
     @Name("synch_nether_chunk_spawn")
     @Comment("Should the nether start empty with chunks spawning in response to overworld spawns")
     private boolean synchNether = true;
-    @Name("spawn_new_chunk_chest")
-    @Comment("Should chunks include a chest with materials for generating further chunks?")
-    private boolean spawnNewChunkChest = true;
-    @Name("spawn_chest_in_initial_chunk_only")
-    @Comment("Should the chest spawn in the initial chunk only?")
-    private boolean spawnChestInInitialChunkOnly = false;
     @Name("use_bedrock_chest")
     @Comment("Should the generated chest be a bedrock chest")
     private boolean useBedrockChest = false;
@@ -50,16 +44,10 @@ public class GenerationConfig {
     @Comment("The number of chunks to spawn initially")
     @IntRange(min = 0, max = 1000)
     private int initialChunks = 1;
-    @Name("spawn_chunk_strip")
-    @Comment("Whether to spawn a full strip of chunks along an axis")
-    private boolean spawnChunkStrip = false;
     @Name("chunk_layer_spawn_rate")
     @Comment("Number of chunk layers to spawn per tick")
     @IntRange(min = 1, max = 512)
     private int chunkLayerSpawnRate = 8;
-    @Name("always_spawn_village")
-    @Comment("Always attempt to spawn the initial chunk in a village (Enabled by default)")
-    private boolean alwaysSpawnVillage = true;
     public boolean isEnabled() {
         return enabled;
     }
@@ -82,23 +70,11 @@ public class GenerationConfig {
     public void setUseBedrockChest(boolean useBedrockChest) {
         this.useBedrockChest = useBedrockChest;
     }
-    public boolean spawnChestInInitialChunkOnly() {
-        return spawnChestInInitialChunkOnly;
-    }
-    public void setSpawnChestInInitialChunkOnly(boolean spawnChestInInitialChunkOnly) {
-        this.spawnChestInInitialChunkOnly = spawnChestInInitialChunkOnly;
-    }
     public int getInitialChunks() {
         return initialChunks;
     }
     public void setInitialChunks(int initialChunks) {
         this.initialChunks = initialChunks;
-    }
-    public boolean spawnNewChunkChest() {
-        return spawnNewChunkChest;
-    }
-    public void setSpawnNewChunkChest(boolean spawnNewChunkChest) {
-        this.spawnNewChunkChest = spawnNewChunkChest;
     }
     public int getChestQuantity() {
         return chestQuantity;
@@ -129,17 +105,5 @@ public class GenerationConfig {
     }
     public void setSealWorld(boolean sealWorld) {
         this.sealWorld = sealWorld;
-    }
-    public boolean isSpawnChunkStrip() {
-        return spawnChunkStrip;
-    }
-    public void setSpawnChunkStrip(boolean spawnChunkStrip) {
-        this.spawnChunkStrip = spawnChunkStrip;
-    }
-    public boolean isAlwaysSpawnVillage() {
-        return alwaysSpawnVillage;
-    }
-    public void setAlwaysSpawnVillage(boolean alwaysSpawnVillage) {
-        this.alwaysSpawnVillage = alwaysSpawnVillage;
     }
 }

@@ -144,7 +144,6 @@ public class WorldScannerScreen extends AbstractContainerScreen<WorldScannerMenu
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         guiGraphics.drawString(font, title, titleLabelX, titleLabelY, 0x404040, false);
         
-        // Render help icon '?' (relative coordinates)
         guiGraphics.drawString(font, "?", 285, 6, 0xAAAAAA, false);
     }
 }

@@ -57,6 +57,9 @@ public class ModRegistry {
     
     public static final DeferredHolder<Block, WorldMenderBlock> WORLD_MENDER_BLOCK = BLOCKS.register("worldmender",
             () -> new WorldMenderBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F).lightLevel((state) -> 4)));
+
+    public static final DeferredHolder<Block, ChunkEngineBlock> CHUNK_ENGINE_BLOCK = BLOCKS.register("chunkengine",
+            () -> new ChunkEngineBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F)));
     
     // Biome-themed spawn blocks
     private static final List<DeferredHolder<Block, SpawnChunkBlock>> BIOME_SPAWN_BLOCKS = new ArrayList<>();
@@ -92,6 +95,9 @@ public class ModRegistry {
     
     public static final DeferredHolder<Item, BlockItem> WORLD_MENDER_BLOCK_ITEM = ITEMS.register("worldmender",
             () -> new BlockItem(WORLD_MENDER_BLOCK.get(), new Item.Properties()));
+
+    public static final DeferredHolder<Item, BlockItem> CHUNK_ENGINE_BLOCK_ITEM = ITEMS.register("chunkengine",
+            () -> new BlockItem(CHUNK_ENGINE_BLOCK.get(), new Item.Properties()));
     
     public static final DeferredHolder<Item, Item> WORLD_FRAGMENT_ITEM = ITEMS.register("worldfragment",
             () -> new Item(new Item.Properties()));
@@ -140,6 +146,10 @@ public class ModRegistry {
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<WorldMenderBlockEntity>> WORLD_MENDER_BLOCK_ENTITY =
             BLOCK_ENTITIES.register("worldmenderentity",
                     () -> BlockEntityType.Builder.of(WorldMenderBlockEntity::new, WORLD_MENDER_BLOCK.get()).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ChunkEngineBlockEntity>> CHUNK_ENGINE_BLOCK_ENTITY =
+            BLOCK_ENTITIES.register("chunkengineentity",
+                    () -> BlockEntityType.Builder.of(ChunkEngineBlockEntity::new, CHUNK_ENGINE_BLOCK.get()).build(null));
     
     // ========== MENUS ==========
     public static final DeferredHolder<MenuType<?>, MenuType<BedrockChestMenu>> BEDROCK_CHEST_MENU =
@@ -157,6 +167,10 @@ public class ModRegistry {
     public static final DeferredHolder<MenuType<?>, MenuType<WorldMenderMenu>> WORLD_MENDER_MENU =
             MENU_TYPES.register("worldmendermenu",
                     () -> new MenuType<>(WorldMenderMenu::new, FeatureFlags.DEFAULT_FLAGS));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<ChunkEngineMenu>> CHUNK_ENGINE_MENU =
+            MENU_TYPES.register("chunkenginemenu",
+                    () -> new MenuType<>(ChunkEngineMenu::new, FeatureFlags.DEFAULT_FLAGS));
     
     // ========== SOUNDS ==========
     public static final DeferredHolder<SoundEvent, SoundEvent> SPAWN_CHUNK_SOUND_EVENT =
@@ -181,6 +195,7 @@ public class ModRegistry {
                         output.accept(WORLD_FORGE_BLOCK_ITEM.get());
                         output.accept(WORLD_SCANNER_BLOCK_ITEM.get());
                         output.accept(WORLD_MENDER_BLOCK_ITEM.get());
+                        output.accept(CHUNK_ENGINE_BLOCK_ITEM.get());
                         output.accept(WORLD_FRAGMENT_ITEM.get());
                         output.accept(WORLD_SHARD_ITEM.get());
                         output.accept(WORLD_CRYSTAL_ITEM.get());

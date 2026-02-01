@@ -300,7 +300,7 @@ public final class ServerEventHandler {
             ChunkPos chunkSpawnPos = new ChunkPos(overworldSpawnPos);
             if (SpawnChunkHelper.isEmptyChunk(overworldLevel, chunkSpawnPos)) {
                 overworldSpawnPos = findAppropriateSpawnChunk(overworldLevel, generationLevel, server.registryAccess());
-                spawnInitialChunks(overworldLevel, skyGenerator.getInitialChunks(), overworldSpawnPos, ChunkByChunkConfig.get().getGeneration().spawnNewChunkChest());
+                spawnInitialChunks(overworldLevel, skyGenerator.getInitialChunks(), overworldSpawnPos, ChunkByChunkConfig.get().getDifficulty().spawnNewChunkChest());
             }
         } else {
             overworldSpawnPos = overworldLevel.getSharedSpawnPos();
@@ -315,29 +315,31 @@ public final class ServerEventHandler {
     }
 
     private static BlockPos findAppropriateSpawnChunk(ServerLevel overworldLevel, ServerLevel generationLevel, RegistryAccess registryAccess) {
-        if (ChunkByChunkConfig.get().getGeneration().isSpawnChunkStrip()) {
+        if (ChunkByChunkConfig.get().getDifficulty().isSpawnChunkStrip()) {
             return overworldLevel.getSharedSpawnPos();
         }
         TagKey<Block> logsTag = BlockTags.LOGS;
         TagKey<Block> leavesTag = BlockTags.LEAVES;
         Set<Block> copper = ImmutableSet.of(Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE, Blocks.RAW_COPPER_BLOCK);
         BlockPos spawnPos = overworldLevel.getSharedSpawnPos();
-        if (!ChunkByChunkConfig.get().getGatheringChunksConfig().isHardMode()) {
-            if (ChunkByChunkConfig.get().getGeneration().isAlwaysSpawnVillage()) {
+        boolean disableVillage = ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled() && ChunkByChunkConfig.get().getDifficulty().getHardMode().isDisableVillages();
+        
+        if (!disableVillage) {
+            if (ChunkByChunkConfig.get().getDifficulty().isAlwaysSpawnVillage()) {
                 spawnPos = findVillage(generationLevel, registryAccess, spawnPos);
             } else {
-                switch (ChunkByChunkConfig.get().getGameplayConfig().getStartRestriction()) {
+                switch (ChunkByChunkConfig.get().getDifficulty().getStartRestriction()) {
                     case Village -> {
                         spawnPos = findVillage(generationLevel, registryAccess, spawnPos);
                     }
                     case Biome -> {
-                        String startingBiome = ChunkByChunkConfig.get().getGameplayConfig().getStartingBiome();
+                        String startingBiome = ChunkByChunkConfig.get().getDifficulty().getStartingBiome();
                         spawnPos = findBiome(overworldLevel, generationLevel, registryAccess, spawnPos, startingBiome);
                     }
                 }
             }
         } else {
-            LOGGER.info("Hard Mode enabled - skipping village spawning, using natural chunk selection");
+            LOGGER.info("Hard Mode (Disable Villages) enabled - skipping village spawning, using natural chunk selection");
         }
         ChunkPos initialChunkPos = new ChunkPos(spawnPos);
         SpiralIterator iterator = new SpiralIterator(initialChunkPos.x, initialChunkPos.z);
@@ -414,7 +416,8 @@ public final class ServerEventHandler {
             List<int[]> chunkOffsets = CHUNK_SPAWN_OFFSETS.get(initialChunks - 1);
             for (int[] offset : chunkOffsets) {
                 ChunkPos targetPos = new ChunkPos(centerChunkPos.x + offset[0], centerChunkPos.z + offset[1]);
-                if (chunkSpawnController.request(level, "", false, targetPos.getMiddleBlockPosition(0), offset[0] == 0 && offset[1] == 0)) {
+                boolean isInitial = (offset[0] == 0 && offset[1] == 0);
+                if (chunkSpawnController.request(level, "", false, targetPos.getMiddleBlockPosition(0), isInitial, isInitial, isInitial)) {
                     spawnedChunks.add(targetPos);
                     if (spawnChest && offset[0] == 0 && offset[1] == 0) {
                         SpawnChunkHelper.createNextSpawner(level, targetPos);
@@ -425,7 +428,8 @@ public final class ServerEventHandler {
             SpiralIterator spiralIterator = new SpiralIterator(centerChunkPos.x, centerChunkPos.z);
             for (int i = 0; i < initialChunks; i++) {
                 ChunkPos targetPos = new ChunkPos(spiralIterator.getX(), spiralIterator.getY());
-                if (chunkSpawnController.request(level, "", false, targetPos.getMiddleBlockPosition(0), i == 0)) {
+                boolean isInitial = (i == 0);
+                if (chunkSpawnController.request(level, "", false, targetPos.getMiddleBlockPosition(0), isInitial, isInitial, isInitial)) {
                     spawnedChunks.add(targetPos);
                     if (spawnChest && i == 0) {
                         SpawnChunkHelper.createNextSpawner(level, targetPos);
@@ -479,6 +483,8 @@ public final class ServerEventHandler {
         if (chunkSpawnController != null) {
             chunkSpawnController.tick();
         }
+
+        ChunkEngineManager.get(server).tick();
 
         if (server.getTickCount() % 10 == 0) {
             for (ServerLevel level : server.getAllLevels()) {

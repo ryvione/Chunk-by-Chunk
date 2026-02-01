@@ -139,6 +139,6 @@ public class ChestTracker extends SavedData {
     }
 
     public boolean isTrackerEnabled(UUID playerUUID) {
-        return false;
+        return playerTrackerEnabled.getOrDefault(playerUUID, false);
     }
 }
