@@ -3,6 +3,7 @@ package com.ryvione.gatheringchunks.common.blocks;
 import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.server.world.ChunkOverwriteConfirmation;
 import com.ryvione.gatheringchunks.server.world.ChunkSpawnController;
+import com.ryvione.gatheringchunks.server.world.SpawnChunkHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -51,52 +52,75 @@ public class SpawnChunkBlock extends Block {
             }
 
             if (chunkSpawnController.isValidForLevel(serverLevel, effectiveBiomeTheme, effectiveRandom)) {
-                List<BlockPos> targetPositions = new ArrayList<>();
-                Direction targetDirection = hit.getDirection();
-                if (!HORIZONTAL_DIR.contains(targetDirection)) {
-                    targetDirection = Direction.NORTH;
-                }
+                ChunkPos spawnerChunk = new ChunkPos(pos);
 
-                targetPositions.add(pos.relative(targetDirection));
-                targetPositions.add(pos.relative(targetDirection.getCounterClockWise()));
-                targetPositions.add(pos.relative(targetDirection.getClockWise()));
-                targetPositions.add(pos.relative(targetDirection.getOpposite()));
-                targetPositions.add(pos);
+                if (isInChunkEdgeOrCorner(pos, spawnerChunk)) {
+                    List<BlockPos> targetPositions = new ArrayList<>();
+                    Direction targetDirection = hit.getDirection();
+                    if (!HORIZONTAL_DIR.contains(targetDirection)) {
+                        targetDirection = Direction.NORTH;
+                    }
 
-                for (BlockPos targetPos : targetPositions) {
-                    ChunkPos targetChunkPos = new ChunkPos(targetPos);
+                    targetPositions.add(pos.relative(targetDirection));
+                    targetPositions.add(pos.relative(targetDirection.getCounterClockWise()));
+                    targetPositions.add(pos.relative(targetDirection.getClockWise()));
+                    targetPositions.add(pos.relative(targetDirection.getOpposite()));
 
-                    boolean isChunkEmpty = isEmptyChunk(level, targetChunkPos);
-                    boolean shouldOverwrite = false;
+                    for (BlockPos targetPos : targetPositions) {
+                        ChunkPos targetChunkPos = new ChunkPos(targetPos);
 
-                    if (!isChunkEmpty) {
-                        ChunkOverwriteConfirmation.PendingOverwrite pending =
-                                ChunkOverwriteConfirmation.getPendingOverwrite(serverPlayer, targetChunkPos);
+                        if (targetChunkPos.equals(spawnerChunk)) {
+                            continue;
+                        }
 
-                        if (pending != null && pending.biomeTheme.equals(effectiveBiomeTheme) && pending.random == effectiveRandom) {
-                            ChunkOverwriteConfirmation.removePendingOverwrite(serverPlayer);
-                            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                    "§6[ChunkByChunk] §eOverwriting chunk at [" + targetChunkPos.x + ", " + targetChunkPos.z + "]"));
-                            shouldOverwrite = true;
-                        } else {
-                            ChunkOverwriteConfirmation.addPendingOverwrite(serverPlayer, targetChunkPos, effectiveBiomeTheme, effectiveRandom);
-                            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                    "§c[ChunkByChunk] §6WARNING: §eChunk at [" + targetChunkPos.x + ", " + targetChunkPos.z + "] is already occupied!"));
-                            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                    "§eClick the spawner again within 30 seconds to confirm overwrite."));
-                            return InteractionResult.CONSUME;
+                        boolean isChunkEmpty = SpawnChunkHelper.isEmptyChunk(level, targetChunkPos);
+                        boolean shouldOverwrite = false;
+
+                        if (!isChunkEmpty) {
+                            ChunkOverwriteConfirmation.PendingOverwrite pending =
+                                    ChunkOverwriteConfirmation.getPendingOverwrite(serverPlayer, targetChunkPos);
+
+                            if (pending != null && pending.biomeTheme.equals(effectiveBiomeTheme) && pending.random == effectiveRandom) {
+                                ChunkOverwriteConfirmation.removePendingOverwrite(serverPlayer);
+                                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                                        "§6[ChunkByChunk] §eOverwriting chunk at [" + targetChunkPos.x + ", " + targetChunkPos.z + "]"));
+                                shouldOverwrite = true;
+                            } else {
+                                ChunkOverwriteConfirmation.addPendingOverwrite(serverPlayer, targetChunkPos, effectiveBiomeTheme, effectiveRandom);
+                                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                                        "§c[ChunkByChunk] §6WARNING: §eChunk at [" + targetChunkPos.x + ", " + targetChunkPos.z + "] is already occupied!"));
+                                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                                        "§eClick the spawner again within 30 seconds to confirm overwrite."));
+                                return InteractionResult.CONSUME;
+                            }
+                        }
+
+                        if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, targetPos, false, shouldOverwrite)) {
+                            level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
+                            level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                            return InteractionResult.SUCCESS;
                         }
                     }
-
-                    if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, targetPos, false, shouldOverwrite)) {
-                        level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
-                        level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-                        return InteractionResult.SUCCESS;
-                    }
+                } else {
+                    serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                            "§c[ChunkByChunk] §ePlace chunk spawner on chunk edge or corner to spawn adjacent chunks!"));
+                    return InteractionResult.CONSUME;
                 }
             }
         }
         return InteractionResult.PASS;
+    }
+
+    private boolean isInChunkEdgeOrCorner(BlockPos pos, ChunkPos chunk) {
+        int relX = pos.getX() - chunk.getMinBlockX();
+        int relZ = pos.getZ() - chunk.getMinBlockZ();
+
+        boolean isOnEdgeX = (relX <= 4 || relX >= 11);
+        boolean isOnEdgeZ = (relZ <= 4 || relZ >= 11);
+
+        boolean isCorner = (relX <= 0 || relX >= 15) && (relZ <= 0 || relZ >= 15);
+
+        return isCorner || isOnEdgeX || isOnEdgeZ;
     }
 
     private String findAdjacentBiomeTheme(ServerLevel level, ChunkPos currentChunk) {
@@ -106,7 +130,7 @@ public class SpawnChunkBlock extends Block {
                     currentChunk.z + dir.getStepZ()
             );
 
-            if (!isEmptyChunk(level, adjacentChunk)) {
+            if (!SpawnChunkHelper.isEmptyChunk(level, adjacentChunk)) {
                 BlockPos centerPos = adjacentChunk.getMiddleBlockPosition(level.getMaxBuildHeight() - 10);
 
                 for (int y = level.getMaxBuildHeight() - 10; y >= level.getMinBuildHeight(); y--) {
@@ -123,11 +147,6 @@ public class SpawnChunkBlock extends Block {
             }
         }
         return null;
-    }
-
-    private boolean isEmptyChunk(Level level, ChunkPos chunkPos) {
-        BlockPos bedrockCheckBlock = chunkPos.getMiddleBlockPosition(level.getMinBuildHeight());
-        return !Blocks.BEDROCK.equals(level.getBlockState(bedrockCheckBlock).getBlock());
     }
 
     public String getBiomeTheme() {
