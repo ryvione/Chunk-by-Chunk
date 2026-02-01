@@ -3,22 +3,25 @@
   "minVersion": "0.8",
   "package": "com.ryvione.gatheringchunks.mixins",
   "compatibilityLevel": "JAVA_17",
-  "refmap": "ChunkByChunk-fabric-1.21.1-refmap.json",
+  "refmap": "gatheringchunks-fabric-refmap.json",
   "mixins": [
     "BucketFluidAccessor",
+    "CauldronPrecipitationMixin",
     "ChunkGeneratorAccessor",
     "ChunkGeneratorStructureAccessor",
     "ChunkMapMixin",
     "DefrostedRegistry",
     "EntityChangeDimensionMixin",
+    "FluidTickMixin",
     "HolderReferenceAccessor",
     "MultiNoiseBiomeSourceAccessor",
     "NoiseBasedChunkGeneratorMixin",
-    "OverworldBiomeBuilderAccessor",
-    "PauseScreenMixin",
-    "TitleScreenMixin"
+    "OverworldBiomeBuilderAccessor"
   ],
   "client": [
+    "LevelRendererMixin",
+    "PauseScreenMixin",
+    "TitleScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

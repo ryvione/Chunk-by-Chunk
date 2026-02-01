@@ -297,8 +297,17 @@ public class ChunkSpawnController extends SavedData {
                     sourceBlock.set(x, y, z);
                     targetBlock.set(x + xOffset, y, z + zOffset);
                     Block existingBlock = targetLevel.getBlockState(targetBlock).getBlock();
+                    if (existingBlock == Blocks.NETHER_PORTAL || existingBlock == Blocks.OBSIDIAN) {
+                        continue;
+                    }
+
                     if (overwrite || existingBlock instanceof AirBlock || existingBlock instanceof LiquidBlock || existingBlock == Blocks.BEDROCK || existingBlock == sealedBlock || existingBlock == Blocks.SNOW) {
                         BlockState newBlock = sourceLevel.getBlockState(sourceBlock);
+
+                        if (newBlock.is(Blocks.NETHER_PORTAL)) {
+                            continue;
+                        }
+
                         if (ChunkByChunkConfig.get().getGameplayConfig().isChunkSpawnLeafDecayDisabled() && newBlock.getBlock() instanceof LeavesBlock) {
                             newBlock = newBlock.setValue(LeavesBlock.PERSISTENT, true);
                         }

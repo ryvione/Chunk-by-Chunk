@@ -29,6 +29,7 @@ import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -40,6 +41,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+
 public class SkyChunkGenerator extends ChunkGenerator {
     public static final MapCodec<? extends SkyChunkGenerator> CODEC = RecordCodecBuilder.mapCodec((encoded) ->
             encoded.group(ChunkGenerator.CODEC.withLifecycle(Lifecycle.stable()).fieldOf("parent").forGetter(SkyChunkGenerator::getParent))
@@ -61,6 +63,7 @@ public class SkyChunkGenerator extends ChunkGenerator {
     private Block sealCoverBlock;
     @Nullable
     private Holder<Biome> unspawnedBiome;
+
     public enum EmptyGenerationType {
         Normal,
         Sealed,
@@ -77,10 +80,12 @@ public class SkyChunkGenerator extends ChunkGenerator {
             return STRING_LOOKUP.getOrDefault(asString.toLowerCase(Locale.ROOT), Normal);
         }
     }
+
     public SkyChunkGenerator(ChunkGenerator parent) {
         super(parent.getBiomeSource());
         this.parent = parent;
     }
+
     public void configure(ResourceKey<Level> generationLevel, EmptyGenerationType generationType, Block sealBlock, Block sealCoverBlock, int initialChunks, boolean chunkSpawnerAllowed, boolean randomChunkSpawnerAllowed) {
         this.generationLevel = generationLevel;
         this.generationType = generationType;
@@ -90,55 +95,72 @@ public class SkyChunkGenerator extends ChunkGenerator {
         this.sealBlock = sealBlock;
         this.sealCoverBlock = sealCoverBlock;
     }
+
     private final Map<String, ResourceKey<Level>> biomeDimensions = new HashMap<>();
+
     public boolean isChunkSpawnerAllowed() {
         return chunkSpawnerAllowed;
     }
+
     public boolean isRandomChunkSpawnerAllowed() {
         return randomChunkSpawnerAllowed;
     }
+
     public void addSynchLevel(ResourceKey<Level> dimension) {
         synchedLevels.add(dimension);
     }
+
     public List<ResourceKey<Level>> getSynchedLevels() {
         return synchedLevels;
     }
+
     public EmptyGenerationType getGenerationType() {
         return generationType;
     }
+
     public Block getSealBlock() {
         return sealBlock;
     }
+
     @Nullable
     public Holder<Biome> getUnspawnedBiome() {
         return unspawnedBiome;
     }
+
     public void setUnspawnedBiome(Holder<Biome> unspawnedBiome) {
         this.unspawnedBiome = unspawnedBiome;
     }
+
     public void addBiomeDimension(String name, ResourceKey<Level> level) {
         biomeDimensions.put(name, level);
     }
+
     @Nullable
     public ResourceKey<Level> getBiomeDimension(String name) {
         return biomeDimensions.get(name);
     }
+
     public int getInitialChunks() {
         return initialChunks;
     }
+
     public ChunkGenerator getParent() {
         return parent;
     }
+
     public ResourceKey<Level> getGenerationLevel() {
         return generationLevel;
     }
+
     @Override
     protected MapCodec<? extends ChunkGenerator> codec() {
         return CODEC;
     }
+
     @Override
     public void applyCarvers(WorldGenRegion region, long seed, RandomState randomState, BiomeManager biomeManager, StructureManager structureManager, ChunkAccess chunk, net.minecraft.world.level.levelgen.GenerationStep.Carving carving) {
     }
+
     @Override
     public CompletableFuture<ChunkAccess> fillFromNoise(Blender blender, RandomState randomState, StructureManager structureManager, ChunkAccess chunk) {
         return switch (generationType) {
@@ -167,20 +189,33 @@ public class SkyChunkGenerator extends ChunkGenerator {
             });
             case Nether -> CompletableFuture.completedFuture(chunk).whenCompleteAsync((chunkAccess, throwable) -> {
                 BlockPos.MutableBlockPos blockPos = new BlockPos.MutableBlockPos(0, 0, 0);
+
+                for (int y = chunkAccess.getMinBuildHeight(); y < chunkAccess.getMaxBuildHeight(); y++) {
+                    for (blockPos.setZ(0); blockPos.getZ() < 16; blockPos.setZ(blockPos.getZ() + 1)) {
+                        for (blockPos.setX(0); blockPos.getX() < 16; blockPos.setX(blockPos.getX() + 1)) {
+                            blockPos.setY(y);
+                            BlockState state = chunkAccess.getBlockState(blockPos);
+
+                            if (state.is(Blocks.BEDROCK)) {
+                                chunkAccess.setBlockState(blockPos, Blocks.AIR.defaultBlockState(), false);
+                            }
+                        }
+                    }
+                }
+
                 for (blockPos.setZ(0); blockPos.getZ() < 16; blockPos.setZ(blockPos.getZ() + 1)) {
                     for (blockPos.setX(0); blockPos.getX() < 16; blockPos.setX(blockPos.getX() + 1)) {
                         blockPos.setY(chunkAccess.getMinBuildHeight());
                         chunkAccess.setBlockState(blockPos, Blocks.LAVA.defaultBlockState(), false);
                         blockPos.setY(chunkAccess.getMinBuildHeight() + 1);
                         chunkAccess.setBlockState(blockPos, Blocks.LAVA.defaultBlockState(), false);
-                        blockPos.setY(127);
-                        chunkAccess.setBlockState(blockPos, Blocks.BEDROCK.defaultBlockState(), false);
                     }
                 }
             });
             default -> CompletableFuture.completedFuture(chunk);
         };
     }
+
     @Override
     public CompletableFuture<ChunkAccess> createBiomes(RandomState randomState, Blender blender, StructureManager structureManager, ChunkAccess chunk) {
         if (unspawnedBiome == null) {
@@ -192,58 +227,73 @@ public class SkyChunkGenerator extends ChunkGenerator {
             }), Util.backgroundExecutor());
         }
     }
+
     public void applyBiomeDecoration(WorldGenLevel level, ChunkAccess chunk, StructureManager structureManager) {
     }
+
     @Override
     public void buildSurface(WorldGenRegion region, StructureManager structureManager, RandomState randomState, ChunkAccess chunk) {
     }
+
     @Override
     public void spawnOriginalMobs(WorldGenRegion region) {
     }
+
     @Override
     public int getSpawnHeight(LevelHeightAccessor heightAccessor) {
         return parent.getSpawnHeight(heightAccessor);
     }
+
     @Override
     public BiomeSource getBiomeSource() {
         return parent.getBiomeSource();
     }
+
     @Override
     public int getGenDepth() {
         return parent.getGenDepth();
     }
+
     @Override
     public WeightedRandomList<MobSpawnSettings.SpawnerData> getMobsAt(Holder<Biome> biome, StructureManager structureManager, MobCategory mobCategory, BlockPos pos) {
         return parent.getMobsAt(biome, structureManager, mobCategory, pos);
     }
+
     @Override
     public int getSeaLevel() {
         return parent.getSeaLevel();
     }
+
     @Override
     public int getMinY() {
         return parent.getMinY();
     }
+
     @Override
     public int getBaseHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor heightAccessor, RandomState randomState) {
         return parent.getBaseHeight(x, z, type, heightAccessor, randomState);
     }
+
     @Override
     public NoiseColumn getBaseColumn(int x, int z, LevelHeightAccessor heightAccessor, RandomState randomState) {
         return parent.getBaseColumn(x, z, heightAccessor, randomState);
     }
+
     @Override
     public int getFirstFreeHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor heightAccessor, RandomState randomState) {
         return parent.getBaseHeight(x, z, type, heightAccessor, randomState);
     }
+
     @Override
     public int getFirstOccupiedHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor heightAccessor, RandomState randomState) {
         return parent.getBaseHeight(x, z, type, heightAccessor, randomState) - 1;
     }
+
     @Override
     public void addDebugScreenInfo(List<String> outDebugInfo, RandomState randomState, BlockPos pos) {
         parent.addDebugScreenInfo(outDebugInfo, randomState, pos);
     }
+
     protected List<StructurePlacement> getPlacementsForFeatureCompat(Holder<Structure> structure) {
         return ChunkGeneratorAccess.getPlacementsForFeature(parent, structure);
     }
