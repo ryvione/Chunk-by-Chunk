@@ -1,5 +1,5 @@
 {
   "variants": {
-    "" : {"model" : "gatheringchunks:block/chunkeraser"}
+    "": {"model": "gatheringchunks:block/chunkeraser_block"}
   }
 }

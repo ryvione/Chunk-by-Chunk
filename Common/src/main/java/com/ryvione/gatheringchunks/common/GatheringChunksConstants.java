@@ -36,6 +36,7 @@ public final class GatheringChunksConstants {
             "desert",
             "swamp",
             "badlands",
+            "cherryblossum",
             "forest",
             "savanna",
             "rocky",

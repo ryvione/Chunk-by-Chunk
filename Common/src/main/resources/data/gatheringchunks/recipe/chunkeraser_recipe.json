@@ -1,23 +1,23 @@
 {
-  "type" : "minecraft:crafting_shaped",
+  "type": "minecraft:crafting_shaped",
   "pattern": [
-    "OSO",
-    "SFS",
-    "OSO"
+    "WSW",
+    "SCS",
+    "WSW"
   ],
-  "key" : {
-    "O" : {
-      "item": "minecraft:obsidian"
-    },
-    "S" : {
+  "key": {
+    "W": {
       "item": "gatheringchunks:worldshard"
     },
-    "F" : {
-      "item": "gatheringchunks:worldforge"
+    "S": {
+      "item": "minecraft:stone"
+    },
+    "C": {
+      "item": "gatheringchunks:worldcrystal"
     }
   },
-  "result" : {
-    "id" : "gatheringchunks:chunkeraser",
-    "count" : 1
+  "result": {
+    "item": "gatheringchunks:chunkeraser",
+    "count": 1
   }
 }

@@ -2,6 +2,7 @@ package com.ryvione.gatheringchunks.common.blocks;
 
 import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.server.world.ChunkBarrierManager;
+import com.ryvione.gatheringchunks.server.world.SpawnChunkHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -39,6 +40,13 @@ public class ChunkEraserBlock extends Block {
 
         if (level instanceof ServerLevel serverLevel && player instanceof ServerPlayer serverPlayer) {
             ChunkPos targetChunk = new ChunkPos(pos);
+
+            if (SpawnChunkHelper.isEmptyChunk(level, targetChunk)) {
+                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "§c[ChunkEraser] §eThis chunk is already empty! Nothing to erase."));
+                return InteractionResult.FAIL;
+            }
+
             UUID playerId = player.getUUID();
             PendingErase pending = pendingErases.get(playerId);
 

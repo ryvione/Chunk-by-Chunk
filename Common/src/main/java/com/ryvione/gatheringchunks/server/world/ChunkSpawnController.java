@@ -462,6 +462,11 @@ public class ChunkSpawnController extends SavedData {
             String effectiveBiomeTheme = biomeTheme;
 
             if (!biomeTheme.isEmpty()) {
+                sourceLevel = generator.getBiomeDimension(biomeTheme);
+                if (sourceLevel == null) {
+                    GatheringChunksConstants.LOGGER.warn("Biome theme '" + biomeTheme + "' has no associated dimension!");
+                    return false;
+                }
                 Random themeRng = new Random(biomeTheme.hashCode());
                 int offsetX = themeRng.nextInt(-1000000, 1000000);
                 int offsetZ = themeRng.nextInt(-1000000, 1000000);
@@ -469,14 +474,10 @@ public class ChunkSpawnController extends SavedData {
             } else if (random) {
                 Random rng = new Random(blockPos.asLong());
                 sourceChunkPos = new ChunkPos(rng.nextInt(Short.MIN_VALUE, Short.MAX_VALUE), rng.nextInt(Short.MIN_VALUE, Short.MAX_VALUE));
-            } else {
-                sourceChunkPos = new ChunkPos(targetChunkPos.x, targetChunkPos.z);
-            }
-
-            if (biomeTheme.isEmpty()) {
                 sourceLevel = generator.getGenerationLevel();
             } else {
-                sourceLevel = generator.getBiomeDimension(biomeTheme);
+                sourceChunkPos = new ChunkPos(targetChunkPos.x, targetChunkPos.z);
+                sourceLevel = generator.getGenerationLevel();
             }
 
             ServerLevel sourceLevelInstance = server.getLevel(sourceLevel);
