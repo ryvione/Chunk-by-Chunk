@@ -1,6 +1,8 @@
 package com.ryvione.gatheringchunks.mixins;
 
+import com.ryvione.gatheringchunks.client.UpdateNotificationOverlay;
 import com.ryvione.gatheringchunks.client.screens.GatheringChunksConfigScreen;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
@@ -33,5 +35,10 @@ public abstract class TitleScreenMixin extends Screen {
                 .bounds(x, y, 50, 20)
                 .tooltip(Tooltip.create(Component.literal("Gathering Chunks Config")))
                 .build());
+    }
+
+    @Inject(method = "render", at = @At("RETURN"))
+    private void onRender(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+        UpdateNotificationOverlay.renderUpdateWarning(guiGraphics, (TitleScreen)(Object)this);
     }
 }

@@ -1,13 +1,3 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Chunk By Chunk (Ryvione's Fork).
- * Original: https://github.com/immortius/chunkbychunk
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
-
 package com.ryvione.gatheringchunks.server.world;
 
 import com.ryvione.gatheringchunks.common.util.ChunkUtil;
@@ -40,7 +30,7 @@ public final class SpawnChunkHelper {
 
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         int minY = level.getMinBuildHeight();
-        
+
         int[][] samples = {{8, 8}, {2, 2}, {13, 13}, {2, 13}, {13, 2}};
         for (int[] sample : samples) {
             pos.set(chunkPos.getMinBlockX() + sample[0], minY + 1, chunkPos.getMinBlockZ() + sample[1]);
@@ -48,50 +38,43 @@ public final class SpawnChunkHelper {
                 return false;
             }
         }
-        
+
         return true;
     }
 
     public static void createNextSpawner(ServerLevel targetLevel, ChunkPos chunkPos) {
         Random random = ChunkUtil.getChunkRandom(targetLevel, chunkPos);
-        int minPos = Math.min(ChunkByChunkConfig.get().getGeneration().getMinChestSpawnDepth(),
-                ChunkByChunkConfig.get().getGeneration().getMaxChestSpawnDepth());
-        int maxPos = Math.max(ChunkByChunkConfig.get().getGeneration().getMinChestSpawnDepth(),
-                ChunkByChunkConfig.get().getGeneration().getMaxChestSpawnDepth());
+        int minDepth = ChunkByChunkConfig.get().getGeneration().getMinChestSpawnDepth();
+        int maxDepth = ChunkByChunkConfig.get().getGeneration().getMaxChestSpawnDepth();
 
+        int minPos = Math.min(minDepth, maxDepth);
+        int maxPos = Math.max(minDepth, maxDepth);
 
-        if (maxPos < 0) {
-            maxPos = 64;
-        }
-        if (minPos < 0) {
-            minPos = 1;
-        }
+        minPos = Math.max(minPos, -64);
+        maxPos = Math.min(maxPos, 128);
 
         if (minPos > maxPos) {
-            int temp = minPos;
             minPos = maxPos;
-            maxPos = temp;
         }
 
         BlockPos centerPos = new BlockPos(chunkPos.getMiddleBlockX(), maxPos, chunkPos.getMiddleBlockZ());
-        while (maxPos > minPos && targetLevel.getBlockState(centerPos).getBlock() instanceof AirBlock) {
-            maxPos--;
-            centerPos = new BlockPos(chunkPos.getMiddleBlockX(), maxPos, chunkPos.getMiddleBlockZ());
+        int searchY = maxPos;
+        while (searchY > minPos && targetLevel.getBlockState(centerPos).getBlock() instanceof AirBlock) {
+            searchY--;
+            centerPos = new BlockPos(chunkPos.getMiddleBlockX(), searchY, chunkPos.getMiddleBlockZ());
         }
 
         int yPos;
         if (minPos == maxPos) {
             yPos = minPos;
         } else {
-            yPos = random.nextInt(minPos, maxPos + 1);
+            yPos = random.nextInt(maxPos - minPos + 1) + minPos;
         }
 
-        if (yPos < 1) {
-            yPos = 1;
-        }
+        yPos = Math.max(-64, Math.min(128, yPos));
 
-        int xPos = chunkPos.getMinBlockX() + random.nextInt(0, 16);
-        int zPos = chunkPos.getMinBlockZ() + random.nextInt(0, 16);
+        int xPos = chunkPos.getMinBlockX() + random.nextInt(16);
+        int zPos = chunkPos.getMinBlockZ() + random.nextInt(16);
         BlockPos blockPos = new BlockPos(xPos, yPos, zPos);
 
         if (ChunkByChunkConfig.get().getGeneration().useBedrockChest()) {

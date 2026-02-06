@@ -1,13 +1,3 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Chunk By Chunk (Ryvione's Fork).
- * Original: https://github.com/immortius/chunkbychunk
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
-
 package com.ryvione.gatheringchunks.server.world;
 
 import com.google.common.collect.ImmutableMap;
@@ -29,7 +19,6 @@ import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -63,6 +52,7 @@ public class SkyChunkGenerator extends ChunkGenerator {
     private Block sealCoverBlock;
     @Nullable
     private Holder<Biome> unspawnedBiome;
+    private Set<Long> spawnedChunks = new HashSet<>();
 
     public enum EmptyGenerationType {
         Normal,
@@ -152,6 +142,18 @@ public class SkyChunkGenerator extends ChunkGenerator {
         return generationLevel;
     }
 
+    public void markChunkSpawned(long chunkPos) {
+        spawnedChunks.add(chunkPos);
+    }
+
+    public boolean isChunkSpawned(long chunkPos) {
+        return spawnedChunks.contains(chunkPos);
+    }
+
+    public void unmarkChunkSpawned(long chunkPos) {
+        spawnedChunks.remove(chunkPos);
+    }
+
     @Override
     protected MapCodec<? extends ChunkGenerator> codec() {
         return CODEC;
@@ -191,24 +193,11 @@ public class SkyChunkGenerator extends ChunkGenerator {
                 BlockPos.MutableBlockPos blockPos = new BlockPos.MutableBlockPos(0, 0, 0);
 
                 for (int y = chunkAccess.getMinBuildHeight(); y < chunkAccess.getMaxBuildHeight(); y++) {
-                    for (blockPos.setZ(0); blockPos.getZ() < 16; blockPos.setZ(blockPos.getZ() + 1)) {
-                        for (blockPos.setX(0); blockPos.getX() < 16; blockPos.setX(blockPos.getX() + 1)) {
-                            blockPos.setY(y);
-                            BlockState state = chunkAccess.getBlockState(blockPos);
-
-                            if (state.is(Blocks.BEDROCK)) {
-                                chunkAccess.setBlockState(blockPos, Blocks.AIR.defaultBlockState(), false);
-                            }
+                    for (int z = 0; z < 16; z++) {
+                        for (int x = 0; x < 16; x++) {
+                            blockPos.set(x, y, z);
+                            chunkAccess.setBlockState(blockPos, Blocks.AIR.defaultBlockState(), false);
                         }
-                    }
-                }
-
-                for (blockPos.setZ(0); blockPos.getZ() < 16; blockPos.setZ(blockPos.getZ() + 1)) {
-                    for (blockPos.setX(0); blockPos.getX() < 16; blockPos.setX(blockPos.getX() + 1)) {
-                        blockPos.setY(chunkAccess.getMinBuildHeight());
-                        chunkAccess.setBlockState(blockPos, Blocks.LAVA.defaultBlockState(), false);
-                        blockPos.setY(chunkAccess.getMinBuildHeight() + 1);
-                        chunkAccess.setBlockState(blockPos, Blocks.LAVA.defaultBlockState(), false);
                     }
                 }
             });
@@ -233,6 +222,9 @@ public class SkyChunkGenerator extends ChunkGenerator {
 
     @Override
     public void buildSurface(WorldGenRegion region, StructureManager structureManager, RandomState randomState, ChunkAccess chunk) {
+        if (generationType == EmptyGenerationType.Nether) {
+            return;
+        }
     }
 
     @Override
@@ -290,8 +282,8 @@ public class SkyChunkGenerator extends ChunkGenerator {
     }
 
     @Override
-    public void addDebugScreenInfo(List<String> outDebugInfo, RandomState randomState, BlockPos pos) {
-        parent.addDebugScreenInfo(outDebugInfo, randomState, pos);
+    public void addDebugScreenInfo(List<String> list, RandomState randomState, BlockPos pos) {
+        parent.addDebugScreenInfo(list, randomState, pos);
     }
 
     protected List<StructurePlacement> getPlacementsForFeatureCompat(Holder<Structure> structure) {

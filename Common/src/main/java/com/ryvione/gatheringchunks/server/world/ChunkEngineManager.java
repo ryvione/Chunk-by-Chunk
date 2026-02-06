@@ -1,13 +1,12 @@
 package com.ryvione.gatheringchunks.server.world;
 
-import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.common.blockEntities.ChunkEngineBlockEntity;
+import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.interop.Services;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.LongTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.datafix.DataFixTypes;
@@ -19,7 +18,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.saveddata.SavedData;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class ChunkEngineManager extends SavedData {
     private final MinecraftServer server;
@@ -56,8 +57,8 @@ public class ChunkEngineManager extends SavedData {
     private final Map<ChunkId, Long> activeChunks = new HashMap<>();
     private final Map<ChunkId, ResetTask> resettingChunks = new HashMap<>();
 
-    private static final long GRACE_PERIOD_TICKS = 1200; // 1 minute
-    private static final long MAINTENANCE_TIMEOUT_TICKS = 200; // 10 seconds leeway
+    private static final long GRACE_PERIOD_TICKS = 1200;
+    private static final long MAINTENANCE_TIMEOUT_TICKS = 200;
 
     public ChunkEngineManager(MinecraftServer server) {
         this.server = server;
@@ -117,26 +118,26 @@ public class ChunkEngineManager extends SavedData {
         int x = pos.getMiddleBlockX();
         int z = pos.getMiddleBlockZ();
         int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, x, z);
-        
+
         BlockPos enginePos = new BlockPos(x, y, z);
-        
+
         if (ChunkByChunkConfig.get().getDifficulty().getHardMode().isSpawnInitialEngine()) {
             level.setBlock(enginePos, Services.PLATFORM.chunkEngineBlock().defaultBlockState(), 3);
-            
+
             BlockEntity be = level.getBlockEntity(enginePos);
             if (be instanceof ChunkEngineBlockEntity engine && ChunkByChunkConfig.get().getDifficulty().getHardMode().isInitialEngineFuel()) {
-
                 engine.setItem(ChunkEngineBlockEntity.SLOT_FUEL, new ItemStack(Services.PLATFORM.worldShardItem(), 16));
                 engine.setChanged();
             }
-            
+
             registerEngine(level, enginePos);
         }
     }
 
     public void notifyChunkSpawned(ServerLevel level, ChunkPos pos) {
         if (!ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled()) return;
-        
+        if (!ChunkByChunkConfig.get().getDifficulty().isEngineRequiresFuel()) return;
+
         ChunkId id = ChunkId.from(level, pos);
         if (!activeChunks.containsKey(id) && !resettingChunks.containsKey(id)) {
             pendingChunks.put(id, server.getTickCount() + 0L);
@@ -146,7 +147,8 @@ public class ChunkEngineManager extends SavedData {
 
     public void registerEngine(ServerLevel level, BlockPos pos) {
         if (!ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled()) return;
-        
+        if (!ChunkByChunkConfig.get().getDifficulty().isEngineRequiresFuel()) return;
+
         ChunkId id = ChunkId.from(level, new ChunkPos(pos));
         activeChunks.put(id, (long) server.getTickCount());
         pendingChunks.remove(id);
@@ -156,9 +158,10 @@ public class ChunkEngineManager extends SavedData {
 
     public void tick() {
         if (!ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled()) return;
+        if (!ChunkByChunkConfig.get().getDifficulty().isEngineRequiresFuel()) return;
 
         long currentTick = server.getTickCount();
-        
+
         pendingChunks.entrySet().removeIf(entry -> {
             if (currentTick - entry.getValue() > GRACE_PERIOD_TICKS) {
                 startReset(entry.getKey());
@@ -176,13 +179,13 @@ public class ChunkEngineManager extends SavedData {
         });
 
         processResets();
-        
+
         if (currentTick % 100 == 0) setDirty();
     }
 
     private void startReset(ChunkId id) {
         if (resettingChunks.containsKey(id)) return;
-        
+
         server.getAllLevels().forEach(level -> {
             if (level.dimension().location().toString().equals(id.level)) {
                 resettingChunks.put(id, new ResetTask(id, level.getMinBuildHeight()));
@@ -196,12 +199,12 @@ public class ChunkEngineManager extends SavedData {
 
         int layersPerTick = ChunkByChunkConfig.get().getGeneration().getChunkLayerSpawnRate();
         Iterator<Map.Entry<ChunkId, ResetTask>> it = resettingChunks.entrySet().iterator();
-        
+
         while (it.hasNext()) {
             Map.Entry<ChunkId, ResetTask> entry = it.next();
             ChunkId id = entry.getKey();
             ResetTask task = entry.getValue();
-            
+
             ServerLevel level = null;
             for (ServerLevel l : server.getAllLevels()) {
                 if (l.dimension().location().toString().equals(id.level)) {
@@ -222,9 +225,9 @@ public class ChunkEngineManager extends SavedData {
 
             int minLayer = task.currentLayer;
             int maxLayer = Math.min(minLayer + layersPerTick, level.getMaxBuildHeight());
-            
+
             performResetStep(level, new ChunkPos(id.pos), minLayer, maxLayer);
-            
+
             if (maxLayer >= level.getMaxBuildHeight()) {
                 level.setChunkForced(new ChunkPos(id.pos).x, new ChunkPos(id.pos).z, false);
                 it.remove();
@@ -240,7 +243,7 @@ public class ChunkEngineManager extends SavedData {
 
     private void performResetStep(ServerLevel level, ChunkPos pos, int fromY, int toY) {
         BlockState defaultState = Blocks.AIR.defaultBlockState();
-        
+
         if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator skyGen) {
             switch (skyGen.getGenerationType()) {
                 case Sealed -> {
@@ -259,7 +262,7 @@ public class ChunkEngineManager extends SavedData {
                 }
             }
         }
-        
+
         if (fromY == level.getMinBuildHeight()) {
             BlockPos bedrockPos = pos.getMiddleBlockPosition(level.getMinBuildHeight());
             level.setBlock(bedrockPos, Blocks.AIR.defaultBlockState(), 3);

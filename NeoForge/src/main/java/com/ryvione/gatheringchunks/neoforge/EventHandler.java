@@ -1,16 +1,10 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Gathering Chunks (Ryvione's Fork).
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
 package com.ryvione.gatheringchunks.neoforge;
 
 import com.ryvione.gatheringchunks.common.CommonEventHandler;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import com.ryvione.gatheringchunks.common.data.ScannerDataLoader;
 import com.ryvione.gatheringchunks.common.data.SkyDimensionDataLoader;
+import com.ryvione.gatheringchunks.common.update.UpdateNotification;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.config.system.ConfigSystem;
 import com.ryvione.gatheringchunks.server.ChunkBoundaryEnforcer;
@@ -143,6 +137,8 @@ public class EventHandler {
         if (!ChunkByChunkConfig.get().getGeneration().isEnabled()) return;
 
         if (event.getEntity() instanceof ServerPlayer player) {
+            UpdateNotification.sendUpdateNotification(player);
+
             ServerLevel level = player.serverLevel();
             if (!level.dimension().equals(Level.OVERWORLD)) return;
 

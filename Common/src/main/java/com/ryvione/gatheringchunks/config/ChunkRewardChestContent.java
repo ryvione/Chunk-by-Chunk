@@ -1,13 +1,3 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Chunk By Chunk (Ryvione's Fork).
- * Original: https://github.com/immortius/chunkbychunk
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
-
 package com.ryvione.gatheringchunks.config;
 
 import com.google.common.collect.ImmutableList;
@@ -77,6 +67,14 @@ public enum ChunkRewardChestContent {
                         break;
                     }
                 }
+            }
+
+            float unstableChunkChance = ChunkByChunkConfig.get().getGameplayConfig().getUnstableChunkChance() / 100.0f;
+            if (random.nextFloat() < unstableChunkChance) {
+                // TODO: Add unstableChunkItem to Services.PLATFORM
+                // ItemStack unstableStack = Services.PLATFORM.unstableChunkItem().getDefaultInstance();
+                // unstableStack.setCount(1);
+                // result.add(unstableStack);
             }
 
             return result;

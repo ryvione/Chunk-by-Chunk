@@ -323,7 +323,7 @@ public final class ServerEventHandler {
         Set<Block> copper = ImmutableSet.of(Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE, Blocks.RAW_COPPER_BLOCK);
         BlockPos spawnPos = overworldLevel.getSharedSpawnPos();
         boolean disableVillage = ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled() && ChunkByChunkConfig.get().getDifficulty().getHardMode().isDisableVillages();
-        
+
         if (!disableVillage) {
             if (ChunkByChunkConfig.get().getDifficulty().isAlwaysSpawnVillage()) {
                 spawnPos = findVillage(generationLevel, registryAccess, spawnPos);
@@ -507,7 +507,7 @@ public final class ServerEventHandler {
             }
         }
 
-        if (server.getTickCount() % 200 == 0) {
+        if (server.getTickCount() % 200 == 0 && ChunkByChunkConfig.get().getDifficulty().isEnableProgressionHelper()) {
             PlayerProgressionHelper.checkPlayers(server);
         }
     }

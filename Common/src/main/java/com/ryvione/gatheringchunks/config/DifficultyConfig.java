@@ -1,11 +1,3 @@
-/*
- * Copyright (c) 2026 Ryvione
- *
- * This file is part of Chunk By Chunk (Ryvione's Fork).
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
-
 package com.ryvione.gatheringchunks.config;
 
 import com.ryvione.gatheringchunks.config.system.Comment;
@@ -37,7 +29,7 @@ public class DifficultyConfig {
     private String startingBiome = "#minecraft:is_forest";
 
     @Name("always_spawn_village")
-    @Comment("Always attempt to spawn the initial chunk in a village (Enabled by default, disabled in Hard Mode)")
+    @Comment("Always attempt to spawn the initial chunk in a village (overridden by Hard Mode)")
     private boolean alwaysSpawnVillage = true;
 
     @Name("spawn_new_chunk_chest")
@@ -97,6 +89,9 @@ public class DifficultyConfig {
     }
 
     public boolean isAlwaysSpawnVillage() {
+        if (hardMode.isEnabled()) {
+            return false;
+        }
         return alwaysSpawnVillage;
     }
 

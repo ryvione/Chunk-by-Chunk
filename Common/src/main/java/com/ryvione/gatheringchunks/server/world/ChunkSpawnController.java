@@ -49,12 +49,12 @@ public class ChunkSpawnController extends SavedData {
     private transient ServerLevel targetLevel;
     @Nullable
     private transient CompletableFuture<ChunkResult<ChunkAccess>> sourceChunkFuture;
-    private Map<String, Integer> maxChunks = new HashMap<>(); // Dimension ID -> Limit
-    private Map<String, Integer> spawnedChunkCount = new HashMap<>(); // Dimension ID -> Count
+    private Map<String, Integer> maxChunks = new HashMap<>();
+    private Map<String, Integer> spawnedChunkCount = new HashMap<>();
 
     public int getMaxChunks(String dimensionId) {
         if (dimensionId.equals("minecraft:the_nether")) {
-             return maxChunks.getOrDefault(dimensionId, 1);
+            return maxChunks.getOrDefault(dimensionId, 1);
         }
         return maxChunks.getOrDefault(dimensionId, 4);
     }
@@ -118,17 +118,16 @@ public class ChunkSpawnController extends SavedData {
                 maxChunks.put(key, map.getInt(key));
             }
         } else if (tag.contains("maxChunks")) {
-            // Upgrade old config
             maxChunks.put("minecraft:overworld", tag.getInt("maxChunks"));
         }
 
         if (tag.contains("spawnedChunkCountMap")) {
             CompoundTag map = tag.getCompound("spawnedChunkCountMap");
-             for(String key : map.getAllKeys()) {
+            for(String key : map.getAllKeys()) {
                 spawnedChunkCount.put(key, map.getInt(key));
             }
         } else if (tag.contains("spawnedChunkCount")) {
-             spawnedChunkCount.put("minecraft:overworld", tag.getInt("spawnedChunkCount"));
+            spawnedChunkCount.put("minecraft:overworld", tag.getInt("spawnedChunkCount"));
         }
     }
 
@@ -143,7 +142,6 @@ public class ChunkSpawnController extends SavedData {
             tag.put("currentRequest", currentSpawnRequest.save());
             tag.putString("phase", phase.name());
             tag.putBoolean("forcedTargetChunk", forcedTargetChunk);
-            tag.putInt("currentLayer", currentLayer);
             tag.putInt("currentLayer", currentLayer);
         }
         CompoundTag maxChunksMap = new CompoundTag();
@@ -189,11 +187,14 @@ public class ChunkSpawnController extends SavedData {
                             currentSpawnRequest.targetChunkPos,
                             minLayer,
                             maxLayer,
-                            currentSpawnRequest.overwrite); // Added overwrite flag
+                            currentSpawnRequest.overwrite);
                     if (maxLayer > targetLevel.getMaxBuildHeight()) {
                         TreePlacementHandler.ensureTreesInChunk(targetLevel, currentSpawnRequest.targetChunkPos);
                         if (ChunkByChunkConfig.get().getDifficulty().spawnNewChunkChest() && !ChunkByChunkConfig.get().getDifficulty().spawnChestInInitialChunkOnly()) {
                             SpawnChunkHelper.createNextSpawner(targetLevel, currentSpawnRequest.targetChunkPos);
+                        }
+                        if (targetLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator && generator.getGenerationType() == SkyChunkGenerator.EmptyGenerationType.Nether) {
+                            generator.markChunkSpawned(currentSpawnRequest.targetChunkPos.toLong());
                         }
                         phase = SpawnPhase.UPDATE_BARRIERS;
                     } else {
@@ -296,12 +297,15 @@ public class ChunkSpawnController extends SavedData {
                 for (int x = sourceChunkPos.getMinBlockX(); x <= sourceChunkPos.getMaxBlockX(); x++) {
                     sourceBlock.set(x, y, z);
                     targetBlock.set(x + xOffset, y, z + zOffset);
-                    Block existingBlock = targetLevel.getBlockState(targetBlock).getBlock();
+                    BlockState existingState = targetLevel.getBlockState(targetBlock);
+                    Block existingBlock = existingState.getBlock();
                     if (existingBlock == Blocks.NETHER_PORTAL || existingBlock == Blocks.OBSIDIAN) {
                         continue;
                     }
 
-                    if (overwrite || existingBlock instanceof AirBlock || existingBlock instanceof LiquidBlock || existingBlock == Blocks.BEDROCK || existingBlock == sealedBlock || existingBlock == Blocks.SNOW) {
+                    boolean isLavaInNether = targetLevel.dimension() == Level.NETHER && existingBlock == Blocks.LAVA;
+
+                    if (overwrite || existingBlock instanceof AirBlock || existingBlock instanceof LiquidBlock || existingBlock == Blocks.BEDROCK || existingBlock == sealedBlock || existingBlock == Blocks.SNOW || isLavaInNether) {
                         BlockState newBlock = sourceLevel.getBlockState(sourceBlock);
 
                         if (newBlock.is(Blocks.NETHER_PORTAL)) {
@@ -380,20 +384,16 @@ public class ChunkSpawnController extends SavedData {
         }
     }
 
-    /**
-     * Checks if a chunk's top layer consists only of water blocks.
-     * Used to detect ocean chunks that should be replaced with plains.
-     */
     private static boolean isWaterOnlyChunk(ServerLevel level, ChunkPos chunkPos) {
         try {
             if (!level.hasChunk(chunkPos.x, chunkPos.z)) {
                 return false;
             }
-            
+
             ChunkAccess chunk = level.getChunk(chunkPos.x, chunkPos.z);
             int waterBlockCount = 0;
             int totalSurfaceBlocks = 0;
-            
+
             for (int x = 0; x < 16; x += 2) {
                 for (int z = 0; z < 16; z += 2) {
                     int y = chunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, x, z);
@@ -406,7 +406,7 @@ public class ChunkSpawnController extends SavedData {
                     }
                 }
             }
-            
+
             return totalSurfaceBlocks > 0 && ((float) waterBlockCount / totalSurfaceBlocks) > 0.85f;
         } catch (Exception e) {
             GatheringChunksConstants.LOGGER.warn("Failed to check for water-only chunk: " + e.getMessage());
@@ -441,17 +441,18 @@ public class ChunkSpawnController extends SavedData {
 
     public boolean request(ServerLevel level, String biomeTheme, boolean random, BlockPos blockPos, boolean immediate, boolean overwrite, boolean isInitial) {
         ChunkPos targetChunkPos = new ChunkPos(blockPos);
-        boolean canSpawn = SpawnChunkHelper.isEmptyChunk(level, targetChunkPos) || overwrite;
-        
+        boolean isEmptyChunk = SpawnChunkHelper.isEmptyChunk(level, targetChunkPos);
+        boolean canSpawn = isEmptyChunk || overwrite;
+
         boolean experimentalLimit = ChunkByChunkConfig.get().getDifficulty().isExperimentalChunkLimit();
         String dim = level.dimension().location().toString();
         int max = getMaxChunks(dim);
         int current = getSpawnedChunkCount(dim);
-        
+
         if (experimentalLimit && !overwrite && current >= max) {
             if (!isInitial) {
-                 GatheringChunksConstants.LOGGER.info("Spawn prevented: Chunk Limit Reached (" + current + "/" + max + ")");
-                 return false;
+                GatheringChunksConstants.LOGGER.info("Spawn prevented: Chunk Limit Reached (" + current + "/" + max + ")");
+                return false;
             }
         }
 
@@ -471,13 +472,13 @@ public class ChunkSpawnController extends SavedData {
             } else {
                 sourceChunkPos = new ChunkPos(targetChunkPos.x, targetChunkPos.z);
             }
-            
+
             if (biomeTheme.isEmpty()) {
                 sourceLevel = generator.getGenerationLevel();
             } else {
                 sourceLevel = generator.getBiomeDimension(biomeTheme);
             }
-            
+
             ServerLevel sourceLevelInstance = server.getLevel(sourceLevel);
             if (biomeTheme.isEmpty() && sourceLevelInstance != null && isWaterOnlyChunk(sourceLevelInstance, sourceChunkPos)) {
                 GatheringChunksConstants.LOGGER.info("Detected water-only chunk at " + sourceChunkPos + ", spawning plains chunk instead");
@@ -485,11 +486,15 @@ public class ChunkSpawnController extends SavedData {
                 if (plainsDimension != null) {
                     sourceLevel = plainsDimension;
                     effectiveBiomeTheme = "plains";
-                    Random rng = new Random(blockPos.asLong() + 12345); // Different seed for variety
+                    Random rng = new Random(blockPos.asLong() + 12345);
                     sourceChunkPos = new ChunkPos(rng.nextInt(Short.MIN_VALUE, Short.MAX_VALUE), rng.nextInt(Short.MIN_VALUE, Short.MAX_VALUE));
                 }
             }
-            
+
+            if (isEmptyChunk) {
+                GatheringChunksConstants.LOGGER.info("Void spawn detected at " + targetChunkPos + " - spawning chunk in place");
+            }
+
             return request(targetChunkPos, level.dimension(), sourceChunkPos, sourceLevel, immediate, overwrite, isInitial);
         }
         return false;

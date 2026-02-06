@@ -6,7 +6,6 @@
   "refmap": "gatheringchunks-fabric-refmap.json",
   "mixins": [
     "BucketFluidAccessor",
-    "CauldronPrecipitationMixin",
     "ChunkGeneratorAccessor",
     "ChunkGeneratorStructureAccessor",
     "ChunkMapMixin",

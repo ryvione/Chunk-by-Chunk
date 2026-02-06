@@ -1,10 +1,3 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Gathering Chunks (Ryvione's Fork).
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
 package com.ryvione.gatheringchunks.fabric;
 
 import com.ryvione.gatheringchunks.common.CommonEventHandler;
@@ -18,6 +11,7 @@ import com.ryvione.gatheringchunks.server.ServerEventHandler;
 import com.ryvione.gatheringchunks.server.commands.ChestsCommand;
 import com.ryvione.gatheringchunks.server.commands.GatheringChunksCommand;
 import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
+import com.ryvione.gatheringchunks.server.world.SpawnChunkHelper;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -41,18 +35,33 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 public class ChunkByChunkMod implements ModInitializer {
 
     private static final Logger LOGGER = LogManager.getLogger(GatheringChunksConstants.MOD_ID);
+    private static final ConfigSystem CONFIG_SYSTEM = new ConfigSystem();
+    private static final Set<UUID> INITIAL_SPAWNED_PLAYERS = new HashSet<>();
 
     @Override
     public void onInitialize() {
         LOGGER.info("Fabric mod initializing");
         CommonRegistry.registerAll();
 
-        ServerLifecycleEvents.SERVER_STARTED.register(ServerEventHandler::onServerStarted);
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            INITIAL_SPAWNED_PLAYERS.clear();
+            ServerEventHandler.onServerStarted(server);
+        });
+
         ServerLifecycleEvents.SERVER_STARTING.register(ServerEventHandler::onServerStarting);
+
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            LOGGER.info("Saving config before server shutdown...");
+            CONFIG_SYSTEM.write(Paths.get("defaultconfigs", GatheringChunksConstants.MOD_ID + ".toml"), ChunkByChunkConfig.get());
+        });
+
         ServerTickEvents.END_SERVER_TICK.register(ServerEventHandler::onLevelTick);
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -101,22 +110,30 @@ public class ChunkByChunkMod implements ModInitializer {
             if (!level.dimension().equals(Level.OVERWORLD)) return;
 
             if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator) {
-                BlockPos spawnPos = level.getSharedSpawnPos();
-                ChunkPos spawnChunk = new ChunkPos(spawnPos);
-                ChunkPos playerChunk = new ChunkPos(player.blockPosition());
+                boolean isFirstJoin = !INITIAL_SPAWNED_PLAYERS.contains(player.getUUID());
 
-                if (playerChunk.x != spawnChunk.x || playerChunk.z != spawnChunk.z) {
-                    LOGGER.info("Correcting initial spawn from chunk [{},{}] to spawn chunk [{},{}]",
-                            playerChunk.x, playerChunk.z, spawnChunk.x, spawnChunk.z);
+                if (isFirstJoin) {
+                    BlockPos playerPos = player.blockPosition();
+                    ChunkPos playerChunk = new ChunkPos(playerPos);
 
-                    player.teleportTo(
-                            level,
-                            spawnChunk.getMiddleBlockX() + 0.5,
-                            spawnPos.getY(),
-                            spawnChunk.getMiddleBlockZ() + 0.5,
-                            player.getYRot(),
-                            player.getXRot()
-                    );
+                    if (SpawnChunkHelper.isEmptyChunk(level, playerChunk)) {
+                        BlockPos spawnPos = level.getSharedSpawnPos();
+                        ChunkPos spawnChunk = new ChunkPos(spawnPos);
+
+                        LOGGER.info("First join: Correcting spawn from empty chunk [{},{}] to spawn chunk [{},{}]",
+                                playerChunk.x, playerChunk.z, spawnChunk.x, spawnChunk.z);
+
+                        player.teleportTo(
+                                level,
+                                spawnChunk.getMiddleBlockX() + 0.5,
+                                spawnPos.getY(),
+                                spawnChunk.getMiddleBlockZ() + 0.5,
+                                player.getYRot(),
+                                player.getXRot()
+                        );
+                    }
+
+                    INITIAL_SPAWNED_PLAYERS.add(player.getUUID());
                 }
             }
         });
@@ -142,6 +159,6 @@ public class ChunkByChunkMod implements ModInitializer {
             }
         });
 
-        new ConfigSystem().synchConfig(Paths.get("defaultconfigs", GatheringChunksConstants.MOD_ID + ".toml"), ChunkByChunkConfig.get());
+        CONFIG_SYSTEM.synchConfig(Paths.get("defaultconfigs", GatheringChunksConstants.MOD_ID + ".toml"), ChunkByChunkConfig.get());
     }
 }

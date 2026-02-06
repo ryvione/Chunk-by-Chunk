@@ -1,5 +1,7 @@
 package com.ryvione.gatheringchunks.common.blocks;
 
+import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
+import com.ryvione.gatheringchunks.config.ChunkSpawnerMode;
 import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.server.world.ChunkOverwriteConfirmation;
 import com.ryvione.gatheringchunks.server.world.ChunkSpawnController;
@@ -52,9 +54,22 @@ public class SpawnChunkBlock extends Block {
             }
 
             if (chunkSpawnController.isValidForLevel(serverLevel, effectiveBiomeTheme, effectiveRandom)) {
-                ChunkPos spawnerChunk = new ChunkPos(pos);
+                ChunkSpawnerMode mode = ChunkByChunkConfig.get().getGeneration().getChunkSpawnerMode();
+                ChunkPos ownChunk = new ChunkPos(pos);
 
-                if (isInChunkEdgeOrCorner(pos, spawnerChunk)) {
+                if ((mode == ChunkSpawnerMode.Void || mode == ChunkSpawnerMode.Both)
+                        && SpawnChunkHelper.isEmptyChunk(serverLevel, ownChunk)) {
+
+                    if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, pos, false, false)) {
+                        level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
+                        level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                        return InteractionResult.SUCCESS;
+                    }
+                }
+
+                if (mode == ChunkSpawnerMode.Edge || mode == ChunkSpawnerMode.Both) {
+                    ChunkPos spawnerChunk = ownChunk;
+
                     List<BlockPos> targetPositions = new ArrayList<>();
                     Direction targetDirection = hit.getDirection();
                     if (!HORIZONTAL_DIR.contains(targetDirection)) {
@@ -70,6 +85,11 @@ public class SpawnChunkBlock extends Block {
                         ChunkPos targetChunkPos = new ChunkPos(targetPos);
 
                         if (targetChunkPos.equals(spawnerChunk)) {
+                            continue;
+                        }
+
+                        boolean isChunkLoaded = serverLevel.hasChunk(targetChunkPos.x, targetChunkPos.z);
+                        if (!isChunkLoaded) {
                             continue;
                         }
 
@@ -101,26 +121,14 @@ public class SpawnChunkBlock extends Block {
                             return InteractionResult.SUCCESS;
                         }
                     }
-                } else {
+
                     serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                            "§c[ChunkByChunk] §ePlace chunk spawner on chunk edge or corner to spawn adjacent chunks!"));
+                            "§c[ChunkByChunk] §eNo valid adjacent chunks found. Place spawner in loaded chunk."));
                     return InteractionResult.CONSUME;
                 }
             }
         }
         return InteractionResult.PASS;
-    }
-
-    private boolean isInChunkEdgeOrCorner(BlockPos pos, ChunkPos chunk) {
-        int relX = pos.getX() - chunk.getMinBlockX();
-        int relZ = pos.getZ() - chunk.getMinBlockZ();
-
-        boolean isOnEdgeX = (relX <= 4 || relX >= 11);
-        boolean isOnEdgeZ = (relZ <= 4 || relZ >= 11);
-
-        boolean isCorner = (relX <= 0 || relX >= 15) && (relZ <= 0 || relZ >= 15);
-
-        return isCorner || isOnEdgeX || isOnEdgeZ;
     }
 
     private String findAdjacentBiomeTheme(ServerLevel level, ChunkPos currentChunk) {

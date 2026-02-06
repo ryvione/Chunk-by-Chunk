@@ -86,7 +86,7 @@ public class ChunkEngineScreen extends AbstractContainerScreen<ChunkEngineMenu> 
             if (requiredItem != null) {
                 guiGraphics.drawString(this.font, "Engine Upgrade Required", this.leftPos + 8, this.topPos + 85, 0xFF5555, false);
                 guiGraphics.drawString(this.font, "Cost: 1 " + requiredItem.getName(new ItemStack(requiredItem)).getString(), this.leftPos + 8, this.topPos + 95, 0x404040, false);
-                 this.upgradeButton.active = true; // Always active to try? Or check inventory?
+                 this.upgradeButton.active = true;
             } else {
                 double cost = 16 * Math.pow(1.2, nextMax - 5);
                 int fragCost = (int) cost;
@@ -105,7 +105,6 @@ public class ChunkEngineScreen extends AbstractContainerScreen<ChunkEngineMenu> 
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-       // Hide default labels if in experimental mode? Or just move them
        if (!ChunkByChunkConfig.get().getDifficulty().isExperimentalChunkLimit()) {
             guiGraphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 4210752, false);
             guiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 4210752, false);

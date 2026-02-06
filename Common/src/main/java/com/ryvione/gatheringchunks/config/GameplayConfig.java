@@ -6,7 +6,7 @@ import com.ryvione.gatheringchunks.config.system.Name;
 public class GameplayConfig {
     @Name("block_placement_allowed_outside_spawned_chunks")
     @Comment("Can blocks be placed outside spawned chunks")
-    private boolean blockPlacementAllowedOutsideSpawnedChunks = true;
+    private boolean blockPlacementAllowedOutsideSpawnedChunks = false;
 
     @Name("chunk_spawn_leaf_decay_disabled")
     @Comment("Prevent leaves spawned by the chunk spawners from decaying")
@@ -20,6 +20,10 @@ public class GameplayConfig {
                     "This prevents players from easily reaching lower chunks by following liquids."
     )
     private boolean enableChunkBarriers = true;
+
+    @Name("unstable_chunk_chance")
+    @Comment("Percentage chance for unstable chunks to spawn in chests (0-100)")
+    private int unstableChunkChance = 20;
 
     public boolean isBlockPlacementAllowedOutsideSpawnedChunks() {
         return blockPlacementAllowedOutsideSpawnedChunks;
@@ -43,6 +47,14 @@ public class GameplayConfig {
 
     public void setEnableChunkBarriers(boolean enableChunkBarriers) {
         this.enableChunkBarriers = enableChunkBarriers;
+    }
+
+    public int getUnstableChunkChance() {
+        return unstableChunkChance;
+    }
+
+    public void setUnstableChunkChance(int unstableChunkChance) {
+        this.unstableChunkChance = Math.max(0, Math.min(100, unstableChunkChance));
     }
 
     public enum StartRestriction {

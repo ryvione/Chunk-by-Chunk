@@ -1,17 +1,8 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Chunk By Chunk (Ryvione's Fork).
- * Original: https://github.com/immortius/chunkbychunk
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
-
 package com.ryvione.gatheringchunks.server.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
+import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.server.world.ChestTracker;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -39,6 +30,13 @@ public class ChestsCommand {
 
     private static int listChests(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
+
+        if (ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled() &&
+                ChunkByChunkConfig.get().getDifficulty().getHardMode().isDisableChestsCommand()) {
+            source.sendFailure(Component.literal("§cThe /chests command is disabled in Hard Mode"));
+            return 0;
+        }
+
         ServerLevel level = source.getLevel();
 
         if (level.getServer() == null) {

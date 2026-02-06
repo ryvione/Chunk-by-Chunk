@@ -17,6 +17,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -33,6 +34,7 @@ public class WorldForgeBlockEntity extends BaseFueledBlockEntity {
     public static final Map<Item, FuelValueSupplier> FUEL;
     public static final Map<TagKey<Item>, FuelValueSupplier> FUEL_TAGS;
     private static final Map<Item, FuelValueSupplier> CRYSTAL_COSTS;
+    private static final Map<Item, Integer> ORE_TO_FRAGMENTS;
     private static final Item INITIAL_CRYSTAL = Services.PLATFORM.worldFragmentItem();
     public static final Map<Item, Item> CRYSTAL_STEPS;
     private static final int[] SLOTS_FOR_UP = new int[]{SLOT_INPUT};
@@ -43,6 +45,7 @@ public class WorldForgeBlockEntity extends BaseFueledBlockEntity {
     private static final TagKey<Item> STRONG_FUEL_TAG = TagKey.create(Registries.ITEM, ResourceLocation.parse("gatheringchunks:strongworldforgefuel"));
     private int progress;
     private int goal;
+    private boolean processingOre = false;
 
     protected final ContainerData dataAccess = new ContainerData() {
         public int get(int id) {
@@ -81,6 +84,13 @@ public class WorldForgeBlockEntity extends BaseFueledBlockEntity {
                 .put(Services.PLATFORM.worldFragmentItem(), Services.PLATFORM.worldShardItem())
                 .put(Services.PLATFORM.worldShardItem(), Services.PLATFORM.worldCrystalItem())
                 .put(Services.PLATFORM.worldCrystalItem(), Services.PLATFORM.worldCoreBlockItem()).build();
+        ORE_TO_FRAGMENTS = ImmutableMap.<Item, Integer>builder()
+                .put(Items.RAW_COPPER, 1)
+                .put(Items.RAW_IRON, 4)
+                .put(Items.RAW_GOLD, 8)
+                .put(Items.DIAMOND, 16)
+                .put(Items.NETHERITE_INGOT, 64)
+                .build();
     }
 
     public WorldForgeBlockEntity(BlockPos pos, BlockState state) {
@@ -121,12 +131,12 @@ public class WorldForgeBlockEntity extends BaseFueledBlockEntity {
     public static boolean isWorldForgeFuel(ItemStack itemStack) {
         Item item = itemStack.getItem();
         String name = item.toString();
-        return FUEL.containsKey(item) 
-                || itemStack.is(SOIL_FUEL_TAG) 
-                || itemStack.is(STONE_FUEL_TAG) 
+        return FUEL.containsKey(item)
+                || itemStack.is(SOIL_FUEL_TAG)
+                || itemStack.is(STONE_FUEL_TAG)
                 || itemStack.is(STRONG_FUEL_TAG)
-                || name.contains("dirt") 
-                || name.contains("stone") 
+                || name.contains("dirt")
+                || name.contains("stone")
                 || name.contains("cobblestone")
                 || name.contains("sand")
                 || name.contains("gravel")
@@ -142,6 +152,7 @@ public class WorldForgeBlockEntity extends BaseFueledBlockEntity {
         super.loadAdditional(tag, provider);
         this.progress = tag.getInt("Progress");
         this.goal = tag.getInt("Goal");
+        this.processingOre = tag.getBoolean("ProcessingOre");
     }
 
     @Override
@@ -149,10 +160,32 @@ public class WorldForgeBlockEntity extends BaseFueledBlockEntity {
         super.saveAdditional(tag, provider);
         tag.putInt("Progress", this.progress);
         tag.putInt("Goal", this.goal);
+        tag.putBoolean("ProcessingOre", this.processingOre);
     }
 
     public static void serverTick(Level level, BlockPos blockPos, BlockState blockState, WorldForgeBlockEntity entity) {
         boolean changed = false;
+        ItemStack inputStack = entity.getItem(SLOT_INPUT);
+        ItemStack outputItems = entity.getItem(SLOT_RESULT);
+
+        if (!inputStack.isEmpty() && ORE_TO_FRAGMENTS.containsKey(inputStack.getItem())) {
+            int fragmentCount = ORE_TO_FRAGMENTS.get(inputStack.getItem());
+            ItemStack fragments = new ItemStack(Services.PLATFORM.worldFragmentItem(), fragmentCount);
+
+            if (outputItems.isEmpty() || (outputItems.getItem() == Services.PLATFORM.worldFragmentItem() && outputItems.getCount() + fragmentCount <= outputItems.getMaxStackSize())) {
+                inputStack.shrink(1);
+                if (outputItems.isEmpty()) {
+                    entity.setItem(SLOT_RESULT, fragments);
+                } else {
+                    outputItems.grow(fragmentCount);
+                }
+                changed = true;
+            }
+            if (changed) {
+                setChanged(level, blockPos, blockState);
+            }
+            return;
+        }
 
         if (entity.getRemainingFuel() > 0) {
             int consumeAmount = entity.consumeFuel(ChunkByChunkConfig.get().getWorldForge().getProductionRate());
@@ -160,7 +193,6 @@ public class WorldForgeBlockEntity extends BaseFueledBlockEntity {
             changed = true;
         }
 
-        ItemStack outputItems = entity.getItem(SLOT_RESULT);
         Item producingItem;
         if (outputItems.isEmpty()) {
             producingItem = INITIAL_CRYSTAL;
@@ -227,7 +259,7 @@ public class WorldForgeBlockEntity extends BaseFueledBlockEntity {
     @Override
     public boolean canPlaceItem(int slot, ItemStack item) {
         if (slot == SLOT_INPUT) {
-            return isWorldForgeFuel(item);
+            return isWorldForgeFuel(item) || ORE_TO_FRAGMENTS.containsKey(item.getItem());
         }
         if (slot == SLOT_RESULT) {
             return false;

@@ -31,6 +31,7 @@ import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.levelgen.WorldgenRandom;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.MapColor;
@@ -214,12 +215,20 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
                     int chunkZ = entity.scanIterator.getY() + originChunkPos.z - SCAN_CENTER;
 
                     ServerLevel scanLevel = serverLevel;
+                    boolean wasUnloaded = false;
                     try {
-                        if (serverLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator skyGenerator
-                                && SpawnChunkHelper.isEmptyChunk(serverLevel, new ChunkPos(chunkX, chunkZ))) {
-                            ServerLevel genLevel = serverLevel.getServer().getLevel(skyGenerator.getGenerationLevel());
-                            if (genLevel != null) {
-                                scanLevel = genLevel;
+                        if (serverLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator skyGenerator) {
+                            ChunkPos targetPos = new ChunkPos(chunkX, chunkZ);
+                            if (SpawnChunkHelper.isEmptyChunk(serverLevel, targetPos)) {
+                                ServerLevel genLevel = serverLevel.getServer().getLevel(skyGenerator.getGenerationLevel());
+                                if (genLevel != null) {
+                                    scanLevel = genLevel;
+                                }
+                            } else if (serverLevel.hasChunk(chunkX, chunkZ)) {
+                                scanLevel = serverLevel;
+                            } else {
+                                scanLevel = serverLevel;
+                                wasUnloaded = true;
                             }
                         }
                     } catch (Exception e) {
@@ -227,14 +236,23 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
                         scanLevel = serverLevel;
                     }
 
-                    if (!scanLevel.hasChunk(chunkX, chunkZ)) {
+                    ChunkAccess chunk;
+                    try {
+                        chunk = scanLevel.getChunkSource().getChunk(chunkX, chunkZ, ChunkStatus.FULL, true);
+                        if (chunk == null) {
+                            entity.scanIterator.next();
+                            entity.scanCharge -= chunkCost;
+                            changed = true;
+                            return;
+                        }
+                    } catch (Exception e) {
+                        GatheringChunksConstants.LOGGER.warn("Failed to get chunk for scanner at " + chunkX + "," + chunkZ + ": " + e.getMessage());
                         entity.scanIterator.next();
                         entity.scanCharge -= chunkCost;
                         changed = true;
                         return;
                     }
 
-                    ChunkAccess chunk = scanLevel.getChunk(chunkX, chunkZ);
                     int blockCount;
 
                     if (targetItem.getItem().equals(Items.SLIME_BALL) || targetItem.getItem().equals(Items.SLIME_BLOCK)) {
@@ -294,6 +312,11 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
                     entity.scanIterator.next();
                     entity.scanCharge -= chunkCost;
                     changed = true;
+
+                    // If the chunk was unloaded and we loaded it temporarily, log it
+                    if (wasUnloaded) {
+                        GatheringChunksConstants.LOGGER.debug("Scanned unloaded chunk at " + chunkX + "," + chunkZ);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -330,24 +353,24 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
             try {
                 ChunkPos pos = new ChunkPos(getBlockPos());
                 MapItemSavedData data = MapItemSavedData.createFresh(
-                    pos.getMaxBlockX(), 
-                    pos.getMaxBlockZ(), 
-                    (byte) 2, 
-                    false, 
-                    false, 
-                    serverLevel.dimension()
+                        pos.getMaxBlockX(),
+                        pos.getMaxBlockZ(),
+                        (byte) 2,
+                        false,
+                        false,
+                        serverLevel.dimension()
                 );
-                
+
                 map = serverLevel.getFreeMapId();
                 serverLevel.setMapData(map, data);
-                
+
                 for (int x = 0; x < MapItem.IMAGE_WIDTH; x++) {
                     for (int y = 0; y < MapItem.IMAGE_HEIGHT; y++) {
                         data.setColor(x, y, MapColor.NONE.getPackedId(MapColor.Brightness.NORMAL));
                     }
                 }
                 data.setDirty(true);
-                
+
                 GatheringChunksConstants.LOGGER.info("Created scanner map with ID: " + map.id() + " at " + getBlockPos());
             } catch (Exception e) {
                 GatheringChunksConstants.LOGGER.error("Failed to create scanner map: " + e.getMessage(), e);

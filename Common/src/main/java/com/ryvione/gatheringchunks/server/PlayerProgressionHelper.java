@@ -1,15 +1,6 @@
-/*
- * Copyright (c) 2026 Ryvione
- *
- * This file is part of Chunk By Chunk (Ryvione's Fork).
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
-
 package com.ryvione.gatheringchunks.server;
 
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
-import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.server.world.ChestTracker;
 import net.minecraft.core.BlockPos;
@@ -31,15 +22,11 @@ public class PlayerProgressionHelper {
 
     private static final Map<UUID, Long> lastCheckTime = new HashMap<>();
     private static final Map<UUID, Boolean> hasBeenWarned = new HashMap<>();
-    private static final long CHECK_INTERVAL = 6000; // 5 minutes
-    private static final long GRACE_PERIOD = 12000;  // 10 minutes
+    private static final long CHECK_INTERVAL = 6000;
+    private static final long GRACE_PERIOD = 12000;
     private static final int SEARCH_RADIUS = 32;
 
     public static void checkPlayers(MinecraftServer server) {
-        if (!ChunkByChunkConfig.get().getDifficulty().isEnableProgressionHelper()) {
-            return;
-        }
-
         long currentTime = server.overworld().getGameTime();
 
         if (currentTime < GRACE_PERIOD) {

@@ -33,6 +33,10 @@ public class HardModeConfig {
     @Comment("Give the initial Chunk Engine some starting fuel")
     private boolean initialEngineFuel = true;
 
+    @Name("disable_chests_command")
+    @Comment("Disable the /chests command")
+    private boolean disableChestsCommand = true;
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -71,5 +75,13 @@ public class HardModeConfig {
 
     public void setInitialEngineFuel(boolean initialEngineFuel) {
         this.initialEngineFuel = initialEngineFuel;
+    }
+
+    public boolean isDisableChestsCommand() {
+        return disableChestsCommand;
+    }
+
+    public void setDisableChestsCommand(boolean disableChestsCommand) {
+        this.disableChestsCommand = disableChestsCommand;
     }
 }
