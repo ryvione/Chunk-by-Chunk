@@ -14,6 +14,7 @@
     "desert": ["minecraft:desert"],
     "swamp": ["minecraft:swamp"],
     "badlands": ["minecraft:badlands", "minecraft:eroded_badlands", "minecraft:wooded_badlands"],
+    "cherryblossum": ["minecraft:cherry_grove"],
     "forest": ["minecraft:forest", "minecraft:dark_forest", "minecraft:flower_forest", "minecraft:birch_forest", "minecraft:old_growth_birch_forest", "minecraft:old_growth_pine_taiga", "minecraft:old_growth_spruce_taiga", "minecraft:taiga"],
     "savanna": ["minecraft:savanna", "minecraft:savanna_plateau", "minecraft:windswept_savanna"],
     "rocky": ["minecraft:windswept_gravelly_hills", "minecraft:windswept_forest", "minecraft:stony_shore"],

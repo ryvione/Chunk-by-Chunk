@@ -31,6 +31,9 @@
       "minecraft:eroded_badlands",
       "minecraft:wooded_badlands"
     ],
+    "cherryblossum": [
+      "minecraft:cherry_grove"
+    ],
     "forest": [
       "minecraft:forest",
       "minecraft:dark_forest",
