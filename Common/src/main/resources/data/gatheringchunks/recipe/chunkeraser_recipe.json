@@ -1,0 +1,23 @@
+{
+  "type" : "minecraft:crafting_shaped",
+  "pattern": [
+    "OSO",
+    "SFS",
+    "OSO"
+  ],
+  "key" : {
+    "O" : {
+      "item": "minecraft:obsidian"
+    },
+    "S" : {
+      "item": "gatheringchunks:worldshard"
+    },
+    "F" : {
+      "item": "gatheringchunks:worldforge"
+    }
+  },
+  "result" : {
+    "id" : "gatheringchunks:chunkeraser",
+    "count" : 1
+  }
+}

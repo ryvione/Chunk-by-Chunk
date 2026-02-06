@@ -47,7 +47,7 @@ public class ChunkEraserBlock extends Block {
 
                 pendingErases.remove(playerId);
                 eraseChunk(serverLevel, targetChunk, pos, serverPlayer);
-                level.playSound(null, pos, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, 1.0f, 0.5f);
+                serverLevel.playSound(null, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, 1.0f, 0.5f);
                 level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
                 return InteractionResult.SUCCESS;
             } else {
@@ -56,7 +56,7 @@ public class ChunkEraserBlock extends Block {
                         "§c[ChunkEraser] §6WARNING: §eYou are about to ERASE chunk [" + targetChunk.x + ", " + targetChunk.z + "]!"));
                 serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                         "§eAll blocks will be removed! Right-click again within 30 seconds to confirm."));
-                level.playSound(null, pos, SoundEvents.ANVIL_LAND, SoundSource.BLOCKS, 0.5f, 1.5f);
+                serverLevel.playSound(null, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.ANVIL_LAND, SoundSource.BLOCKS, 0.5f, 1.5f);
                 return InteractionResult.CONSUME;
             }
         }
