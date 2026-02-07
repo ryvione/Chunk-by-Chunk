@@ -76,28 +76,28 @@ public final class SpawnChunkHelper {
         return null;
     }
 
-    private static BlockPos resolveEdgePosition(ChunkPos neighbourChunk, int directionOfNeighbour, int yPos, Random random) {
+    private static BlockPos resolveEdgePosition(ChunkPos newChunk, int directionOfNeighbour, int yPos, Random random) {
         int x, z;
         switch (directionOfNeighbour) {
             case 0:
-                x = neighbourChunk.getMinBlockX();
-                z = neighbourChunk.getMinBlockZ() + random.nextInt(16);
+                x = newChunk.getMinBlockX();
+                z = newChunk.getMinBlockZ() + random.nextInt(16);
                 break;
             case 1:
-                x = neighbourChunk.getMaxBlockX();
-                z = neighbourChunk.getMinBlockZ() + random.nextInt(16);
+                x = newChunk.getMaxBlockX();
+                z = newChunk.getMinBlockZ() + random.nextInt(16);
                 break;
             case 2:
-                x = neighbourChunk.getMinBlockX() + random.nextInt(16);
-                z = neighbourChunk.getMinBlockZ();
+                x = newChunk.getMinBlockX() + random.nextInt(16);
+                z = newChunk.getMinBlockZ();
                 break;
             case 3:
-                x = neighbourChunk.getMinBlockX() + random.nextInt(16);
-                z = neighbourChunk.getMaxBlockZ();
+                x = newChunk.getMinBlockX() + random.nextInt(16);
+                z = newChunk.getMaxBlockZ();
                 break;
             default:
-                x = neighbourChunk.getMiddleBlockX();
-                z = neighbourChunk.getMiddleBlockZ();
+                x = newChunk.getMiddleBlockX();
+                z = newChunk.getMiddleBlockZ();
                 break;
         }
         return new BlockPos(x, yPos, z);
@@ -115,7 +115,7 @@ public final class SpawnChunkHelper {
             ChunkPos neighbour = findSpawnedNeighbour(targetLevel, chunkPos, dirOut);
 
             if (neighbour != null) {
-                spawnerPos = resolveEdgePosition(neighbour, dirOut[0], yPos, random);
+                spawnerPos = resolveEdgePosition(chunkPos, dirOut[0], yPos, random);
             } else {
                 spawnerPos = randomPosInChunk(chunkPos, yPos, random);
             }

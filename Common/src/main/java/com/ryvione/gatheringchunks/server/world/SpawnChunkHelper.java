@@ -10,7 +10,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
@@ -55,13 +54,6 @@ public final class SpawnChunkHelper {
 
         if (minPos > maxPos) {
             minPos = maxPos;
-        }
-
-        BlockPos centerPos = new BlockPos(chunkPos.getMiddleBlockX(), maxPos, chunkPos.getMiddleBlockZ());
-        int searchY = maxPos;
-        while (searchY > minPos && targetLevel.getBlockState(centerPos).getBlock() instanceof AirBlock) {
-            searchY--;
-            centerPos = new BlockPos(chunkPos.getMiddleBlockX(), searchY, chunkPos.getMiddleBlockZ());
         }
 
         int yPos;

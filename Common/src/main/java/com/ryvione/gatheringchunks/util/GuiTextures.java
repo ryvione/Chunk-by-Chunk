@@ -1,4 +1,4 @@
-package com.ryvione.gatheringchunks.common.util;
+package com.ryvione.gatheringchunks.util;
 
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import net.minecraft.resources.ResourceLocation;
