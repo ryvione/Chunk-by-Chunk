@@ -1,4 +1,0 @@
-{
-  "inputItems" : ["raw_gold", "gold_nugget", "gold_ingot"],
-  "targetBlocks" : ["gold_ore", "deepslate_gold_ore", "nether_gold_ore", "raw_gold_block"]
-}
