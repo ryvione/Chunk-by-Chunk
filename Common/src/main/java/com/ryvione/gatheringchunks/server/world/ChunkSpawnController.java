@@ -234,7 +234,6 @@ public class ChunkSpawnController extends SavedData {
                                 search.targetPos, candidatePos)) {
                             requests.add(new SpawnRequest(search.targetPos, search.level.dimension(), candidatePos,
                                     sourceLevelKey, search.immediate, search.overwrite, false));
-                            // Store the profile immediately for future matching
                             chunkTerrainProfiles.put(search.targetPos, candidateProfile);
                             updatePreScanCache(sourceLevelInstance, candidatePos, search.biomeTheme);
                             setDirty();
@@ -741,8 +740,6 @@ public class ChunkSpawnController extends SavedData {
                 if (!adjacentChunks.isEmpty()) {
                     targetProfile = chunkTerrainProfiles.get(adjacentChunks.get(0));
 
-                    // TRY CHAINING: Check if we can just use the logical neighbor in the source
-                    // world
                     ChunkPos chainedPos = tryChainedSourceMatch(level, targetChunkPos, biomeTheme);
                     if (chainedPos != null) {
                         GatheringChunksConstants.LOGGER
@@ -752,7 +749,6 @@ public class ChunkSpawnController extends SavedData {
                     }
                 }
 
-                // TRY CACHE: Check if we have any pre-scanned good chunks
                 ChunkPos cachedPos = tryCachedSourceMatch(level, biomeTheme);
                 if (cachedPos != null) {
                     GatheringChunksConstants.LOGGER
@@ -796,10 +792,7 @@ public class ChunkSpawnController extends SavedData {
                 LevelChunk fromChunk = fromLevel.getChunk(sourceChunkPos.x, sourceChunkPos.z);
                 updateBiomes(fromLevel, fromChunk, toLevel, toChunk, targetChunkPos);
 
-                // Update pre-scan cache
-                updatePreScanCache(fromLevel, sourceChunkPos, "unknown"); // We don't have theme here in this overload
-                                                                          // usually
-
+                updatePreScanCache(fromLevel, sourceChunkPos, "unknown");
                 copyBlocks(fromLevel, spawnRequest.sourceChunkPos, toLevel, spawnRequest.targetChunkPos,
                         toLevel.getMinBuildHeight(), toLevel.getMaxBuildHeight() + 1, overwrite);
                 requests.addFirst(spawnRequest);
@@ -870,7 +863,7 @@ public class ChunkSpawnController extends SavedData {
     }
 
     private static class TerrainProfile {
-        final int[] northEdge; // 16 heights
+        final int[] northEdge;
         final int[] southEdge;
         final int[] eastEdge;
         final int[] westEdge;
@@ -939,7 +932,6 @@ public class ChunkSpawnController extends SavedData {
 
             if (adjProfile != null && adjProfile.biomeTheme.equals(theme)
                     && adjProfile.sourcePos.toLong() != ChunkPos.INVALID_CHUNK_POS) {
-                // Logical neighbor in source dimension
                 ChunkPos candidateSource = new ChunkPos(adjProfile.sourcePos.x - offset[0],
                         adjProfile.sourcePos.z - offset[1]);
 
@@ -968,7 +960,7 @@ public class ChunkSpawnController extends SavedData {
     private void updatePreScanCache(ServerLevel sourceLevel, ChunkPos sourcePos, String theme) {
         Set<ChunkPos> cache = knownGoodSourceChunks.computeIfAbsent(theme, k -> new HashSet<>());
         if (cache.size() > 50)
-            return; // Cap cache size
+            return;
 
         int[][] offsets = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
         for (int[] offset : offsets) {
