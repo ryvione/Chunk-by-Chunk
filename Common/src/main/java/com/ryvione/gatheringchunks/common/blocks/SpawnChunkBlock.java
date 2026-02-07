@@ -87,7 +87,6 @@ public class SpawnChunkBlock extends Block {
                     targetPositions.add(pos.relative(targetDirection.getClockWise()));
                     targetPositions.add(pos.relative(targetDirection.getOpposite()));
 
-                    // Add diagonals
                     targetPositions.add(pos.relative(targetDirection).relative(targetDirection.getClockWise()));
                     targetPositions.add(pos.relative(targetDirection).relative(targetDirection.getCounterClockWise()));
                     targetPositions
@@ -135,6 +134,11 @@ public class SpawnChunkBlock extends Block {
 
                         if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, targetPos,
                                 false, shouldOverwrite)) {
+                            if (!effectiveBiomeTheme.isEmpty()) {
+                                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                                        "§6[ChunkByChunk] §eSearching for compatible '" + effectiveBiomeTheme
+                                                + "' terrain..."));
+                            }
                             level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS,
                                     1.0f, 1.0f);
                             level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);

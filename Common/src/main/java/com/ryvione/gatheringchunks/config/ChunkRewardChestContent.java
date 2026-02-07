@@ -72,9 +72,6 @@ public enum ChunkRewardChestContent {
             float unstableChunkChance = ChunkByChunkConfig.get().getGameplayConfig().getUnstableChunkChance() / 100.0f;
             if (random.nextFloat() < unstableChunkChance) {
                 // TODO: Add unstableChunkItem to Services.PLATFORM
-                // ItemStack unstableStack = Services.PLATFORM.unstableChunkItem().getDefaultInstance();
-                // unstableStack.setCount(1);
-                // result.add(unstableStack);
             }
 
             return result;

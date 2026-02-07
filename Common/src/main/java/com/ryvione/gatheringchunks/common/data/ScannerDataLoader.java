@@ -22,9 +22,6 @@ import net.minecraft.util.profiling.ProfilerFiller;
 
 import java.util.Map;
 
-/**
- * Loads scanner data from data packs
- */
 public class ScannerDataLoader extends SimpleJsonResourceReloadListener {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static final String DIRECTORY = "scanner_data";
@@ -77,9 +74,7 @@ public class ScannerDataLoader extends SimpleJsonResourceReloadListener {
         GatheringChunksConstants.LOGGER.info("Loaded {} scanner data configs", loaded);
     }
 
-    /**
-     * Helper class for JSON deserialization
-     */
+
     private static class ScannerDataJson {
         public java.util.List<String> inputItems;
         public java.util.List<String> targetBlocks;

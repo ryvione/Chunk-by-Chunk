@@ -3,12 +3,9 @@ package com.ryvione.gatheringchunks.server.world;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.util.datafix.DataFixTypes;
+import net.minecraft.world.level.saveddata.SavedData;
 
-/**
- * Persistently tracks if trees have been placed in a dimension to prevent repeated checks.
- */
 public class TreePlacementSavedData extends SavedData {
     private static final String DATA_ID = "chunkbychunk_tree_placement";
     private boolean treesPlaced = false;

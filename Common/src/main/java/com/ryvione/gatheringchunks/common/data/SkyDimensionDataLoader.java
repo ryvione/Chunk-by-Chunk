@@ -22,10 +22,7 @@ import net.minecraft.util.profiling.ProfilerFiller;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-/**
- * Reload listener that delegates to the existing SkyDimensions loader
- * This version accepts RegistryAccess for potential future validation
- */
+
 public class SkyDimensionDataLoader implements PreparableReloadListener {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private final RegistryAccess registryAccess;

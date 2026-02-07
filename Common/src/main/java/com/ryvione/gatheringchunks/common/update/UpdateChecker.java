@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 
 public class UpdateChecker {
     private static final String API_URL = "https://ryvux-api.nexusraven4545.workers.dev/mods/gathering-chunks";
-    private static final String CURRENT_VERSION = "2.2.5-Beta.3.4-Hotfix.2";
+    private static final String CURRENT_VERSION = "2.2.5-Beta.3.4-Hotfix.2.5";
     private static final Gson GSON = new Gson();
     private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+\\.\\d+\\.\\d+)(?:-Beta\\.(\\d+)(?:\\.(\\d+))?)?(?:-Hotfix\\.(\\d+))?");
 

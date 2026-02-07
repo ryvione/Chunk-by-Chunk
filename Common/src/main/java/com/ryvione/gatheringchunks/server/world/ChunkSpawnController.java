@@ -52,6 +52,31 @@ public class ChunkSpawnController extends SavedData {
     private Map<String, Integer> maxChunks = new HashMap<>();
     private Map<String, Integer> spawnedChunkCount = new HashMap<>();
     private Map<ChunkPos, TerrainProfile> chunkTerrainProfiles = new HashMap<>();
+    private final List<PendingSearch> pendingSearches = new ArrayList<>();
+    private final Map<String, Set<ChunkPos>> knownGoodSourceChunks = new HashMap<>();
+
+    private static class PendingSearch {
+        final ServerLevel level;
+        final String biomeTheme;
+        final boolean immediate;
+        final boolean overwrite;
+        final Random seedFinder;
+        final TerrainProfile targetProfile;
+        final ChunkPos targetPos;
+        int attempts;
+
+        PendingSearch(ServerLevel level, String biomeTheme, boolean immediate,
+                boolean overwrite, Random seedFinder, TerrainProfile targetProfile, ChunkPos targetPos) {
+            this.level = level;
+            this.biomeTheme = biomeTheme;
+            this.immediate = immediate;
+            this.overwrite = overwrite;
+            this.seedFinder = seedFinder;
+            this.targetProfile = targetProfile;
+            this.targetPos = targetPos;
+            this.attempts = 0;
+        }
+    }
 
     public int getMaxChunks(String dimensionId) {
         if (dimensionId.equals("minecraft:the_nether")) {
@@ -177,6 +202,71 @@ public class ChunkSpawnController extends SavedData {
     }
 
     public void tick() {
+
+        Iterator<PendingSearch> it = pendingSearches.iterator();
+        int totalAttemptsThisTick = 0;
+        int maxAttemptsPerTick = 10;
+
+        while (it.hasNext() && totalAttemptsThisTick < maxAttemptsPerTick) {
+            PendingSearch search = it.next();
+            ResourceKey<Level> sourceLevelKey = ((SkyChunkGenerator) search.level.getChunkSource().getGenerator())
+                    .getBiomeDimension(search.biomeTheme);
+            ServerLevel sourceLevelInstance = server.getLevel(sourceLevelKey);
+
+            if (sourceLevelInstance == null) {
+                it.remove();
+                continue;
+            }
+
+            for (int i = 0; i < 2 && totalAttemptsThisTick < maxAttemptsPerTick; i++) {
+                totalAttemptsThisTick++;
+                search.attempts++;
+
+                int offsetX = search.seedFinder.nextInt(-500000, 500000);
+                int offsetZ = search.seedFinder.nextInt(-500000, 500000);
+                ChunkPos candidatePos = new ChunkPos(offsetX, offsetZ);
+
+                if (!isWaterOnlyChunk(sourceLevelInstance, candidatePos, search.biomeTheme)) {
+                    if (search.targetProfile != null) {
+                        TerrainProfile candidateProfile = analyzeChunkTerrain(sourceLevelInstance, candidatePos,
+                                search.biomeTheme);
+                        if (candidateProfile != null && terrainsMatch(search.targetProfile, candidateProfile,
+                                search.targetPos, candidatePos)) {
+                            requests.add(new SpawnRequest(search.targetPos, search.level.dimension(), candidatePos,
+                                    sourceLevelKey, search.immediate, search.overwrite, false));
+                            // Store the profile immediately for future matching
+                            chunkTerrainProfiles.put(search.targetPos, candidateProfile);
+                            updatePreScanCache(sourceLevelInstance, candidatePos, search.biomeTheme);
+                            setDirty();
+
+                            it.remove();
+                            break;
+                        }
+                    } else {
+                        requests.add(new SpawnRequest(search.targetPos, search.level.dimension(), candidatePos,
+                                sourceLevelKey, search.immediate, search.overwrite, false));
+
+                        TerrainProfile prof = analyzeChunkTerrain(sourceLevelInstance, candidatePos, search.biomeTheme);
+                        if (prof != null) {
+                            chunkTerrainProfiles.put(search.targetPos, prof);
+                            updatePreScanCache(sourceLevelInstance, candidatePos, search.biomeTheme);
+                            setDirty();
+                        }
+
+                        it.remove();
+                        break;
+                    }
+                }
+
+                if (search.attempts >= 500) {
+                    GatheringChunksConstants.LOGGER
+                            .warn("Async search for '" + search.biomeTheme + "' failed after 500 attempts.");
+                    it.remove();
+                    break;
+                }
+            }
+        }
+
         if (currentSpawnRequest != null) {
             if (!sourceChunkFuture.isDone()) {
                 return;
@@ -246,7 +336,7 @@ public class ChunkSpawnController extends SavedData {
                 }
             }
         } else if (!requests.isEmpty()) {
-            currentSpawnRequest = requests.removeFirst();
+            currentSpawnRequest = requests.poll();
             targetLevel = server.getLevel(currentSpawnRequest.targetLevel());
             sourceLevel = server.getLevel(currentSpawnRequest.sourceLevel());
             forcedTargetChunk = targetLevel.setChunkForced(currentSpawnRequest.targetChunkPos().x,
@@ -426,23 +516,29 @@ public class ChunkSpawnController extends SavedData {
         }
     }
 
-    /**
-     * Analyzes the terrain of a chunk to create a profile for matching
-     */
     private TerrainProfile analyzeChunkTerrain(ServerLevel level, ChunkPos pos, String biomeTheme) {
         try {
-            // Ensure chunk is loaded to FULL status for accurate analysis
-            ChunkAccess chunk = level.getChunk(pos.x, pos.z, ChunkStatus.FULL, true);
+            ChunkAccess chunk = level.getChunk(pos.x, pos.z, ChunkStatus.SURFACE, true);
             if (chunk == null) {
                 return null;
             }
 
             int totalHeight = 0;
             int sampleCount = 0;
-            Map<Block, Integer> blockCounts = new HashMap<>();
             List<Integer> heights = new ArrayList<>();
 
-            // Sample every 4 blocks for performance
+            int[] northEdge = new int[16];
+            int[] southEdge = new int[16];
+            int[] eastEdge = new int[16];
+            int[] westEdge = new int[16];
+
+            for (int i = 0; i < 16; i++) {
+                northEdge[i] = chunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, i, 0);
+                southEdge[i] = chunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, i, 15);
+                westEdge[i] = chunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, 0, i);
+                eastEdge[i] = chunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, 15, i);
+            }
+
             for (int x = 0; x < 16; x += 4) {
                 for (int z = 0; z < 16; z += 4) {
                     int y = chunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, x, z);
@@ -450,71 +546,64 @@ public class ChunkSpawnController extends SavedData {
                         heights.add(y);
                         totalHeight += y;
                         sampleCount++;
-
-                        // Sample blocks at surface and a few blocks below
-                        for (int dy = 0; dy < 3; dy++) {
-                            BlockPos samplePos = new BlockPos(pos.getMinBlockX() + x, y - dy, pos.getMinBlockZ() + z);
-                            BlockState state = chunk.getBlockState(samplePos);
-                            Block block = state.getBlock();
-                            if (!(block instanceof AirBlock) && !(block instanceof LiquidBlock)) {
-                                blockCounts.put(block, blockCounts.getOrDefault(block, 0) + 1);
-                            }
-                        }
                     }
                 }
             }
 
-            if (sampleCount == 0) {
+            if (sampleCount == 0)
                 return null;
-            }
-
             int avgHeight = totalHeight / sampleCount;
 
-            // Calculate height variance
             int variance = 0;
-            for (int h : heights) {
+            for (int h : heights)
                 variance += Math.abs(h - avgHeight);
-            }
             variance = variance / heights.size();
 
-            return new TerrainProfile(avgHeight, variance, blockCounts, biomeTheme);
+            return new TerrainProfile(northEdge, southEdge, eastEdge, westEdge, avgHeight, variance, biomeTheme, pos);
         } catch (Exception e) {
             GatheringChunksConstants.LOGGER.warn("Failed to analyze chunk terrain: " + e.getMessage());
             return null;
         }
     }
 
-    /**
-     * Checks if two terrain profiles are compatible for adjacent placement
-     */
-    private boolean terrainsMatch(TerrainProfile a, TerrainProfile b) {
-        if (a == null || b == null) {
-            return true; // If we can't analyze, allow it
-        }
-
-        // Must be same biome theme
-        if (!a.biomeTheme.equals(b.biomeTheme)) {
+    private boolean terrainsMatch(TerrainProfile target, TerrainProfile candidate, ChunkPos targetPos,
+            ChunkPos candidatePos) {
+        if (target == null || candidate == null)
+            return true;
+        if (!target.biomeTheme.equals(candidate.biomeTheme))
             return false;
+
+        int dx = candidatePos.x - targetPos.x;
+        int dz = candidatePos.z - targetPos.z;
+
+        int[] targetEdge = null;
+        int[] candidateEdge = null;
+
+        if (dx == 1 && dz == 0) {
+            targetEdge = target.eastEdge;
+            candidateEdge = candidate.westEdge;
+        } else if (dx == -1 && dz == 0) {
+            targetEdge = target.westEdge;
+            candidateEdge = candidate.eastEdge;
+        } else if (dx == 0 && dz == 1) {
+            targetEdge = target.southEdge;
+            candidateEdge = candidate.northEdge;
+        } else if (dx == 0 && dz == -1) {
+            targetEdge = target.northEdge;
+            candidateEdge = candidate.southEdge;
         }
 
-        // Height difference should be within 10 blocks
-        if (Math.abs(a.averageHeight - b.averageHeight) > 10) {
-            return false;
+        if (targetEdge != null && candidateEdge != null) {
+            int totalDiff = 0;
+            for (int i = 0; i < 16; i++) {
+                totalDiff += Math.abs(targetEdge[i] - candidateEdge[i]);
+            }
+            return (totalDiff / 16) <= 2;
         }
 
-        // Variance should be similar (within 50%)
-        int maxVariance = Math.max(a.heightVariance, b.heightVariance);
-        int minVariance = Math.min(a.heightVariance, b.heightVariance);
-        if (maxVariance > 0 && (minVariance * 100 / maxVariance) < 50) {
-            return false;
-        }
-
-        return true;
+        return Math.abs(target.averageHeight - candidate.averageHeight) <= 5;
     }
 
-    /**
-     * Finds adjacent chunks with the same biome theme
-     */
     private List<ChunkPos> getAdjacentChunksWithTheme(ChunkPos targetPos, String biomeTheme) {
         List<ChunkPos> adjacent = new ArrayList<>();
         int[][] offsets = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
@@ -530,26 +619,17 @@ public class ChunkSpawnController extends SavedData {
         return adjacent;
     }
 
-    private static boolean isWaterOnlyChunk(ServerLevel level, ChunkPos chunkPos) {
-        return isWaterOnlyChunk(level, chunkPos, "");
-    }
-
-    /**
-     * Improved water detection with biome awareness and block diversity check
-     */
     private static boolean isWaterOnlyChunk(ServerLevel level, ChunkPos chunkPos, String biomeTheme) {
         try {
-            // Ensure chunk is loaded for analysis
             ChunkAccess chunk = level.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, true);
             if (chunk == null) {
-                return true; // Safety: treat unloaded as water-only to avoid spawning in it
+                return true;
             }
 
             int waterBlockCount = 0;
             int totalSurfaceBlocks = 0;
             Set<Block> uniqueBlocks = new HashSet<>();
 
-            // Check surface blocks
             for (int x = 0; x < 16; x += 2) {
                 for (int z = 0; z < 16; z += 2) {
                     int y = chunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, x, z);
@@ -565,7 +645,6 @@ public class ChunkSpawnController extends SavedData {
                             uniqueBlocks.add(block);
                         }
 
-                        // Also check a few blocks below surface for variety
                         for (int dy = 1; dy <= 3; dy++) {
                             BlockState belowState = chunk.getBlockState(surfacePos.below(dy));
                             Block belowBlock = belowState.getBlock();
@@ -583,16 +662,13 @@ public class ChunkSpawnController extends SavedData {
 
             float waterPercentage = (float) waterBlockCount / totalSurfaceBlocks;
 
-            // For land biomes (non-empty theme), be stricter about water
             boolean isLandBiome = !biomeTheme.isEmpty() &&
                     !biomeTheme.equals("ocean") &&
                     !biomeTheme.equals("river");
 
             if (isLandBiome) {
-                // Land biomes should have < 30% water and at least 3 different block types
                 return waterPercentage > 0.3f || uniqueBlocks.size() < 3;
             } else {
-                // Default: > 85% water is considered water-only
                 return waterPercentage > 0.85f;
             }
         } catch (Exception e) {
@@ -648,10 +724,9 @@ public class ChunkSpawnController extends SavedData {
 
         if (isValidForLevel(level, biomeTheme, random) && canSpawn
                 && level.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
-            ChunkPos sourceChunkPos = null;
-            ResourceKey<Level> sourceLevel;
+
             if (!biomeTheme.isEmpty()) {
-                sourceLevel = generator.getBiomeDimension(biomeTheme);
+                ResourceKey<Level> sourceLevel = generator.getBiomeDimension(biomeTheme);
                 if (sourceLevel == null) {
                     GatheringChunksConstants.LOGGER
                             .warn("Biome theme '" + biomeTheme + "' has no associated dimension!");
@@ -661,179 +736,45 @@ public class ChunkSpawnController extends SavedData {
                 long biomeSeed = biomeTheme.hashCode() + (targetChunkPos.x * 31L + targetChunkPos.z * 17L);
                 Random seedFinder = new Random(biomeSeed);
 
-                ServerLevel sourceLevelInstance = server.getLevel(sourceLevel);
-                if (sourceLevelInstance != null) {
-                    // Check if we have adjacent chunks with the same biome theme for terrain
-                    // matching
-                    List<ChunkPos> adjacentChunks = getAdjacentChunksWithTheme(targetChunkPos, biomeTheme);
-                    TerrainProfile targetProfile = null;
+                List<ChunkPos> adjacentChunks = getAdjacentChunksWithTheme(targetChunkPos, biomeTheme);
+                TerrainProfile targetProfile = null;
+                if (!adjacentChunks.isEmpty()) {
+                    targetProfile = chunkTerrainProfiles.get(adjacentChunks.get(0));
 
-                    if (!adjacentChunks.isEmpty()) {
-                        ChunkPos refChunk = adjacentChunks.get(0);
-                        targetProfile = chunkTerrainProfiles.get(refChunk);
-                        GatheringChunksConstants.LOGGER.info("Found " + adjacentChunks.size() +
-                                " adjacent chunk(s) with theme '" + biomeTheme + "', attempting terrain match");
+                    // TRY CHAINING: Check if we can just use the logical neighbor in the source
+                    // world
+                    ChunkPos chainedPos = tryChainedSourceMatch(level, targetChunkPos, biomeTheme);
+                    if (chainedPos != null) {
+                        GatheringChunksConstants.LOGGER
+                                .info("Using CHAINED source chunk for '" + biomeTheme + "' at " + chainedPos);
+                        return request(targetChunkPos, level.dimension(), chainedPos, sourceLevel, immediate, overwrite,
+                                isInitial);
                     }
-
-                    int maxAttempts = 500;
-                    boolean found = false;
-
-                    for (int attempt = 0; attempt < maxAttempts; attempt++) {
-                        int offsetX = seedFinder.nextInt(-500000, 500000);
-                        int offsetZ = seedFinder.nextInt(-500000, 500000);
-
-                        sourceChunkPos = new ChunkPos(offsetX, offsetZ);
-
-                        // Check if chunk is not water-only (with biome theme for stricter checking)
-                        if (!isWaterOnlyChunk(sourceLevelInstance, sourceChunkPos, biomeTheme)) {
-                            // If we need terrain matching, check that too
-                            if (targetProfile != null) {
-                                TerrainProfile candidateProfile = analyzeChunkTerrain(sourceLevelInstance,
-                                        sourceChunkPos, biomeTheme);
-                                if (candidateProfile != null && terrainsMatch(targetProfile, candidateProfile)) {
-                                    found = true;
-                                    GatheringChunksConstants.LOGGER
-                                            .info("Found terrain-matched chunk for biome '" + biomeTheme + "' at "
-                                                    + sourceChunkPos + " after " + (attempt + 1) + " attempts");
-                                    break;
-                                }
-                            } else {
-                                // No terrain matching needed, just avoid water
-                                found = true;
-                                GatheringChunksConstants.LOGGER
-                                        .info("Found valid chunk for biome '" + biomeTheme + "' at "
-                                                + sourceChunkPos + " after " + (attempt + 1) + " attempts");
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!found) {
-                        GatheringChunksConstants.LOGGER.warn("Could not find non-water chunk for biome '" + biomeTheme
-                                + "' after " + maxAttempts + " attempts!");
-                        return false;
-                    }
-
-                    // Store the terrain profile for this chunk
-                    if (sourceChunkPos != null) {
-                        TerrainProfile profile = analyzeChunkTerrain(sourceLevelInstance, sourceChunkPos, biomeTheme);
-                        if (profile != null) {
-                            chunkTerrainProfiles.put(targetChunkPos, profile);
-                            setDirty();
-                        }
-                    }
-                } else {
-                    int baseOffsetX = seedFinder.nextInt(-500000, 500000);
-                    int baseOffsetZ = seedFinder.nextInt(-500000, 500000);
-                    sourceChunkPos = new ChunkPos(baseOffsetX, baseOffsetZ);
                 }
+
+                // TRY CACHE: Check if we have any pre-scanned good chunks
+                ChunkPos cachedPos = tryCachedSourceMatch(level, biomeTheme);
+                if (cachedPos != null) {
+                    GatheringChunksConstants.LOGGER
+                            .info("Using CACHED source chunk for '" + biomeTheme + "' at " + cachedPos);
+                    return request(targetChunkPos, level.dimension(), cachedPos, sourceLevel, immediate, overwrite,
+                            isInitial);
+                }
+
+                pendingSearches.add(new PendingSearch(level, biomeTheme, immediate, overwrite, seedFinder,
+                        targetProfile, targetChunkPos));
+
+                return true;
             } else if (random) {
-                sourceLevel = generator.getGenerationLevel();
                 long randomSeed = 424242L + (targetChunkPos.x * 31L + targetChunkPos.z * 17L);
                 Random seedFinder = new Random(randomSeed);
-
-                ServerLevel sourceLevelInstance = server.getLevel(sourceLevel);
-                if (sourceLevelInstance != null) {
-                    int maxAttempts = 500;
-                    boolean found = false;
-
-                    for (int attempt = 0; attempt < maxAttempts; attempt++) {
-                        int offsetX = seedFinder.nextInt(-500000, 500000);
-                        int offsetZ = seedFinder.nextInt(-500000, 500000);
-
-                        sourceChunkPos = new ChunkPos(offsetX, offsetZ);
-
-                        if (!isWaterOnlyChunk(sourceLevelInstance, sourceChunkPos)) {
-                            found = true;
-                            GatheringChunksConstants.LOGGER.info("Found valid chunk for random spawn at "
-                                    + sourceChunkPos + " after " + (attempt + 1) + " attempts");
-                            break;
-                        }
-                    }
-
-                    if (!found) {
-                        GatheringChunksConstants.LOGGER.warn(
-                                "Could not find non-water chunk for random spawn after " + maxAttempts + " attempts!");
-                        return false;
-                    }
-                } else {
-                    int baseOffsetX = seedFinder.nextInt(-500000, 500000);
-                    int baseOffsetZ = seedFinder.nextInt(-500000, 500000);
-                    sourceChunkPos = new ChunkPos(baseOffsetX, baseOffsetZ);
-                }
+                pendingSearches.add(
+                        new PendingSearch(level, biomeTheme, immediate, overwrite, seedFinder, null, targetChunkPos));
+                return true;
             } else {
-                sourceChunkPos = new ChunkPos(targetChunkPos.x, targetChunkPos.z);
-                sourceLevel = generator.getGenerationLevel();
+                return request(targetChunkPos, level.dimension(), targetChunkPos, generator.getGenerationLevel(),
+                        immediate, overwrite, isInitial);
             }
-            ServerLevel sourceLevelInstance = server.getLevel(sourceLevel);
-            if (biomeTheme.isEmpty() && sourceLevelInstance != null) {
-                boolean isWater = isWaterOnlyChunk(sourceLevelInstance, sourceChunkPos);
-                if (isWater) {
-                    GatheringChunksConstants.LOGGER.info(
-                            "Detected water-only chunk at " + sourceChunkPos + ", searching for non-water chunk...");
-
-                    int maxAttempts = 200;
-                    for (int attempt = 0; attempt < maxAttempts; attempt++) {
-                        int searchRadius = ((attempt / 8) + 1) * 4;
-                        int angle = attempt % 8;
-                        int dx = 0, dz = 0;
-
-                        switch (angle) {
-                            case 0 -> {
-                                dx = searchRadius;
-                                dz = 0;
-                            }
-                            case 1 -> {
-                                dx = -searchRadius;
-                                dz = 0;
-                            }
-                            case 2 -> {
-                                dx = 0;
-                                dz = searchRadius;
-                            }
-                            case 3 -> {
-                                dx = 0;
-                                dz = -searchRadius;
-                            }
-                            case 4 -> {
-                                dx = searchRadius;
-                                dz = searchRadius;
-                            }
-                            case 5 -> {
-                                dx = -searchRadius;
-                                dz = -searchRadius;
-                            }
-                            case 6 -> {
-                                dx = searchRadius;
-                                dz = -searchRadius;
-                            }
-                            case 7 -> {
-                                dx = -searchRadius;
-                                dz = searchRadius;
-                            }
-                        }
-
-                        ChunkPos testPos = new ChunkPos(
-                                sourceChunkPos.x + dx,
-                                sourceChunkPos.z + dz);
-
-                        if (!isWaterOnlyChunk(sourceLevelInstance, testPos)) {
-                            sourceChunkPos = testPos;
-                            GatheringChunksConstants.LOGGER.info("Found non-water chunk at " + sourceChunkPos
-                                    + " after " + (attempt + 1) + " attempts");
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (isEmptyChunk) {
-                GatheringChunksConstants.LOGGER
-                        .info("Void spawn detected at " + targetChunkPos + " - spawning chunk in place");
-            }
-
-            return request(targetChunkPos, level.dimension(), sourceChunkPos, sourceLevel, immediate, overwrite,
-                    isInitial);
         }
         return false;
     }
@@ -854,6 +795,11 @@ public class ChunkSpawnController extends SavedData {
                 LevelChunk toChunk = toLevel.getChunk(targetChunkPos.x, targetChunkPos.z);
                 LevelChunk fromChunk = fromLevel.getChunk(sourceChunkPos.x, sourceChunkPos.z);
                 updateBiomes(fromLevel, fromChunk, toLevel, toChunk, targetChunkPos);
+
+                // Update pre-scan cache
+                updatePreScanCache(fromLevel, sourceChunkPos, "unknown"); // We don't have theme here in this overload
+                                                                          // usually
+
                 copyBlocks(fromLevel, spawnRequest.sourceChunkPos, toLevel, spawnRequest.targetChunkPos,
                         toLevel.getMinBuildHeight(), toLevel.getMaxBuildHeight() + 1, overwrite);
                 requests.addFirst(spawnRequest);
@@ -923,27 +869,50 @@ public class ChunkSpawnController extends SavedData {
         }
     }
 
-    /**
-     * Terrain profile for matching adjacent chunks
-     */
     private static class TerrainProfile {
+        final int[] northEdge; // 16 heights
+        final int[] southEdge;
+        final int[] eastEdge;
+        final int[] westEdge;
         final int averageHeight;
         final int heightVariance;
         final String biomeTheme;
+        final ChunkPos sourcePos;
 
-        TerrainProfile(int averageHeight, int heightVariance, Map<Block, Integer> blockComposition, String biomeTheme) {
+        TerrainProfile(int[] north, int[] south, int[] east, int[] west, int averageHeight, int heightVariance,
+                String biomeTheme, ChunkPos sourcePos) {
+            this.northEdge = north;
+            this.southEdge = south;
+            this.eastEdge = east;
+            this.westEdge = west;
             this.averageHeight = averageHeight;
             this.heightVariance = heightVariance;
             this.biomeTheme = biomeTheme;
+            this.sourcePos = sourcePos;
         }
 
         static TerrainProfile load(CompoundTag tag) {
             int avgHeight = tag.getInt("avgHeight");
             int variance = tag.getInt("variance");
             String theme = tag.getString("theme");
-            Map<Block, Integer> composition = new HashMap<>();
-            // Simplified - don't persist block composition
-            return new TerrainProfile(avgHeight, variance, composition, theme);
+            int[] north = tag.getIntArray("north");
+            int[] south = tag.getIntArray("south");
+            int[] east = tag.getIntArray("east");
+            int[] west = tag.getIntArray("west");
+
+            if (north.length == 0)
+                north = new int[16];
+            if (south.length == 0)
+                south = new int[16];
+            if (east.length == 0)
+                east = new int[16];
+            if (west.length == 0)
+                west = new int[16];
+
+            long sourcePosLong = tag.contains("sourcePos") ? tag.getLong("sourcePos") : ChunkPos.INVALID_CHUNK_POS;
+            ChunkPos source = new ChunkPos(sourcePosLong);
+
+            return new TerrainProfile(north, south, east, west, avgHeight, variance, theme, source);
         }
 
         CompoundTag save() {
@@ -951,7 +920,62 @@ public class ChunkSpawnController extends SavedData {
             tag.putInt("avgHeight", averageHeight);
             tag.putInt("variance", heightVariance);
             tag.putString("theme", biomeTheme);
+            tag.putIntArray("north", northEdge);
+            tag.putIntArray("south", southEdge);
+            tag.putIntArray("east", eastEdge);
+            tag.putIntArray("west", westEdge);
+            if (sourcePos != null) {
+                tag.putLong("sourcePos", sourcePos.toLong());
+            }
             return tag;
+        }
+    }
+
+    private ChunkPos tryChainedSourceMatch(ServerLevel targetLevel, ChunkPos targetPos, String theme) {
+        int[][] offsets = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+        for (int[] offset : offsets) {
+            ChunkPos adjTarget = new ChunkPos(targetPos.x + offset[0], targetPos.z + offset[1]);
+            TerrainProfile adjProfile = chunkTerrainProfiles.get(adjTarget);
+
+            if (adjProfile != null && adjProfile.biomeTheme.equals(theme)
+                    && adjProfile.sourcePos.toLong() != ChunkPos.INVALID_CHUNK_POS) {
+                // Logical neighbor in source dimension
+                ChunkPos candidateSource = new ChunkPos(adjProfile.sourcePos.x - offset[0],
+                        adjProfile.sourcePos.z - offset[1]);
+
+                SkyChunkGenerator gen = (SkyChunkGenerator) targetLevel.getChunkSource().getGenerator();
+                ServerLevel sourceLevel = server.getLevel(gen.getBiomeDimension(theme));
+
+                if (sourceLevel != null && !isWaterOnlyChunk(sourceLevel, candidateSource, theme)) {
+                    return candidateSource;
+                }
+            }
+        }
+        return null;
+    }
+
+    private ChunkPos tryCachedSourceMatch(ServerLevel targetLevel, String theme) {
+        Set<ChunkPos> cached = knownGoodSourceChunks.get(theme);
+        if (cached != null && !cached.isEmpty()) {
+            Iterator<ChunkPos> it = cached.iterator();
+            ChunkPos pos = it.next();
+            it.remove();
+            return pos;
+        }
+        return null;
+    }
+
+    private void updatePreScanCache(ServerLevel sourceLevel, ChunkPos sourcePos, String theme) {
+        Set<ChunkPos> cache = knownGoodSourceChunks.computeIfAbsent(theme, k -> new HashSet<>());
+        if (cache.size() > 50)
+            return; // Cap cache size
+
+        int[][] offsets = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+        for (int[] offset : offsets) {
+            ChunkPos neighbor = new ChunkPos(sourcePos.x + offset[0], sourcePos.z + offset[1]);
+            if (!isWaterOnlyChunk(sourceLevel, neighbor, theme)) {
+                cache.add(neighbor);
+            }
         }
     }
 

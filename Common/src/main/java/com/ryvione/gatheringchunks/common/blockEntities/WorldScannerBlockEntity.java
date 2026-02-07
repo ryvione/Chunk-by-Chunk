@@ -313,7 +313,6 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
                     entity.scanCharge -= chunkCost;
                     changed = true;
 
-                    // If the chunk was unloaded and we loaded it temporarily, log it
                     if (wasUnloaded) {
                         GatheringChunksConstants.LOGGER.debug("Scanned unloaded chunk at " + chunkX + "," + chunkZ);
                     }
