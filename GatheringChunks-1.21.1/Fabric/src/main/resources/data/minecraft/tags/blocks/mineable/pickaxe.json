@@ -1,0 +1,9 @@
+{
+  "replace" : false,
+  "values" : [
+    "gatheringchunks:worldcore",
+    "gatheringchunks:worldforge",
+    "gatheringchunks:worldscanner",
+    "gatheringchunks:worldmender"
+  ]
+}

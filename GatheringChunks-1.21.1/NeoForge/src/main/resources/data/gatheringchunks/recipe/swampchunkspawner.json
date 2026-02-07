@@ -1,0 +1,26 @@
+{
+  "type" : "minecraft:crafting_shaped",
+  "pattern": [
+    "wCw",
+    "CXC",
+    "dCd"
+  ],
+  "key" : {
+    "w" : {
+      "item": "minecraft:water_bucket"
+    },
+    "d" : {
+      "item": "minecraft:dirt"
+    },
+    "C" : {
+      "item": "minecraft:copper_ingot"
+    },
+    "X" : {
+      "item": "gatheringchunks:worldcore"
+    }
+  },
+  "result" : {
+    "id" : "gatheringchunks:swampchunkspawner",
+    "count" : 1
+  }
+}

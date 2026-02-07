@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "WSW",
+    "SCS",
+    "WSW"
+  ],
+  "key": {
+    "W": {
+      "item": "gatheringchunks:worldshard"
+    },
+    "S": {
+      "item": "minecraft:stone"
+    },
+    "C": {
+      "item": "gatheringchunks:worldcrystal"
+    }
+  },
+  "result": {
+    "item": "gatheringchunks:chunkeraser",
+    "count": 1
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "parent": "gatheringchunks:chunkspawnerobtained",
+  "display": {
+    "icon": {
+      "id": "gatheringchunks:unstablechunkspawner"
+    },
+    "title": {
+      "translate": "advancement.gatheringchunks.unstablechunkspawnerobtained.title"
+    },
+    "description": {
+      "translate": "advancement.gatheringchunks.unstablechunkspawnerobtained.description"
+    }
+  },
+  "criteria": {
+    "obtainedunstablechunkspawner": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "gatheringchunks:unstablechunkspawner"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "rewards" : {
+    "recipes" : [
+      "gatheringchunks:disassemble_chunkspawner"
+    ]
+  }
+}

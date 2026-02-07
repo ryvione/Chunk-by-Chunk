@@ -1,0 +1,43 @@
+{
+  "parent": "gatheringchunks:chunkspawnerobtained",
+  "display": {
+    "icon": {
+      "id": "gatheringchunks:junglechunkspawner"
+    },
+    "title": {
+      "translate": "advancement.gatheringchunks.biomechunkspawnerobtained.title"
+    },
+    "description": {
+      "translate": "advancement.gatheringchunks.biomechunkspawnerobtained.description"
+    }
+  },
+  "criteria": {
+    "obtainedunstablechunkspawner": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "gatheringchunks:badlandschunkspawner",
+              "gatheringchunks:desertchunkspawner",
+              "gatheringchunks:forestchunkspawner",
+              "gatheringchunks:junglechunkspawner",
+              "gatheringchunks:mushroomchunkspawner",
+              "gatheringchunks:plainschunkspawner",
+              "gatheringchunks:rockychunkspawner",
+              "gatheringchunks:savannachunkspawner",
+              "gatheringchunks:snowchunkspawner",
+              "gatheringchunks:swampchunkspawner",
+              "gatheringchunks:mountainchunkspawner"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "recipes": [
+      "gatheringchunks:disassemble_chunkspawner"
+    ]
+  }
+}

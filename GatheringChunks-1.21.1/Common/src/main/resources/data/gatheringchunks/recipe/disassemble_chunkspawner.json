@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "group": "gatheringchunks",
+  "ingredients": [
+    {
+      "item": "gatheringchunks:chunkspawner"
+    }
+  ],
+  "result": {
+    "id": "gatheringchunks:worldcore",
+    "count": 1
+  }
+}

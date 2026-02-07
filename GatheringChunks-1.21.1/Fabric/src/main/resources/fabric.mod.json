@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "gatheringchunks",
+  "version": "${version}",
+
+  "name": "Gathering Chunks",
+  "description": "This mod starts the overworld with a single chunk, but provides the tools to expand to world one chunk at a time.",
+  "authors": [
+    "Ryvione"
+  ],
+  "contact": {
+    "homepage": "https://ryvione.vercel.app/minecraft/mod/gatheringchunks",
+    "sources": "https://github.com/ryvione/gatheringchunks"
+  },
+
+  "license": "MIT License",
+  "icon": "assets/gatheringchunks/textures/block/chunkspawner-north.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.ryvione.gatheringchunks.fabric.ChunkByChunkMod"
+    ],
+    "client": [
+      "com.ryvione.gatheringchunks.fabric.ChunkByChunkClientMod"
+    ],
+    "modmenu": [ "com.ryvione.gatheringchunks.fabric.ModMenuApiImpl" ]
+  },
+  "mixins": [
+    "gatheringchunks.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.9",
+    "fabric-api": "*",
+    "minecraft": ">=1.21.1",
+    "java": ">=21"
+  },
+  "suggests" : {
+    "modmenu" : ">=3.1.0",
+    "jei" : ">=10.2.1.1002"
+  }
+}

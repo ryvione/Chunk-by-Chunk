@@ -1,0 +1,31 @@
+{
+  "parent": "gatheringchunks:root",
+  "display": {
+    "icon": {
+      "id": "gatheringchunks:worldforge"
+    },
+    "title": {
+      "translate": "advancement.gatheringchunks.worldforgeobtained.title"
+    },
+    "description": {
+      "translate": "advancement.gatheringchunks.worldforgeobtained.description"
+    }
+  },
+  "criteria": {
+    "obtainworldforge": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "gatheringchunks:worldforge"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "rewards" : {
+    "recipes" : ["gatheringchunks:worldforge"]
+  }
+}
