@@ -30,42 +30,76 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.util.List;
 
 public interface CBCPlatformHelper {
     SpawnChunkBlock spawnChunkBlock();
+
     Block unstableSpawnChunkBlock();
+
     Block bedrockChestBlock();
+
     Block worldCoreBlock();
+
     Block worldForgeBlock();
+
     Block worldScannerBlock();
+
     Block worldMenderBlock();
+
     Block chunkEngineBlock();
+
     Item spawnChunkBlockItem();
+
     Item unstableChunkSpawnBlockItem();
+
     Item bedrockChestItem();
+
     Item worldCoreBlockItem();
+
     Item worldForgeBlockItem();
+
     Item worldScannerBlockItem();
+
     Item worldMenderBlockItem();
+
     Item chunkEngineBlockItem();
+
     Item worldFragmentItem();
+
     Item worldShardItem();
+
     Item worldCrystalItem();
+
     List<ItemStack> biomeThemeBlockItems();
+
     BlockEntityType<BedrockChestBlockEntity> bedrockChestEntity();
+
     BlockEntityType<WorldForgeBlockEntity> worldForgeEntity();
+
     BlockEntityType<WorldScannerBlockEntity> worldScannerEntity();
+
     BlockEntityType<WorldMenderBlockEntity> worldMenderEntity();
+
     BlockEntityType<ChunkEngineBlockEntity> chunkEngineEntity();
+
     SoundEvent spawnChunkSoundEffect();
+
     MenuType<BedrockChestMenu> bedrockChestMenu();
+
     MenuType<WorldForgeMenu> worldForgeMenu();
+
     MenuType<WorldScannerMenu> worldScannerMenu();
+
     MenuType<WorldMenderMenu> worldMenderMenu();
+
     MenuType<ChunkEngineMenu> chunkEngineMenu();
+
     Fluid getFluidContent(BucketItem bucketItem);
 
     <T> void unfreezeRegistry(MappedRegistry<T> registry);
+
+    void openConfigScreen(ServerPlayer player);
 }

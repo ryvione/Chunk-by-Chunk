@@ -18,7 +18,7 @@ public class DifficultyConfig {
 
     @Comment("Enable automatic progression helper (gives chunk spawner if stuck)")
     @Name("Enable Progression Helper")
-    private boolean enableProgressionHelper = true;
+    private boolean enableProgressionHelper = false;
 
     @Name("start_restriction")
     @Comment("What restriction to place on starting location")

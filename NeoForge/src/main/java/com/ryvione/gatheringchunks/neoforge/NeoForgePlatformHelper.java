@@ -21,6 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.util.List;
 
@@ -200,5 +201,10 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException("Failed to unfreeze registry on NeoForge", e);
         }
+    }
+
+    @Override
+    public void openConfigScreen(ServerPlayer player) {
+        // Handled by client or packet
     }
 }
