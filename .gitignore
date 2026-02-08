@@ -1,33 +1,65 @@
 # eclipse
-bin
+bin/
 *.launch
-.settings
-.metadata
+.settings/
+.metadata/
 .classpath
 .project
 
 # idea
-out
+out/
 *.ipr
 *.iws
 *.iml
 .idea/*
 !.idea/scopes
+!.idea/runConfigurations
+
+# vscode
+.vscode/
 
 # gradle
-build
-.gradle
+build/
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# fabric/forge
+run/
+runs/
+logs/
+crash-reports/
+
+# minecraft
+options.txt
+optionsof.txt
+servers.dat
+usercache.json
+usernamecache.json
+*.log
 
 # other
-eclipse
-run
-runs
+eclipse/
+saves/
+screenshots/
+resourcepacks/
 
 # backup folders
 **/recipes_backup_*/
 **/recipes_backup_*
 
-
 # temp files
 temp/
 temp.sh
+*.tmp
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# compiled
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
