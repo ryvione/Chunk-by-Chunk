@@ -22,8 +22,11 @@ import com.ryvione.gatheringchunks.common.menus.WorldMenderMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
 import com.ryvione.gatheringchunks.common.blockEntities.ChunkEngineBlockEntity;
 import com.ryvione.gatheringchunks.common.menus.ChunkEngineMenu;
+import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
+import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import com.ryvione.gatheringchunks.interop.CBCPlatformHelper;
 import com.ryvione.gatheringchunks.mixins.BucketFluidAccessor;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.inventory.MenuType;
@@ -210,6 +213,15 @@ public final class FabricPlatformHelper implements CBCPlatformHelper {
 
     @Override
     public void openConfigScreen(ServerPlayer player) {
-        // Handled by client or packet
+    }
+
+    @Override
+    public void sendConfigOpenPacket(ServerPlayer player, S2COpenConfigPacket packet) {
+        ServerPlayNetworking.send(player, packet);
+    }
+
+    @Override
+    public void sendConfigSyncPacket(ServerPlayer player, S2CSyncConfigPacket packet) {
+        ServerPlayNetworking.send(player, packet);
     }
 }

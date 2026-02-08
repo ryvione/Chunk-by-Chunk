@@ -17,6 +17,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
+import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
 import com.ryvione.gatheringchunks.common.util.ConfigUtil;
 import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.server.world.ChunkSpawnController;
@@ -34,10 +35,14 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.CompletableFuture;
 
 public class GatheringChunksCommand {
+
+    private static final Logger LOGGER = LogManager.getLogger(GatheringChunksConstants.MOD_ID);
 
     private static final SimpleCommandExceptionType INVALID_POSITION = new SimpleCommandExceptionType(
             Component.translatable("commands.gatheringchunks.spawnchunk.invalidPosition"));
@@ -88,7 +93,7 @@ public class GatheringChunksCommand {
     private static class BiomeThemeSuggestionProvider implements SuggestionProvider<CommandSourceStack> {
         @Override
         public CompletableFuture<Suggestions> getSuggestions(CommandContext<CommandSourceStack> context,
-                SuggestionsBuilder builder) {
+                                                             SuggestionsBuilder builder) {
             GatheringChunksConstants.BIOME_THEMES.forEach(builder::suggest);
             return builder.buildFuture();
         }
@@ -97,7 +102,7 @@ public class GatheringChunksCommand {
     private static class HelpTopicSuggestionProvider implements SuggestionProvider<CommandSourceStack> {
         @Override
         public CompletableFuture<Suggestions> getSuggestions(CommandContext<CommandSourceStack> context,
-                SuggestionsBuilder builder) {
+                                                             SuggestionsBuilder builder) {
             builder.suggest("tree");
             builder.suggest("selflocked");
             builder.suggest("commands");
@@ -168,7 +173,7 @@ public class GatheringChunksCommand {
     }
 
     private static int spawnChunk(CommandSourceStack stack, ServerLevel level, Coordinates specifiedCoords,
-            boolean random) throws CommandSyntaxException {
+                                  boolean random) throws CommandSyntaxException {
         Vec3 vec3 = specifiedCoords.getPosition(stack);
         BlockPos pos = new BlockPos((int) vec3.x, level.getMaxBuildHeight() - 1, (int) vec3.z);
         ChunkPos chunkPos = new ChunkPos(pos);
@@ -190,7 +195,7 @@ public class GatheringChunksCommand {
     }
 
     private static int spawnThemedChunk(CommandSourceStack stack, ServerLevel level, String biome,
-            Coordinates specifiedCoords) throws CommandSyntaxException {
+                                        Coordinates specifiedCoords) throws CommandSyntaxException {
         Vec3 vec3 = specifiedCoords.getPosition(stack);
         BlockPos pos = new BlockPos((int) vec3.x, level.getMaxBuildHeight() - 1, (int) vec3.z);
         ChunkPos chunkPos = new ChunkPos(pos);
@@ -221,18 +226,43 @@ public class GatheringChunksCommand {
         }
     }
 
+
     private static int reloadConfig(CommandContext<CommandSourceStack> context) {
-        ConfigUtil.loadDefaultConfig();
-        context.getSource().sendSuccess(() -> Component.literal("§a[Gathering Chunks] Config reloaded!"), true);
-        return 1;
+        LOGGER.info("[Command] Config reload requested by {}", context.getSource().getTextName());
+        context.getSource().sendSuccess(() -> Component.literal("§e[Gathering Chunks] Reloading config..."), true);
+
+        try {
+            ConfigUtil.reloadConfig();
+            LOGGER.info("[Command] Config successfully reloaded!");
+            context.getSource().sendSuccess(() -> Component.literal("§a[Gathering Chunks] Config reloaded successfully!"), true);
+
+            // TODO: Send sync packet to all clients here
+            // ConfigSyncManager.syncToAllClients(context.getSource().getServer());
+
+            return 1;
+        } catch (Exception e) {
+            LOGGER.error("[Command] Failed to reload config", e);
+            context.getSource().sendFailure(Component.literal("§c[Gathering Chunks] Failed to reload config: " + e.getMessage()));
+            return 0;
+        }
     }
+
 
     private static int modifyConfig(CommandContext<CommandSourceStack> context) {
         if (context.getSource().getEntity() instanceof ServerPlayer player) {
-            Services.PLATFORM.openConfigScreen(player);
-            context.getSource().sendSuccess(() -> Component.literal("§a[Gathering Chunks] Opening config menu..."),
-                    false);
-            return 1;
+            LOGGER.info("[Command] Config modify requested by player: {}", player.getName().getString());
+
+            try {
+                Services.PLATFORM.sendConfigOpenPacket(player, new S2COpenConfigPacket());
+
+                context.getSource().sendSuccess(() -> Component.literal("§a[Gathering Chunks] Opening config menu..."), false);
+                LOGGER.info("[Command] Config screen packet sent to player: {}", player.getName().getString());
+                return 1;
+            } catch (Exception e) {
+                LOGGER.error("[Command] Failed to open config screen for player: {}", player.getName().getString(), e);
+                context.getSource().sendFailure(Component.literal("§c[Gathering Chunks] Failed to open config menu"));
+                return 0;
+            }
         } else {
             context.getSource().sendFailure(Component.literal("§cThis command must be run by a player."));
             return 0;

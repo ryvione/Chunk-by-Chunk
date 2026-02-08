@@ -13,20 +13,41 @@ package com.ryvione.gatheringchunks.common.util;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.config.system.ConfigSystem;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.nio.file.Paths;
+import java.nio.file.Path;
+
 public final class ConfigUtil {
+    private static final Logger LOGGER = LogManager.getLogger(GatheringChunksConstants.MOD_ID);
     private ConfigUtil() {
     }
+
     private static final ConfigSystem system = new ConfigSystem();
+
     public static void loadDefaultConfig() {
         synchronized (system) {
-            system.synchConfig(Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH).resolve(GatheringChunksConstants.CONFIG_SUBDIR).resolve(GatheringChunksConstants.CONFIG_FILE), ChunkByChunkConfig.get());
+            Path configPath = ConfigSystem.getCentralConfigPath(GatheringChunksConstants.CONFIG_FILE);
+            LOGGER.info("[ConfigUtil] Loading config from centralized location: {}", configPath);
+            system.synchConfig(configPath, ChunkByChunkConfig.get());
         }
     }
+
+
+    public static void reloadConfig() {
+        synchronized (system) {
+            Path configPath = ConfigSystem.getCentralConfigPath(GatheringChunksConstants.CONFIG_FILE);
+            LOGGER.info("[ConfigUtil] Reloading config from: {}", configPath);
+            system.reloadConfig(configPath, ChunkByChunkConfig.get());
+        }
+    }
+
+
     public static void saveDefaultConfig() {
         synchronized (system) {
-            system.write(Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH).resolve(GatheringChunksConstants.CONFIG_SUBDIR).resolve(GatheringChunksConstants.CONFIG_FILE), ChunkByChunkConfig.get());
+            Path configPath = ConfigSystem.getCentralConfigPath(GatheringChunksConstants.CONFIG_FILE);
+            LOGGER.info("[ConfigUtil] Saving config to: {}", configPath);
+            system.write(configPath, ChunkByChunkConfig.get());
         }
     }
 }

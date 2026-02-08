@@ -11,6 +11,8 @@ import com.ryvione.gatheringchunks.common.menus.WorldMenderMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
 import com.ryvione.gatheringchunks.common.blockEntities.ChunkEngineBlockEntity;
 import com.ryvione.gatheringchunks.common.menus.ChunkEngineMenu;
+import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
+import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import com.ryvione.gatheringchunks.interop.CBCPlatformHelper;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.sounds.SoundEvent;
@@ -22,6 +24,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.List;
 
@@ -205,6 +208,15 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
 
     @Override
     public void openConfigScreen(ServerPlayer player) {
-        // Handled by client or packet
+    }
+
+    @Override
+    public void sendConfigOpenPacket(ServerPlayer player, S2COpenConfigPacket packet) {
+        PacketDistributor.sendToPlayer(player, packet);
+    }
+
+    @Override
+    public void sendConfigSyncPacket(ServerPlayer player, S2CSyncConfigPacket packet) {
+        PacketDistributor.sendToPlayer(player, packet);
     }
 }

@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+
 public class ConfigSystem {
     private static final Logger LOGGER = LogManager.getLogger(GatheringChunksConstants.MOD_ID);
     private static final String NEWLINE = "\n";
@@ -32,71 +33,115 @@ public class ConfigSystem {
     private static final String END_SECTION = "]";
     private static final String INDENT = "\t";
     private final Map<Class<?>, ConfigMetadata> metadataMap = new HashMap<>();
+
+    private static Path centralConfigDir = null;
+
+    /**
+     * Initialize the centralized config directory
+     * This should be called early during mod initialization
+     */
+    public static void initCentralConfigDir(Path gameDir) {
+        centralConfigDir = gameDir.resolve("config").resolve("GatheringChunks");
+        try {
+            Files.createDirectories(centralConfigDir);
+            LOGGER.info("[ConfigSystem] Initialized centralized config directory at: {}", centralConfigDir);
+        } catch (IOException e) {
+            LOGGER.error("[ConfigSystem] Failed to create centralized config directory", e);
+        }
+    }
+
+    /**
+     * Get the centralized config file path
+     * This replaces all the scattered config locations
+     */
+    public static Path getCentralConfigPath(String filename) {
+        if (centralConfigDir == null) {
+            LOGGER.warn("[ConfigSystem] Central config dir not initialized, using fallback");
+            return Path.of("config", "GatheringChunks", filename);
+        }
+        return centralConfigDir.resolve(filename);
+    }
+
+    /**
+     * Synch config - now uses ONLY the centralized location
+     */
     public void synchConfig(Path configFile, Path defaultFile, Object object) {
         if (!createPathTo(configFile)) {
             return;
         }
         if (Files.exists(configFile)) {
+            LOGGER.info("[ConfigSystem] Loading config from: {}", configFile);
             try (BufferedReader reader = Files.newBufferedReader(configFile)) {
                 readInto(reader, object);
             } catch (IOException e) {
-                LOGGER.error("Failed to read server config at '{}'", configFile, e);
+                LOGGER.error("[ConfigSystem] Failed to read config at '{}'", configFile, e);
             }
-        } else if (Files.exists(defaultFile)) {
+        } else if (defaultFile != null && Files.exists(defaultFile)) {
+            LOGGER.info("[ConfigSystem] Config not found, loading from default: {}", defaultFile);
             try (BufferedReader reader = Files.newBufferedReader(defaultFile)) {
                 readInto(reader, object);
             } catch (IOException e) {
-                LOGGER.error("Failed to read default config at '{}'", configFile, e);
+                LOGGER.error("[ConfigSystem] Failed to read default config at '{}'", defaultFile, e);
             }
         }
+
         if (!Files.exists(configFile)) {
+            LOGGER.info("[ConfigSystem] Creating new config file at: {}", configFile);
             try (BufferedWriter writer = Files.newBufferedWriter(configFile)) {
                 write(writer, object);
             } catch (IOException e) {
-                LOGGER.error("Failed to write server config at {}", configFile, e);
+                LOGGER.error("[ConfigSystem] Failed to write config at {}", configFile, e);
             }
         }
     }
+
     public void synchConfig(Path configFile, Object object) {
-        if (!createPathTo(configFile)) {
+        synchConfig(configFile, null, object);
+    }
+
+    /**
+     * Reload config from disk - for the /gatheringchunks config reload command
+     */
+    public void reloadConfig(Path configFile, Object object) {
+        if (!Files.exists(configFile)) {
+            LOGGER.warn("[ConfigSystem] Cannot reload - config file doesn't exist: {}", configFile);
             return;
         }
-        if (Files.exists(configFile)) {
-            try (BufferedReader reader = Files.newBufferedReader(configFile)) {
-                readInto(reader, object);
-            } catch (IOException e) {
-                LOGGER.error("Failed to read server config at '{}'", configFile, e);
-            }
-        } else {
-            try (BufferedWriter writer = Files.newBufferedWriter(configFile)) {
-                write(writer, object);
-            } catch (IOException e) {
-                LOGGER.error("Failed to write server config at {}", configFile, e);
-            }
+
+        LOGGER.info("[ConfigSystem] Reloading config from: {}", configFile);
+        try (BufferedReader reader = Files.newBufferedReader(configFile)) {
+            readInto(reader, object);
+            LOGGER.info("[ConfigSystem] Config successfully reloaded!");
+        } catch (IOException e) {
+            LOGGER.error("[ConfigSystem] Failed to reload config", e);
         }
     }
+
     public void write(Path configFile, Object object) {
         if (!createPathTo(configFile)) {
             return;
         }
         try (BufferedWriter writer = Files.newBufferedWriter(configFile)) {
             write(writer, object);
+            LOGGER.info("[ConfigSystem] Config written to: {}", configFile);
         } catch (IOException e) {
-            LOGGER.error("Failed to write server config at {}", configFile, e);
+            LOGGER.error("[ConfigSystem] Failed to write config at {}", configFile, e);
         }
     }
+
     private boolean createPathTo(Path configFile) {
         if (configFile.getParent() != null && !Files.exists(configFile.getParent())) {
             try {
                 Files.createDirectories(configFile.getParent());
                 return true;
             } catch (IOException e) {
-                LOGGER.error("Failed to create server config path '{}'", configFile.getParent(), e);
+                LOGGER.error("[ConfigSystem] Failed to create config path '{}'", configFile.getParent(), e);
                 return false;
             }
         }
         return true;
     }
+
     public void readInto(BufferedReader reader, Object into) {
         ConfigMetadata metadata = getMetadata(into);
         try {
@@ -140,6 +185,7 @@ public class ConfigSystem {
             LOGGER.error("Failed to read config", e);
         }
     }
+
     public void write(Writer writer, Object object) {
         ConfigMetadata metadata = getMetadata(object);
         try {
@@ -161,6 +207,7 @@ public class ConfigSystem {
             LOGGER.error("Failed to write config", e);
         }
     }
+
     private void writeField(Writer writer, Object object, FieldMetadata<?> field, String indentation) throws IOException {
         for (String commentLine : field.getComments()) {
             for (String line : commentLine.split("[\n\r]+")) {
@@ -176,6 +223,7 @@ public class ConfigSystem {
         writer.write(field.serializeValue(object));
         writer.write(NEWLINE);
     }
+
     private ConfigMetadata getMetadata(Object o) {
         ConfigMetadata metadata = metadataMap.get(o.getClass());
         if (metadata == null) {

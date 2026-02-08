@@ -21,6 +21,8 @@ import com.ryvione.gatheringchunks.common.menus.WorldForgeMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldMenderMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
 import com.ryvione.gatheringchunks.common.menus.ChunkEngineMenu;
+import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
+import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.inventory.MenuType;
@@ -102,4 +104,8 @@ public interface CBCPlatformHelper {
     <T> void unfreezeRegistry(MappedRegistry<T> registry);
 
     void openConfigScreen(ServerPlayer player);
+
+    void sendConfigOpenPacket(ServerPlayer player, S2COpenConfigPacket packet);
+
+    void sendConfigSyncPacket(ServerPlayer player, S2CSyncConfigPacket packet);
 }

@@ -3,6 +3,7 @@ package com.ryvione.gatheringchunks.fabric;
 import com.ryvione.gatheringchunks.common.CommonEventHandler;
 import com.ryvione.gatheringchunks.common.CommonRegistry;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
+import com.ryvione.gatheringchunks.common.util.ConfigUtil;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.config.system.ConfigSystem;
 import com.ryvione.gatheringchunks.server.ChunkBoundaryEnforcer;
@@ -22,6 +23,7 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -34,7 +36,7 @@ import net.minecraft.world.level.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -42,12 +44,16 @@ import java.util.UUID;
 public class ChunkByChunkMod implements ModInitializer {
 
     private static final Logger LOGGER = LogManager.getLogger(GatheringChunksConstants.MOD_ID);
-    private static final ConfigSystem CONFIG_SYSTEM = new ConfigSystem();
     private static final Set<UUID> INITIAL_SPAWNED_PLAYERS = new HashSet<>();
 
     @Override
     public void onInitialize() {
         LOGGER.info("Fabric mod initializing");
+
+        Path gameDir = FabricLoader.getInstance().getGameDir();
+        ConfigSystem.initCentralConfigDir(gameDir);
+        LOGGER.info("[ChunkByChunkMod] Centralized config directory initialized");
+
         CommonRegistry.registerAll();
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
@@ -58,8 +64,8 @@ public class ChunkByChunkMod implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTING.register(ServerEventHandler::onServerStarting);
 
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-            LOGGER.info("Saving config before server shutdown...");
-            CONFIG_SYSTEM.write(Paths.get("defaultconfigs", GatheringChunksConstants.MOD_ID + ".toml"), ChunkByChunkConfig.get());
+            LOGGER.info("[ChunkByChunkMod] Saving config before server shutdown...");
+            ConfigUtil.saveDefaultConfig();
         });
 
         ServerTickEvents.END_SERVER_TICK.register(ServerEventHandler::onLevelTick);
@@ -158,7 +164,5 @@ public class ChunkByChunkMod implements ModInitializer {
                 ServerEventHandler.onResourceManagerReload(resourceManager);
             }
         });
-
-        CONFIG_SYSTEM.synchConfig(Paths.get("defaultconfigs", GatheringChunksConstants.MOD_ID + ".toml"), ChunkByChunkConfig.get());
     }
 }

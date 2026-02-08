@@ -11,9 +11,9 @@ import com.ryvione.gatheringchunks.common.blockEntities.WorldScannerBlockEntity;
 import com.ryvione.gatheringchunks.common.data.ScannerData;
 import com.ryvione.gatheringchunks.common.data.SkyDimensionData;
 import com.ryvione.gatheringchunks.common.util.ChunkUtil;
+import com.ryvione.gatheringchunks.common.util.ConfigUtil;
 import com.ryvione.gatheringchunks.common.util.SpiralIterator;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
-import com.ryvione.gatheringchunks.config.system.ConfigSystem;
 import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.mixins.HolderReferenceAccessor;
 import com.ryvione.gatheringchunks.server.world.*;
@@ -41,21 +41,18 @@ import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
 import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.level.storage.ServerLevelData;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Paths;
 import java.util.*;
 
 public final class ServerEventHandler {
     private static final Logger LOGGER = LogManager.getLogger(GatheringChunksConstants.MOD_ID);
     private static final int MAX_FIND_CHUNK_ATTEMPTS = 512;
-    private static final String SERVERCONFIG = "serverconfig";
-    private static final ConfigSystem configSystem = new ConfigSystem();
+
     private static final List<List<int[]>> CHUNK_SPAWN_OFFSETS = ImmutableList.<List<int[]>>builder()
             .add(ImmutableList.of(new int[]{0, 0}))
             .add(ImmutableList.of(new int[]{0, 0}, new int[]{1, 0}))
@@ -71,10 +68,14 @@ public final class ServerEventHandler {
     private ServerEventHandler() {
     }
 
+
     public static void onServerStarting(MinecraftServer server) {
-        configSystem.synchConfig(server.getWorldPath(LevelResource.ROOT).resolve(SERVERCONFIG).resolve(GatheringChunksConstants.CONFIG_SUBDIR).resolve(GatheringChunksConstants.CONFIG_FILE), Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH).resolve(GatheringChunksConstants.CONFIG_SUBDIR).resolve(GatheringChunksConstants.CONFIG_FILE), ChunkByChunkConfig.get());
+        LOGGER.info("[ServerEventHandler] Server starting - loading config from centralized location");
+
+        ConfigUtil.loadDefaultConfig();
+
         if (ChunkByChunkConfig.get().getGeneration().isEnabled()) {
-            GatheringChunksConstants.LOGGER.info("Setting up sky dimensions");
+            LOGGER.info("[ServerEventHandler] Setting up sky dimensions");
             applySkyDimensionConfig(server.registryAccess());
             applyChunkByChunkWorldGeneration(server);
         }
