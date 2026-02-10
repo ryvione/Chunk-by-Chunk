@@ -8,6 +8,8 @@
 
 package com.ryvione.gatheringchunks.server.commands;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -18,7 +20,9 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
+import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import com.ryvione.gatheringchunks.common.util.ConfigUtil;
+import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.server.world.ChunkSpawnController;
 import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
@@ -43,6 +47,7 @@ import java.util.concurrent.CompletableFuture;
 public class GatheringChunksCommand {
 
     private static final Logger LOGGER = LogManager.getLogger(GatheringChunksConstants.MOD_ID);
+    private static final Gson GSON = new GsonBuilder().create();
 
     private static final SimpleCommandExceptionType INVALID_POSITION = new SimpleCommandExceptionType(
             Component.translatable("commands.gatheringchunks.spawnchunk.invalidPosition"));
@@ -236,14 +241,28 @@ public class GatheringChunksCommand {
             LOGGER.info("[Command] Config successfully reloaded!");
             context.getSource().sendSuccess(() -> Component.literal("§a[Gathering Chunks] Config reloaded successfully!"), true);
 
-            // TODO: Send sync packet to all clients here
-            // ConfigSyncManager.syncToAllClients(context.getSource().getServer());
+            syncConfigToAllClients(context.getSource().getServer());
 
             return 1;
         } catch (Exception e) {
             LOGGER.error("[Command] Failed to reload config", e);
             context.getSource().sendFailure(Component.literal("§c[Gathering Chunks] Failed to reload config: " + e.getMessage()));
             return 0;
+        }
+    }
+
+    private static void syncConfigToAllClients(net.minecraft.server.MinecraftServer server) {
+        try {
+            String configJson = GSON.toJson(ChunkByChunkConfig.get().getGatheringChunksConfig());
+            S2CSyncConfigPacket packet = new S2CSyncConfigPacket(configJson);
+
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                Services.PLATFORM.sendConfigSyncPacket(player, packet);
+            }
+
+            LOGGER.info("[Command] Config synced to {} online players", server.getPlayerList().getPlayerCount());
+        } catch (Exception e) {
+            LOGGER.error("[Command] Failed to sync config to clients", e);
         }
     }
 

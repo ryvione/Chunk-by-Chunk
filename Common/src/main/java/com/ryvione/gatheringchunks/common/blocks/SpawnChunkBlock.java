@@ -38,7 +38,7 @@ public class SpawnChunkBlock extends Block {
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
-            BlockHitResult hit) {
+                                               BlockHitResult hit) {
         if (level.isClientSide()) {
             return InteractionResult.SUCCESS;
         }
@@ -109,25 +109,44 @@ public class SpawnChunkBlock extends Block {
                         boolean isChunkEmpty = SpawnChunkHelper.isEmptyChunk(level, targetChunkPos);
                         boolean shouldOverwrite = false;
 
-                        if (!isChunkEmpty) {
-                            ChunkOverwriteConfirmation.PendingOverwrite pending = ChunkOverwriteConfirmation
-                                    .getPendingOverwrite(serverPlayer, targetChunkPos);
+                        BlockPos chunkCenter = targetChunkPos.getMiddleBlockPosition(pos.getY());
+                        double distanceToCenter = Math.sqrt(
+                                Math.pow(pos.getX() - chunkCenter.getX(), 2) +
+                                        Math.pow(pos.getZ() - chunkCenter.getZ(), 2)
+                        );
 
-                            if (pending != null && pending.biomeTheme.equals(effectiveBiomeTheme)
-                                    && pending.random == effectiveRandom) {
-                                ChunkOverwriteConfirmation.removePendingOverwrite(serverPlayer);
-                                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                        "§6[ChunkByChunk] §eOverwriting chunk at [" + targetChunkPos.x + ", "
-                                                + targetChunkPos.z + "]"));
-                                shouldOverwrite = true;
+                        boolean isNearCenter = distanceToCenter <= 5.0;
+
+                        if (!isChunkEmpty) {
+                            if (isNearCenter) {
+                                ChunkOverwriteConfirmation.PendingOverwrite pending = ChunkOverwriteConfirmation
+                                        .getPendingOverwrite(serverPlayer, targetChunkPos);
+
+                                if (pending != null && pending.biomeTheme.equals(effectiveBiomeTheme)
+                                        && pending.random == effectiveRandom) {
+                                    ChunkOverwriteConfirmation.removePendingOverwrite(serverPlayer);
+                                    serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                                            "§6[ChunkByChunk] §eOverwriting chunk at [" + targetChunkPos.x + ", "
+                                                    + targetChunkPos.z + "]"));
+                                    shouldOverwrite = true;
+                                } else {
+                                    ChunkOverwriteConfirmation.addPendingOverwrite(serverPlayer, targetChunkPos,
+                                            effectiveBiomeTheme, effectiveRandom);
+                                    serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                                            "§c[ChunkByChunk] §6WARNING: §eChunk at [" + targetChunkPos.x + ", "
+                                                    + targetChunkPos.z + "] is already occupied!"));
+                                    serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                                            "§e§lSpawner placed NEAR CENTER - Overwrite mode activated!"));
+                                    serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                                            "§eClick the spawner again within 30 seconds to confirm overwrite."));
+                                    return InteractionResult.CONSUME;
+                                }
                             } else {
-                                ChunkOverwriteConfirmation.addPendingOverwrite(serverPlayer, targetChunkPos,
-                                        effectiveBiomeTheme, effectiveRandom);
                                 serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                        "§c[ChunkByChunk] §6WARNING: §eChunk at [" + targetChunkPos.x + ", "
+                                        "§c[ChunkByChunk] §eChunk at [" + targetChunkPos.x + ", "
                                                 + targetChunkPos.z + "] is already occupied!"));
                                 serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                        "§eClick the spawner again within 30 seconds to confirm overwrite."));
+                                        "§ePlace spawner NEAR CHUNK CENTER to enable overwrite mode."));
                                 return InteractionResult.CONSUME;
                             }
                         }
@@ -136,8 +155,7 @@ public class SpawnChunkBlock extends Block {
                                 false, shouldOverwrite)) {
                             if (!effectiveBiomeTheme.isEmpty()) {
                                 serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                        "§6[ChunkByChunk] §eSearching for compatible '" + effectiveBiomeTheme
-                                                + "' terrain..."));
+                                        "§6[ChunkByChunk] §eSpawning '" + effectiveBiomeTheme + "' terrain..."));
                             }
                             level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS,
                                     1.0f, 1.0f);
@@ -150,7 +168,7 @@ public class SpawnChunkBlock extends Block {
                     }
 
                     serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                            "§c[ChunkByChunk] §eNo valid adjacent chunks found or spawn limit reached. Check logs for details."));
+                            "§c[ChunkByChunk] §eNo valid adjacent chunks found or spawn limit reached."));
                     return InteractionResult.CONSUME;
                 }
             }

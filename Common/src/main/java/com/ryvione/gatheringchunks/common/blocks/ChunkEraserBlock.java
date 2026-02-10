@@ -89,6 +89,11 @@ public class ChunkEraserBlock extends Block {
 
         ChunkBarrierManager.placeBarriersAroundChunk(level, chunkPos);
 
+        com.ryvione.gatheringchunks.server.world.ChunkSpawnController controller =
+                com.ryvione.gatheringchunks.server.world.ChunkSpawnController.get(level.getServer());
+        String dimensionId = level.dimension().location().toString();
+        controller.decreaseSpawnedChunkCount(dimensionId);
+
         giveRewards(level, eraserPos, player);
 
         player.sendSystemMessage(net.minecraft.network.chat.Component.literal(

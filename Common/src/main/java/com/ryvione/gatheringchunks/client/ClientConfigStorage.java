@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
+import com.ryvione.gatheringchunks.config.GatheringChunksConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,6 +29,7 @@ public class ClientConfigStorage {
 
     private static Path storagePath;
     private static Map<String, ServerConfigOverride> serverConfigs = new HashMap<>();
+    private static String currentServerId = null;
 
     public static class ServerConfigOverride {
         public Boolean preventFluidFlowIntoVoid;
@@ -35,7 +37,7 @@ public class ClientConfigStorage {
         public Boolean mobsDropFragments;
         public Integer fragmentDropChance;
 
-        public void applyToConfig(ChunkByChunkConfig config) {
+        public void applyToConfig(GatheringChunksConfig config) {
             if (preventFluidFlowIntoVoid != null) {
                 config.setPreventFluidFlowIntoVoid(preventFluidFlowIntoVoid);
             }
@@ -62,7 +64,6 @@ public class ClientConfigStorage {
         }
     }
 
-
     public static String getServerIdFromConnection(String serverAddress) {
         if (serverAddress == null || serverAddress.isEmpty()) {
             return "singleplayer";
@@ -70,8 +71,37 @@ public class ClientConfigStorage {
         return serverAddress.toLowerCase();
     }
 
+    public static void setCurrentServer(String serverId) {
+        currentServerId = serverId;
+        LOGGER.debug("[ClientConfigStorage] Current server set to: {}", serverId);
+    }
 
-    public static void rememberServerConfig(String serverId, ChunkByChunkConfig config) {
+    public static void handleServerConfigSync(String configJson) {
+        if (currentServerId == null) {
+            LOGGER.warn("[ClientConfigStorage] Received config sync but no current server set");
+            return;
+        }
+
+        try {
+            GatheringChunksConfig syncedConfig = GSON.fromJson(configJson, GatheringChunksConfig.class);
+
+            GatheringChunksConfig targetConfig = ChunkByChunkConfig.get().getGatheringChunksConfig();
+            targetConfig.setPreventFluidFlowIntoVoid(syncedConfig.isPreventFluidFlowIntoVoid());
+            targetConfig.setAutoSpawnTrees(syncedConfig.isAutoSpawnTrees());
+            targetConfig.setMobsDropFragments(syncedConfig.isMobsDropFragments());
+            targetConfig.setFragmentDropChance(syncedConfig.getFragmentDropChance());
+            targetConfig.setMinFragmentDrop(syncedConfig.getMinFragmentDrop());
+            targetConfig.setMaxFragmentDrop(syncedConfig.getMaxFragmentDrop());
+
+            rememberServerConfig(currentServerId, syncedConfig);
+
+            LOGGER.info("[ClientConfigStorage] Applied synced config from server: {}", currentServerId);
+        } catch (Exception e) {
+            LOGGER.error("[ClientConfigStorage] Failed to apply synced config", e);
+        }
+    }
+
+    public static void rememberServerConfig(String serverId, GatheringChunksConfig config) {
         ServerConfigOverride override = new ServerConfigOverride();
         override.preventFluidFlowIntoVoid = config.isPreventFluidFlowIntoVoid();
         override.autoSpawnTrees = config.isAutoSpawnTrees();
@@ -84,8 +114,7 @@ public class ClientConfigStorage {
         LOGGER.info("[ClientConfigStorage] Remembered config for server: {}", serverId);
     }
 
-
-    public static void applyServerConfig(String serverId, ChunkByChunkConfig config) {
+    public static void applyServerConfig(String serverId, GatheringChunksConfig config) {
         ServerConfigOverride override = serverConfigs.get(serverId);
         if (override != null) {
             override.applyToConfig(config);

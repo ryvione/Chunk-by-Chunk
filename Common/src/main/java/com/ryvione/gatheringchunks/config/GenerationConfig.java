@@ -49,11 +49,15 @@ public class GenerationConfig {
     @Comment("The number of chunks to spawn initially")
     @IntRange(min = 0, max = 1000)
     private int initialChunks = 1;
-
+    
     @Name("chunk_layer_spawn_rate")
     @Comment("Number of chunk layers to spawn per tick")
     @IntRange(min = 1, max = 512)
     private int chunkLayerSpawnRate = 8;
+
+    @Name("disable_water_only_chunks")
+    @Comment("Prevent spawning chunks that are mostly water (for biome spawners)")
+    private boolean disableWaterOnlyChunks = true;
 
     public boolean isEnabled() {
         return enabled;
