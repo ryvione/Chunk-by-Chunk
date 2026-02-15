@@ -56,8 +56,7 @@ public class EventHandler {
                         .resolve(GatheringChunksConstants.CONFIG_FILE),
                 Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH)
                         .resolve(GatheringChunksConstants.CONFIG_FILE),
-                ChunkByChunkConfig.get()
-        );
+                ChunkByChunkConfig.get());
 
         if (ChunkByChunkConfig.get().getGeneration().isEnabled()) {
             GatheringChunksConstants.LOGGER.info("Applying sky dimension configuration EARLY (before level load)");
@@ -107,16 +106,14 @@ public class EventHandler {
         event.addListener(new ScannerDataLoader(event.getRegistryAccess()));
         event.addListener(new SkyDimensionDataLoader(event.getRegistryAccess()));
         event.addListener((PreparableReloadListener.PreparationBarrier barrier,
-                           ResourceManager manager,
-                           net.minecraft.util.profiling.ProfilerFiller prepProfiler,
-                           net.minecraft.util.profiling.ProfilerFiller reloadProfiler,
-                           java.util.concurrent.Executor bgExecutor,
-                           java.util.concurrent.Executor gameExecutor) ->
-                barrier.wait(null).thenRunAsync(() -> {
+                ResourceManager manager,
+                net.minecraft.util.profiling.ProfilerFiller prepProfiler,
+                net.minecraft.util.profiling.ProfilerFiller reloadProfiler,
+                java.util.concurrent.Executor bgExecutor,
+                java.util.concurrent.Executor gameExecutor) -> barrier.wait(null).thenRunAsync(() -> {
                     GatheringChunksConstants.LOGGER.info("Resource reload - reloading dynamic data");
                     ServerEventHandler.onResourceManagerReload(manager);
-                }, gameExecutor)
-        );
+                }, gameExecutor));
 
         GatheringChunksConstants.LOGGER.info("Data reload listeners registered");
     }
@@ -134,13 +131,15 @@ public class EventHandler {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (!ChunkByChunkConfig.get().getGeneration().isEnabled()) return;
+        if (!ChunkByChunkConfig.get().getGeneration().isEnabled())
+            return;
 
         if (event.getEntity() instanceof ServerPlayer player) {
             UpdateNotification.sendUpdateNotification(player);
 
             ServerLevel level = player.serverLevel();
-            if (!level.dimension().equals(Level.OVERWORLD)) return;
+            if (!level.dimension().equals(Level.OVERWORLD))
+                return;
 
             if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator) {
                 BlockPos spawnPos = level.getSharedSpawnPos();
@@ -150,8 +149,7 @@ public class EventHandler {
                 if (playerChunk.x != spawnChunk.x || playerChunk.z != spawnChunk.z) {
                     GatheringChunksConstants.LOGGER.info(
                             "Correcting initial spawn position from chunk [{},{}] to spawn chunk [{},{}]",
-                            playerChunk.x, playerChunk.z, spawnChunk.x, spawnChunk.z
-                    );
+                            playerChunk.x, playerChunk.z, spawnChunk.x, spawnChunk.z);
 
                     player.teleportTo(
                             level,
@@ -159,8 +157,7 @@ public class EventHandler {
                             spawnPos.getY(),
                             spawnChunk.getMiddleBlockZ() + 0.5,
                             player.getYRot(),
-                            player.getXRot()
-                    );
+                            player.getXRot());
                 }
             }
         }
@@ -168,11 +165,16 @@ public class EventHandler {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
-        if (!ChunkByChunkConfig.get().getGeneration().isEnabled()) return;
+        if (!ChunkByChunkConfig.get().getGeneration().isEnabled())
+            return;
 
         if (event.getEntity() instanceof ServerPlayer player) {
+            if (player.getRespawnPosition() != null)
+                return;
+
             ServerLevel level = player.serverLevel();
-            if (!level.dimension().equals(Level.OVERWORLD)) return;
+            if (!level.dimension().equals(Level.OVERWORLD))
+                return;
 
             if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator) {
                 BlockPos spawnPos = level.getSharedSpawnPos();
@@ -180,8 +182,7 @@ public class EventHandler {
 
                 GatheringChunksConstants.LOGGER.debug(
                         "Forcing respawn to stay inside spawn chunk [{},{}]",
-                        spawnChunk.x, spawnChunk.z
-                );
+                        spawnChunk.x, spawnChunk.z);
 
                 player.teleportTo(
                         level,
@@ -189,8 +190,7 @@ public class EventHandler {
                         spawnPos.getY(),
                         spawnChunk.getMiddleBlockZ() + 0.5,
                         player.getYRot(),
-                        player.getXRot()
-                );
+                        player.getXRot());
             }
         }
     }

@@ -27,7 +27,7 @@ public class ExperimentalScannerRenderer {
     
     private static final Map<ChunkPos, Map<Block, List<BlockPos>>> blockCache = new HashMap<>();
     private static long lastCacheClearTime = 0;
-    private static final long CACHE_EXPIRY_MS = 10000; // 10 seconds
+    private static final long CACHE_EXPIRY_MS = 10000;
 
     public static void render(PoseStack poseStack, MultiBufferSource bufferSource, net.minecraft.client.Camera camera) {
         if (!ChunkByChunkConfig.get().getWorldScannerConfig().isExperimentalMode()) {

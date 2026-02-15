@@ -7,7 +7,7 @@
   "initialChunks": 1,
   "sealBlock": "minecraft:bedrock",
   "biomeThemeDimensionType": "gatheringchunks:overworld_theme",
-  "synchToDimensions": [],
+  "synchToDimensions": ["minecraft:the_nether"],
   "biomeThemes": {
     "plains": [
       "minecraft:plains",

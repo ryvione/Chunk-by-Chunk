@@ -8,14 +8,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-/**
- * TEMPORARILY DISABLED.
- *
- * This class previously handled placing and removing barrier blocks
- * around chunk borders to prevent fluid traversal.
- *
- * All logic is currently disabled and these methods are no-ops.
- */
 public class ChunkBarrierManager {
 
     private static final Logger LOGGER = LogManager.getLogger(ChunkBarrierManager.class);

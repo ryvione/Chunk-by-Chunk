@@ -86,10 +86,15 @@ public class ChunkByChunkMod implements ModInitializer {
         });
 
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
-            if (!ChunkByChunkConfig.get().getGeneration().isEnabled()) return;
+            if (!ChunkByChunkConfig.get().getGeneration().isEnabled())
+                return;
+
+            if (newPlayer.getRespawnPosition() != null)
+                return;
 
             ServerLevel level = newPlayer.serverLevel();
-            if (!level.dimension().equals(Level.OVERWORLD)) return;
+            if (!level.dimension().equals(Level.OVERWORLD))
+                return;
 
             if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator) {
                 BlockPos spawnPos = level.getSharedSpawnPos();
@@ -103,17 +108,18 @@ public class ChunkByChunkMod implements ModInitializer {
                         spawnPos.getY(),
                         spawnChunk.getMiddleBlockZ() + 0.5,
                         newPlayer.getYRot(),
-                        newPlayer.getXRot()
-                );
+                        newPlayer.getXRot());
             }
         });
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            if (!ChunkByChunkConfig.get().getGeneration().isEnabled()) return;
+            if (!ChunkByChunkConfig.get().getGeneration().isEnabled())
+                return;
 
             ServerPlayer player = handler.getPlayer();
             ServerLevel level = player.serverLevel();
-            if (!level.dimension().equals(Level.OVERWORLD)) return;
+            if (!level.dimension().equals(Level.OVERWORLD))
+                return;
 
             if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator) {
                 boolean isFirstJoin = !INITIAL_SPAWNED_PLAYERS.contains(player.getUUID());
@@ -135,8 +141,7 @@ public class ChunkByChunkMod implements ModInitializer {
                                 spawnPos.getY(),
                                 spawnChunk.getMiddleBlockZ() + 0.5,
                                 player.getYRot(),
-                                player.getXRot()
-                        );
+                                player.getXRot());
                     }
 
                     INITIAL_SPAWNED_PLAYERS.add(player.getUUID());
@@ -153,16 +158,17 @@ public class ChunkByChunkMod implements ModInitializer {
             return InteractionResult.PASS;
         });
 
-        ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
-            @Override
-            public ResourceLocation getFabricId() {
-                return ResourceLocation.fromNamespaceAndPath(GatheringChunksConstants.MOD_ID, "server_data");
-            }
+        ResourceManagerHelper.get(PackType.SERVER_DATA)
+                .registerReloadListener(new SimpleSynchronousResourceReloadListener() {
+                    @Override
+                    public ResourceLocation getFabricId() {
+                        return ResourceLocation.fromNamespaceAndPath(GatheringChunksConstants.MOD_ID, "server_data");
+                    }
 
-            @Override
-            public void onResourceManagerReload(ResourceManager resourceManager) {
-                ServerEventHandler.onResourceManagerReload(resourceManager);
-            }
-        });
+                    @Override
+                    public void onResourceManagerReload(ResourceManager resourceManager) {
+                        ServerEventHandler.onResourceManagerReload(resourceManager);
+                    }
+                });
     }
 }

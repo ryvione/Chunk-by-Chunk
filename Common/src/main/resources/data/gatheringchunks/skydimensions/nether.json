@@ -5,5 +5,6 @@
   "allowChunkSpawner" : true,
   "allowUnstableChunkSpawner" : true,
   "allowBiomeSpawners": false,
+  "synchToDimensions": ["minecraft:overworld"],
   "initialChunks" : 1
 }

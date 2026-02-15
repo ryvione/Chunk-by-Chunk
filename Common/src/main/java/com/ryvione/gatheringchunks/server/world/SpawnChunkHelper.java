@@ -49,8 +49,8 @@ public final class SpawnChunkHelper {
         int minPos = Math.min(minDepth, maxDepth);
         int maxPos = Math.max(minDepth, maxDepth);
 
-        minPos = Math.max(minPos, -64);
-        maxPos = Math.min(maxPos, 128);
+        minPos = Math.max(minPos, targetLevel.getMinBuildHeight());
+        maxPos = Math.min(maxPos, targetLevel.getMaxBuildHeight());
 
         if (minPos > maxPos) {
             minPos = maxPos;
@@ -63,7 +63,7 @@ public final class SpawnChunkHelper {
             yPos = random.nextInt(maxPos - minPos + 1) + minPos;
         }
 
-        yPos = Math.max(-64, Math.min(128, yPos));
+        yPos = Math.max(targetLevel.getMinBuildHeight(), Math.min(targetLevel.getMaxBuildHeight(), yPos));
 
         int xPos = chunkPos.getMinBlockX() + random.nextInt(16);
         int zPos = chunkPos.getMinBlockZ() + random.nextInt(16);

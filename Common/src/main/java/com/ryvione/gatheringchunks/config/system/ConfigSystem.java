@@ -36,10 +36,7 @@ public class ConfigSystem {
 
     private static Path centralConfigDir = null;
 
-    /**
-     * Initialize the centralized config directory
-     * This should be called early during mod initialization
-     */
+
     public static void initCentralConfigDir(Path gameDir) {
         centralConfigDir = gameDir.resolve("config").resolve("GatheringChunks");
         try {
@@ -50,10 +47,7 @@ public class ConfigSystem {
         }
     }
 
-    /**
-     * Get the centralized config file path
-     * This replaces all the scattered config locations
-     */
+
     public static Path getCentralConfigPath(String filename) {
         if (centralConfigDir == null) {
             LOGGER.warn("[ConfigSystem] Central config dir not initialized, using fallback");
@@ -62,9 +56,6 @@ public class ConfigSystem {
         return centralConfigDir.resolve(filename);
     }
 
-    /**
-     * Synch config - now uses ONLY the centralized location
-     */
     public void synchConfig(Path configFile, Path defaultFile, Object object) {
         if (!createPathTo(configFile)) {
             return;
@@ -73,15 +64,15 @@ public class ConfigSystem {
             LOGGER.info("[ConfigSystem] Loading config from: {}", configFile);
             try (BufferedReader reader = Files.newBufferedReader(configFile)) {
                 readInto(reader, object);
-            } catch (IOException e) {
-                LOGGER.error("[ConfigSystem] Failed to read config at '{}'", configFile, e);
+            } catch (IOException | RuntimeException e) {
+                LOGGER.error("[ConfigSystem] Failed to read config at '{}' - Error: {}", configFile, e.getMessage(), e);
             }
         } else if (defaultFile != null && Files.exists(defaultFile)) {
             LOGGER.info("[ConfigSystem] Config not found, loading from default: {}", defaultFile);
             try (BufferedReader reader = Files.newBufferedReader(defaultFile)) {
                 readInto(reader, object);
-            } catch (IOException e) {
-                LOGGER.error("[ConfigSystem] Failed to read default config at '{}'", defaultFile, e);
+            } catch (IOException | RuntimeException e) {
+                LOGGER.error("[ConfigSystem] Failed to read default config at '{}' - Error: {}", defaultFile, e.getMessage(), e);
             }
         }
 
@@ -89,19 +80,17 @@ public class ConfigSystem {
             LOGGER.info("[ConfigSystem] Creating new config file at: {}", configFile);
             try (BufferedWriter writer = Files.newBufferedWriter(configFile)) {
                 write(writer, object);
-            } catch (IOException e) {
-                LOGGER.error("[ConfigSystem] Failed to write config at {}", configFile, e);
+            } catch (IOException | RuntimeException e) {
+                LOGGER.error("[ConfigSystem] Failed to write config at {} - Error: {}", configFile, e.getMessage(), e);
             }
         }
     }
+
 
     public void synchConfig(Path configFile, Object object) {
         synchConfig(configFile, null, object);
     }
 
-    /**
-     * Reload config from disk - for the /gatheringchunks config reload command
-     */
     public void reloadConfig(Path configFile, Object object) {
         if (!Files.exists(configFile)) {
             LOGGER.warn("[ConfigSystem] Cannot reload - config file doesn't exist: {}", configFile);
@@ -112,8 +101,8 @@ public class ConfigSystem {
         try (BufferedReader reader = Files.newBufferedReader(configFile)) {
             readInto(reader, object);
             LOGGER.info("[ConfigSystem] Config successfully reloaded!");
-        } catch (IOException e) {
-            LOGGER.error("[ConfigSystem] Failed to reload config", e);
+        } catch (IOException | RuntimeException e) {
+            LOGGER.error("[ConfigSystem] Failed to reload config - Error: {}", e.getMessage(), e);
         }
     }
 

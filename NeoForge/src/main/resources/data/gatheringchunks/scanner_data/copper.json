@@ -1,4 +1,0 @@
-{
-  "inputItems" : ["raw_copper", "copper_ingot"],
-  "targetBlocks" : ["copper_ore", "deepslate_copper_ore", "raw_copper_block"]
-}

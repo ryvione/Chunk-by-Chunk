@@ -33,7 +33,8 @@ public class ChunkEraserBlock extends Block {
     }
 
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
+            BlockHitResult hit) {
         if (level.isClientSide()) {
             return InteractionResult.SUCCESS;
         }
@@ -55,16 +56,21 @@ public class ChunkEraserBlock extends Block {
 
                 pendingErases.remove(playerId);
                 eraseChunk(serverLevel, targetChunk, pos, serverPlayer);
-                serverLevel.playSound(null, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, 1.0f, 0.5f);
+                com.ryvione.gatheringchunks.server.world.ChunkSpawnController.get(serverLevel.getServer())
+                        .syncErase(serverLevel, targetChunk);
+                serverLevel.playSound(null, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.GENERIC_EXPLODE,
+                        SoundSource.BLOCKS, 1.0f, 0.5f);
                 level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
                 return InteractionResult.SUCCESS;
             } else {
                 pendingErases.put(playerId, new PendingErase(targetChunk, System.currentTimeMillis()));
                 serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                        "§c[ChunkEraser] §6WARNING: §eYou are about to ERASE chunk [" + targetChunk.x + ", " + targetChunk.z + "]!"));
+                        "§c[ChunkEraser] §6WARNING: §eYou are about to ERASE chunk [" + targetChunk.x + ", "
+                                + targetChunk.z + "]!"));
                 serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                         "§eAll blocks will be removed! Right-click again within 30 seconds to confirm."));
-                serverLevel.playSound(null, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.ANVIL_LAND, SoundSource.BLOCKS, 0.5f, 1.5f);
+                serverLevel.playSound(null, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.ANVIL_LAND,
+                        SoundSource.BLOCKS, 0.5f, 1.5f);
                 return InteractionResult.CONSUME;
             }
         }
@@ -73,6 +79,22 @@ public class ChunkEraserBlock extends Block {
     }
 
     private void eraseChunk(ServerLevel level, ChunkPos chunkPos, BlockPos eraserPos, ServerPlayer player) {
+        eraseChunkDirectly(level, chunkPos);
+
+        ChunkBarrierManager.placeBarriersAroundChunk(level, chunkPos);
+
+        com.ryvione.gatheringchunks.server.world.ChunkSpawnController controller = com.ryvione.gatheringchunks.server.world.ChunkSpawnController
+                .get(level.getServer());
+        String dimensionId = level.dimension().location().toString();
+        controller.decreaseSpawnedChunkCount(dimensionId);
+
+        giveRewards(level, eraserPos, player);
+
+        player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                "§a[ChunkEraser] §eChunk [" + chunkPos.x + ", " + chunkPos.z + "] has been erased to void!"));
+    }
+
+    public static void eraseChunkDirectly(ServerLevel level, ChunkPos chunkPos) {
         BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
 
         for (int y = level.getMinBuildHeight(); y <= level.getMaxBuildHeight(); y++) {
@@ -81,23 +103,12 @@ public class ChunkEraserBlock extends Block {
                     mutablePos.set(x, y, z);
                     BlockState currentState = level.getBlockState(mutablePos);
                     if (!currentState.isAir()) {
-                        level.setBlock(mutablePos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+                        level.setBlock(mutablePos, Blocks.AIR.defaultBlockState(),
+                                Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
                     }
                 }
             }
         }
-
-        ChunkBarrierManager.placeBarriersAroundChunk(level, chunkPos);
-
-        com.ryvione.gatheringchunks.server.world.ChunkSpawnController controller =
-                com.ryvione.gatheringchunks.server.world.ChunkSpawnController.get(level.getServer());
-        String dimensionId = level.dimension().location().toString();
-        controller.decreaseSpawnedChunkCount(dimensionId);
-
-        giveRewards(level, eraserPos, player);
-
-        player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                "§a[ChunkEraser] §eChunk [" + chunkPos.x + ", " + chunkPos.z + "] has been erased to void!"));
     }
 
     private void giveRewards(ServerLevel level, BlockPos pos, ServerPlayer player) {
@@ -131,9 +142,9 @@ public class ChunkEraserBlock extends Block {
 
     public static void cleanupExpiredConfirmations() {
         long currentTime = System.currentTimeMillis();
-        pendingErases.entrySet().removeIf(entry ->
-                currentTime - entry.getValue().timestamp > CONFIRMATION_TIMEOUT);
+        pendingErases.entrySet().removeIf(entry -> currentTime - entry.getValue().timestamp > CONFIRMATION_TIMEOUT);
     }
 
-    private record PendingErase(ChunkPos chunkPos, long timestamp) {}
+    private record PendingErase(ChunkPos chunkPos, long timestamp) {
+    }
 }

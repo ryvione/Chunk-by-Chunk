@@ -110,10 +110,7 @@ public class PlayerProgressionHelper {
             }
         }
 
-        // Also check all dimension-tracked chests just in case they are outside the
-        // radius
         for (BlockPos trackedPos : trackedChests) {
-            // Already checked if within radius
             if (trackedPos.closerThan(playerPos, SEARCH_RADIUS)) {
                 continue;
             }

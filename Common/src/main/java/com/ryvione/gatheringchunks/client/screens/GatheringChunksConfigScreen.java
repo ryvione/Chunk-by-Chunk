@@ -183,7 +183,7 @@ public class GatheringChunksConfigScreen extends Screen {
         this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getGeneration().isSynchNether())
                 .withTooltip(value -> Tooltip.create(Component.literal("Nether chunks spawn in response to overworld spawns")))
                 .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
-                        Component.literal("Synch Nether Chunk Spawn"),
+                        Component.literal("Sync Nether Chunk Spawn"),
                         (button, value) -> ChunkByChunkConfig.get().getGeneration().setSynchNether(value)));
         currentY += SPACING;
 

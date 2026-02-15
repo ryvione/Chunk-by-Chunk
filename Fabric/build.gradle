@@ -55,7 +55,22 @@ loom {
     }
 }
 
+sourceSets {
+    main {
+        resources {
+            srcDir project(':Common').file('src/main/resources')
+        }
+    }
+}
+
 processResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    
+    from(project(':Common').sourceSets.main.resources) {
+        exclude 'META-INF/neoforge.mods.toml'
+        exclude 'fabric.mod.json'
+    }
+
     inputs.property "version", project.version
     filesMatching("fabric.mod.json") {
         expand "version": project.version
