@@ -140,9 +140,31 @@ public class ExperimentalScannerRenderer {
             }
 
             for (BlockPos pos : positions) {
-                renderHighlight(poseStack, vertexConsumer, pos, r, g, b, camPos);
+                if (isEdgeBlock(chunk, pos, targetBlock)) {
+                    renderHighlight(poseStack, vertexConsumer, pos, r, g, b, camPos);
+                }
             }
         }
+    }
+    
+    private static boolean isEdgeBlock(LevelChunk chunk, BlockPos pos, Block targetBlock) {
+        BlockPos[] adjacent = {
+            pos.above(), pos.below(),
+            pos.north(), pos.south(),
+            pos.east(), pos.west()
+        };
+        
+        for (BlockPos adjPos : adjacent) {
+            if (adjPos.getY() < chunk.getMinBuildHeight() || adjPos.getY() > chunk.getMaxBuildHeight()) {
+                return true;
+            }
+            
+            if (!chunk.getBlockState(adjPos).is(targetBlock)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     private static MapColor getMapColorFromPackedId(byte packedId) {

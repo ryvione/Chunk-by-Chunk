@@ -22,6 +22,10 @@ public class GatheringChunksConfigScreen extends Screen {
     private static final int SCROLL_SPEED = 20;
     private static final ConfigSystem CONFIG_SYSTEM = new ConfigSystem();
 
+    private int contentHeight = 0;
+    private boolean isScrollbarDragging = false;
+    private int scrollbarWidth = 10;
+
     public GatheringChunksConfigScreen(Screen parentScreen) {
         super(Component.literal("Gathering Chunks Configuration"));
         this.parentScreen = parentScreen;
@@ -368,6 +372,7 @@ public class GatheringChunksConfigScreen extends Screen {
                         (button, value) -> config.setAutoSpawnTrees(value)));
         currentY += SPACING;
 
+
         this.addRenderableWidget(CycleButton.onOffBuilder(config.isPreventFluidFlowIntoVoid())
                 .withTooltip(value -> Tooltip.create(Component.literal("Prevent fluids from flowing into empty chunks")))
                 .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
@@ -447,59 +452,139 @@ public class GatheringChunksConfigScreen extends Screen {
 
         currentY = addSectionLabel(centerX, currentY, "Experimental", 0xFFFF5555);
 
-        this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getWorldScannerConfig().isExperimentalMode())
-                .withTooltip(value -> Tooltip.create(Component.literal("Enable experimental block highlighting for world scanner")))
+        boolean isExperimental = ChunkByChunkConfig.get().getWorldScannerConfig().isExperimentalMode();
+
+        this.addRenderableWidget(CycleButton.onOffBuilder(isExperimental)
+                .withTooltip(value -> Tooltip.create(Component.literal("Enable experimental features for world scanner (ESP, Manual Mode)")))
                 .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
                         Component.literal("World Scanner: Experimental Mode"),
-                        (button, value) -> ChunkByChunkConfig.get().getWorldScannerConfig().setExperimentalMode(value)));
+                        (button, value) -> {
+                            ChunkByChunkConfig.get().getWorldScannerConfig().setExperimentalMode(value);
+                            if (!value) {
+                                ChunkByChunkConfig.get().getWorldScannerConfig().setWorldScannerScanMode(
+                                        com.ryvione.gatheringchunks.config.WorldScannerConfig.WorldScannerMode.Auto);
+                            }
+                            this.rebuildWidgets();
+                        }));
         currentY += SPACING;
+
+        if (isExperimental) {
+            StringWidget warnWidget = new StringWidget(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, 10,
+                    Component.literal("⚠ Warning: May cause crashes or bugs!").withStyle(style -> style.withColor(0xFFFF5555)), this.font);
+            warnWidget.alignCenter();
+            this.addRenderableWidget(warnWidget);
+            currentY += 14;
+
+            this.addRenderableWidget(Button.builder(
+                            Component.literal("Scanner Mode: " + ChunkByChunkConfig.get().getWorldScannerConfig().getWorldScannerScanMode().name()),
+                            button -> {
+                                com.ryvione.gatheringchunks.config.WorldScannerConfig.WorldScannerMode current = ChunkByChunkConfig.get().getWorldScannerConfig().getWorldScannerScanMode();
+                                com.ryvione.gatheringchunks.config.WorldScannerConfig.WorldScannerMode[] values = com.ryvione.gatheringchunks.config.WorldScannerConfig.WorldScannerMode.values();
+                                int nextIndex = (current.ordinal() + 1) % values.length;
+                                ChunkByChunkConfig.get().getWorldScannerConfig().setWorldScannerScanMode(values[nextIndex]);
+                                button.setMessage(Component.literal("Scanner Mode: " + values[nextIndex].name()));
+                            })
+                    .bounds(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT)
+                    .tooltip(Tooltip.create(Component.literal("Auto = scan from center outward | Manual = click map to select chunk")))
+                    .build());
+            currentY += SPACING;
+        }
 
         currentY += SECTION_SPACING + 10;
 
         this.addRenderableWidget(Button.builder(
-                        Component.literal("Done"),
-                        button -> this.onClose())
-                .bounds(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT)
-                .build());
+                Component.literal("Done"),
+                button -> this.onClose())
+            .bounds(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT)
+            .build());
+
+        this.contentHeight = currentY - (40 - scrollOffset);
     }
 
     private int addSectionLabel(int centerX, int y, String text, int color) {
-        return y + 15;
+        StringWidget label = new StringWidget(centerX - BUTTON_WIDTH / 2, y, BUTTON_WIDTH, 15, 
+            Component.literal(text).withStyle(style -> style.withColor(color)), this.font);
+        label.alignCenter();
+        this.addRenderableWidget(label);
+        return y + 20;
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics, mouseX, mouseY, partialTick);
         super.render(graphics, mouseX, mouseY, partialTick);
-
         graphics.drawCenteredString(this.font, this.title, this.width / 2, 20, 0xFFFFFF);
+        drawScrollBar(graphics, mouseX, mouseY);
+    }
 
-        int centerX = this.width / 2;
-        int startY = 40 - scrollOffset;
-        int currentY = startY;
+    private void drawScrollBar(GuiGraphics graphics, int mouseX, int mouseY) {
+        int viewY = 40;
+        int viewHeight = Math.max(0, this.height - 60);
+        if (contentHeight <= viewHeight) return;
 
-        graphics.drawCenteredString(this.font, Component.literal("Hard Mode"), centerX, currentY, 0xFFFF5555);
-        currentY += 15 + SPACING * 6;
-        currentY += SECTION_SPACING;
+        int trackX = this.width - 16;
+        int trackY = viewY;
+        int trackHeight = viewHeight;
+        int thumbHeight = Math.max(20, viewHeight * viewHeight / Math.max(1, contentHeight));
+        int maxOffset = Math.max(0, contentHeight - viewHeight);
+        int thumbRange = Math.max(1, trackHeight - thumbHeight);
+        int thumbY = trackY + (int) ((long) scrollOffset * thumbRange / Math.max(1, maxOffset));
 
-        graphics.drawCenteredString(this.font, Component.literal("Difficulty"), centerX, currentY, 0xFFFFAA00);
-        currentY += 15 + SPACING * 3;
-        currentY += SPACING;
-        if (ChunkByChunkConfig.get().getDifficulty().getStartRestriction() == GameplayConfig.StartRestriction.Biome) {
-            currentY += SPACING;
+        graphics.fill(trackX, trackY, trackX + scrollbarWidth, trackY + trackHeight, 0xFF333333);
+        graphics.fill(trackX, thumbY, trackX + scrollbarWidth, thumbY + thumbHeight, 0xFFAAAAAA);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && contentHeight > 0) {
+            int viewY = 40;
+            int viewHeight = Math.max(0, this.height - 60);
+            if (contentHeight > viewHeight) {
+                int trackX = this.width - 16;
+                int thumbHeight = Math.max(20, viewHeight * viewHeight / Math.max(1, contentHeight));
+                int maxOffset = Math.max(0, contentHeight - viewHeight);
+                int thumbRange = Math.max(1, viewHeight - thumbHeight);
+                int thumbY = viewY + (int) ((long) scrollOffset * thumbRange / Math.max(1, maxOffset));
+
+                if (mouseX >= trackX && mouseX <= trackX + scrollbarWidth && mouseY >= thumbY && mouseY <= thumbY + thumbHeight) {
+                    isScrollbarDragging = true;
+                    return true;
+                } else if (mouseX >= trackX && mouseX <= trackX + scrollbarWidth && mouseY >= viewY && mouseY <= viewY + viewHeight) {
+                    int clickPos = (int) mouseY - viewY - thumbHeight / 2;
+                    scrollOffset = (int) ((long) clickPos * maxOffset / Math.max(1, thumbRange));
+                    scrollOffset = Math.max(0, Math.min(maxOffset, scrollOffset));
+                    this.rebuildWidgets();
+                    return true;
+                }
+            }
         }
-        currentY += SPACING * 4 + SECTION_SPACING;
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
 
-        graphics.drawCenteredString(this.font, Component.literal("Generation"), centerX, currentY, 0xFF55FF55);
-        currentY += 15 + SPACING * 10 + SECTION_SPACING;
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (isScrollbarDragging && button == 0) {
+            isScrollbarDragging = false;
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
 
-        graphics.drawCenteredString(this.font, Component.literal("Gameplay"), centerX, currentY, 0xFF5555FF);
-        currentY += 15 + SPACING * 7 + SECTION_SPACING;
-
-        graphics.drawCenteredString(this.font, Component.literal("Other"), centerX, currentY, 0xFFFFFFFF);
-        currentY += 15 + SPACING * 4 + SECTION_SPACING;
-
-        graphics.drawCenteredString(this.font, Component.literal("Experimental"), centerX, currentY, 0xFFFF5555);
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (isScrollbarDragging && button == 0 && contentHeight > 0) {
+            int viewY = 40;
+            int viewHeight = Math.max(0, this.height - 60);
+            int thumbHeight = Math.max(20, viewHeight * viewHeight / Math.max(1, contentHeight));
+            int maxOffset = Math.max(0, contentHeight - viewHeight);
+            int thumbRange = Math.max(1, viewHeight - thumbHeight);
+            int clickPos = (int) mouseY - viewY - thumbHeight / 2;
+            scrollOffset = (int) ((long) clickPos * maxOffset / Math.max(1, thumbRange));
+            scrollOffset = Math.max(0, Math.min(maxOffset, scrollOffset));
+            this.rebuildWidgets();
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
     @Override

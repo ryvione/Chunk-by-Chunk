@@ -19,38 +19,35 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class TreePlacementHandler {
+    public class TreePlacementHandler {
 
     public static void ensureTreesInChunk(ServerLevel level, ChunkPos chunkPos) {
-        if (!ChunkByChunkConfig.get().getGatheringChunksConfig().isAutoSpawnTrees()) {
-            return;
-        }
+    if (!ChunkByChunkConfig.get().getGatheringChunksConfig().isAutoSpawnTrees()) {
+        return;
+    }
 
-        TreePlacementSavedData data = TreePlacementSavedData.get(level);
-        if (data.areTreesPlaced()) {
-            return;
-        }
+    TreePlacementSavedData data = TreePlacementSavedData.get(level);
+    if (data.isChunkProcessed(chunkPos)) {
+        return;
+    }
 
-        LevelChunk chunk = level.getChunk(chunkPos.x, chunkPos.z);
+    data.markChunkProcessed(chunkPos);
 
-        if (hasVillage(level, chunk)) {
-            data.setTreesPlaced(true);
-            return;
-        }
+    LevelChunk chunk = level.getChunk(chunkPos.x, chunkPos.z);
 
-        if (hasWoodInChunk(level, chunk)) {
-            data.setTreesPlaced(true);
-            return;
-        }
+    if (hasVillage(level, chunk)) {
+        return;
+    }
 
-        if (hasMinimumWoodInDimension(level, chunkPos)) {
-            data.setTreesPlaced(true);
-            return;
-        }
+    if (hasWoodInChunk(level, chunk)) {
+        return;
+    }
 
-        if (placeTreeInChunk(level, chunk)) {
-            data.setTreesPlaced(true);
-        }
+    if (hasMinimumWoodInDimension(level, chunkPos)) {
+        return;
+    }
+
+    placeTreeInChunk(level, chunk);
     }
 
     private static boolean hasVillage(ServerLevel level, LevelChunk chunk) {
@@ -136,7 +133,7 @@ public class TreePlacementHandler {
             validPositions.remove(treePos1);
             
             List<BlockPos> farPositions = validPositions.stream()
-                .filter(pos -> pos.distSqr(treePos1) >= 64) // 8 blocks squared = 64
+                .filter(pos -> pos.distSqr(treePos1) >= 64)  
                 .toList();
             
             if (!farPositions.isEmpty()) {

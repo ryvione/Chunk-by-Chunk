@@ -525,6 +525,10 @@ public class ChunkSpawnController extends SavedData {
     }
 
     private void synchChunks() {
+        if (!ChunkByChunkConfig.get().getGeneration().isSynchNether()) {
+            return;
+        }
+        
         if (targetLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
             for (ResourceKey<Level> synchLevelId : generator.getSynchedLevels()) {
                 ServerLevel synchLevel = server.getLevel(synchLevelId);
@@ -863,6 +867,10 @@ public class ChunkSpawnController extends SavedData {
     }
 
     public void syncErase(ServerLevel level, ChunkPos chunkPos) {
+        if (!ChunkByChunkConfig.get().getGeneration().isSynchNether()) {
+            return;
+        }
+        
         if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
             for (ResourceKey<Level> synchLevelId : generator.getSynchedLevels()) {
                 ServerLevel synchLevel = server.getLevel(synchLevelId);

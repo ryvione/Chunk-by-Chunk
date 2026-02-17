@@ -83,21 +83,36 @@ public class ClientConfigStorage {
         }
 
         try {
+            if (configJson == null || configJson.trim().isEmpty()) {
+                LOGGER.error("[ClientConfigStorage] Received empty config JSON");
+                return;
+            }
+            
             GatheringChunksConfig syncedConfig = GSON.fromJson(configJson, GatheringChunksConfig.class);
+            if (syncedConfig == null) {
+                LOGGER.error("[ClientConfigStorage] Failed to deserialize config from JSON");
+                return;
+            }
 
             GatheringChunksConfig targetConfig = ChunkByChunkConfig.get().getGatheringChunksConfig();
-            targetConfig.setPreventFluidFlowIntoVoid(syncedConfig.isPreventFluidFlowIntoVoid());
-            targetConfig.setAutoSpawnTrees(syncedConfig.isAutoSpawnTrees());
-            targetConfig.setMobsDropFragments(syncedConfig.isMobsDropFragments());
-            targetConfig.setFragmentDropChance(syncedConfig.getFragmentDropChance());
-            targetConfig.setMinFragmentDrop(syncedConfig.getMinFragmentDrop());
-            targetConfig.setMaxFragmentDrop(syncedConfig.getMaxFragmentDrop());
+            
+            try {
+                targetConfig.setPreventFluidFlowIntoVoid(syncedConfig.isPreventFluidFlowIntoVoid());
+                targetConfig.setAutoSpawnTrees(syncedConfig.isAutoSpawnTrees());
+                targetConfig.setMobsDropFragments(syncedConfig.isMobsDropFragments());
+                targetConfig.setFragmentDropChance(syncedConfig.getFragmentDropChance());
+                targetConfig.setMinFragmentDrop(syncedConfig.getMinFragmentDrop());
+                targetConfig.setMaxFragmentDrop(syncedConfig.getMaxFragmentDrop());
+            } catch (Exception fieldError) {
+                LOGGER.warn("[ClientConfigStorage] Error applying individual config fields: {}", fieldError.getMessage());
+            }
 
             rememberServerConfig(currentServerId, syncedConfig);
 
             LOGGER.info("[ClientConfigStorage] Applied synced config from server: {}", currentServerId);
         } catch (Exception e) {
-            LOGGER.error("[ClientConfigStorage] Failed to apply synced config", e);
+            LOGGER.error("[ClientConfigStorage] Failed to apply synced config: {}", e.getMessage());
+            LOGGER.debug("[ClientConfigStorage] Full error:", e);
         }
     }
 

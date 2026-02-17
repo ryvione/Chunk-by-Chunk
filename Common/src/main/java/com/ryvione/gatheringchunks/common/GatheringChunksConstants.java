@@ -42,6 +42,6 @@ public final class GatheringChunksConstants {
             "rocky",
             "jungle",
             "mushroom",
-            "mountain"
+            "mountain"  
     ));
 }

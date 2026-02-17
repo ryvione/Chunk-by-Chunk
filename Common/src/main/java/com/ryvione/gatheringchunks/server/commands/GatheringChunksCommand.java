@@ -241,7 +241,13 @@ public class GatheringChunksCommand {
             LOGGER.info("[Command] Config successfully reloaded!");
             context.getSource().sendSuccess(() -> Component.literal("§a[Gathering Chunks] Config reloaded successfully!"), true);
 
-            syncConfigToAllClients(context.getSource().getServer());
+            try {
+                syncConfigToAllClients(context.getSource().getServer());
+            } catch (Exception syncError) {
+                LOGGER.error("[Command] Failed to sync config to clients, but config was reloaded on server", syncError);
+                context.getSource().sendSuccess(() -> Component.literal("§6[Gathering Chunks] Config reloaded but client sync had errors. Check logs."), true);
+                return 1;
+            }
 
             return 1;
         } catch (Exception e) {
@@ -251,18 +257,37 @@ public class GatheringChunksCommand {
         }
     }
 
-    private static void syncConfigToAllClients(net.minecraft.server.MinecraftServer server) {
+    private static void syncConfigToAllClients(net.minecraft.server.MinecraftServer server) throws Exception {
         try {
             String configJson = GSON.toJson(ChunkByChunkConfig.get().getGatheringChunksConfig());
+            if (configJson == null || configJson.isEmpty()) {
+                throw new RuntimeException("Failed to serialize config to JSON");
+            }
+            
             S2CSyncConfigPacket packet = new S2CSyncConfigPacket(configJson);
 
+            int syncCount = 0;
+            int failCount = 0;
+            
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-                Services.PLATFORM.sendConfigSyncPacket(player, packet);
+                try {
+                    Services.PLATFORM.sendConfigSyncPacket(player, packet);
+                    syncCount++;
+                } catch (Exception playerSyncError) {
+                    LOGGER.warn("[Command] Failed to sync config to player {}: {}", player.getName().getString(), playerSyncError.getMessage());
+                    failCount++;
+                }
             }
 
-            LOGGER.info("[Command] Config synced to {} online players", server.getPlayerList().getPlayerCount());
+            LOGGER.info("[Command] Config synced to {}/{} online players (failed: {})", 
+                    syncCount, server.getPlayerList().getPlayerCount(), failCount);
+            
+            if (failCount > 0) {
+                LOGGER.warn("[Command] Some players failed to receive config sync, but config was reloaded on server");
+            }
         } catch (Exception e) {
-            LOGGER.error("[Command] Failed to sync config to clients", e);
+            LOGGER.error("[Command] Error during config sync: {}", e.getMessage(), e);
+            throw e;
         }
     }
 

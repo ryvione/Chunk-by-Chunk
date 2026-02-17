@@ -4,9 +4,12 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import com.ryvione.gatheringchunks.common.blockEntities.WorldScannerBlockEntity;
 import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
+import com.ryvione.gatheringchunks.common.util.ConfigUtil;
+import com.ryvione.gatheringchunks.config.WorldScannerConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
@@ -25,9 +28,36 @@ public class WorldScannerScreen extends AbstractContainerScreen<WorldScannerMenu
     private static final int MAP_DIMENSIONS = 128;
     private static final float TICKS_PER_FRAME = 4f;
     private static final int NUM_FRAMES = 8;
+    private static final int DRAG_THRESHOLD = 3;
 
     private float animCounter = 0f;
     private Button espButton;
+    private boolean lastExperimental = false;
+
+    private float zoomLevel = 1.0f;
+    private static final float MIN_ZOOM = 0.5f;
+    private static final float MAX_ZOOM = 3.0f;
+    private static final float ZOOM_STEP = 0.1f;
+    private float panX = 0f;
+    private float panY = 0f;
+
+    private boolean isMiddlePanning = false;
+    private boolean isLeftPanning = false;
+    private double lastMouseX = 0;
+    private double lastMouseY = 0;
+    private double clickStartX = 0;
+    private double clickStartY = 0;
+    private boolean didDrag = false;
+
+    private long lastClickTime = 0;
+    private int lastClickChunkX = Integer.MIN_VALUE;
+    private int lastClickChunkZ = Integer.MIN_VALUE;
+    private static final long DOUBLE_CLICK_MS = 400;
+    private int selectedChunkX = Integer.MIN_VALUE;
+    private int selectedChunkZ = Integer.MIN_VALUE;
+
+    private static final int PROGRESS_BAR_WIDTH = 50;
+    private static final int PROGRESS_BAR_HEIGHT = 5;
 
     public WorldScannerScreen(WorldScannerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -38,23 +68,32 @@ public class WorldScannerScreen extends AbstractContainerScreen<WorldScannerMenu
     @Override
     protected void init() {
         super.init();
-        if (ChunkByChunkConfig.get().getWorldScannerConfig().isExperimentalMode()) {
-            espButton = this.addRenderableWidget(Button.builder(getEspMessage(), (button) -> {
-                this.minecraft.gameMode.handleInventoryButtonClick(menu.containerId, 0);
-            }).bounds(leftPos + 80, topPos + 20, 60, 20).build());
+        boolean experimental = ChunkByChunkConfig.get().getWorldScannerConfig().isExperimentalMode();
+        this.lastExperimental = experimental;
+        if (experimental) {
+            espButton = this.addRenderableWidget(Button.builder(getEspMessage(), (button) ->
+                    this.minecraft.gameMode.handleInventoryButtonClick(menu.containerId, 0)
+            ).bounds(leftPos + 80, topPos + 20, 60, 20).build());
         }
     }
 
     private Component getEspMessage() {
-        return Component.literal("ESP: ").append(menu.isEspEnabled() ? 
-                Component.literal("ON").withStyle(ChatFormatting.GREEN) : 
-                Component.literal("OFF").withStyle(ChatFormatting.RED));
+        return Component.literal("ESP: ").append(menu.isEspEnabled()
+                ? Component.literal("ON").withStyle(ChatFormatting.GREEN)
+                : Component.literal("OFF").withStyle(ChatFormatting.RED));
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        boolean experimental = ChunkByChunkConfig.get().getWorldScannerConfig().isExperimentalMode();
+        if (experimental != this.lastExperimental) {
+            this.init();
+        }
         if (espButton != null) {
-            espButton.setMessage(getEspMessage());
+            espButton.visible = experimental;
+            if (experimental) {
+                espButton.setMessage(getEspMessage());
+            }
         }
         renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
@@ -65,29 +104,34 @@ public class WorldScannerScreen extends AbstractContainerScreen<WorldScannerMenu
     protected void renderTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         super.renderTooltip(guiGraphics, mouseX, mouseY);
 
-        int mapX = mouseX - 174 - leftPos;
-        int mapY = mouseY - 18 - topPos;
+        int mapX = (int) ((mouseX - leftPos - 174 - panX) / zoomLevel);
+        int mapY = (int) ((mouseY - topPos - 18 - panY) / zoomLevel);
 
         if (mapX >= 0 && mapY >= 0 && mapX < MAP_DIMENSIONS && mapY < MAP_DIMENSIONS) {
             int chunkX = mapX / WorldScannerBlockEntity.SCAN_ZOOM - WorldScannerBlockEntity.SCAN_CENTER;
             int chunkZ = mapY / WorldScannerBlockEntity.SCAN_ZOOM - WorldScannerBlockEntity.SCAN_CENTER;
-
             guiGraphics.renderTooltip(font, Component.literal("Chunk: [" + chunkX + ", " + chunkZ + "]"), mouseX, mouseY);
         }
 
         int helpX = 285;
         int helpY = 6;
-        if (mouseX >= leftPos + helpX && mouseX <= leftPos + helpX + 10 && 
-            mouseY >= topPos + helpY && mouseY <= topPos + helpY + 10) {
+        if (mouseX >= leftPos + helpX && mouseX <= leftPos + helpX + 10 &&
+                mouseY >= topPos + helpY && mouseY <= topPos + helpY + 10) {
             guiGraphics.renderTooltip(font, java.util.List.of(
-                Component.literal("§6Resource Density:").getVisualOrderText(),
-                Component.literal("§f- §fWhite: §7Extremely High (16k+)").getVisualOrderText(),
-                Component.literal("§f- §6Gold: §7High (8k+)").getVisualOrderText(),
-                Component.literal("§f- §eYellow: §7Common (2k+)").getVisualOrderText(),
-                Component.literal("§f- §6Orange: §7Uncommon (512+)").getVisualOrderText(),
-                Component.literal("§f- §cRed: §7Rare (32+)").getVisualOrderText(),
-                Component.literal("§f- §4Dark Red: §7Very Rare (1-16)").getVisualOrderText(),
-                Component.literal("§f- §0Black: §7None").getVisualOrderText()
+                    Component.literal("§6Resource Density:").getVisualOrderText(),
+                    Component.literal("§f- §fWhite: §7Extremely High (16k+)").getVisualOrderText(),
+                    Component.literal("§f- §6Gold: §7High (8k+)").getVisualOrderText(),
+                    Component.literal("§f- §eYellow: §7Common (2k+)").getVisualOrderText(),
+                    Component.literal("§f- §6Orange: §7Uncommon (512+)").getVisualOrderText(),
+                    Component.literal("§f- §cRed: §7Rare (32+)").getVisualOrderText(),
+                    Component.literal("§f- §4Dark Red: §7Very Rare (1-16)").getVisualOrderText(),
+                    Component.literal("§f- §0Black: §7None").getVisualOrderText(),
+                    Component.literal("").getVisualOrderText(),
+                    Component.literal("§6Controls:").getVisualOrderText(),
+                    Component.literal("§f- §eCtrl+Scroll: §7Zoom in/out").getVisualOrderText(),
+                    Component.literal("§f- §eDrag: §7Pan map").getVisualOrderText(),
+                    Component.literal("§f- §eSingle Click: §7Select chunk").getVisualOrderText(),
+                    Component.literal("§f- §eDouble Click: §7Scan selected chunk").getVisualOrderText()
             ), mouseX, topPos + helpY + 12);
         }
     }
@@ -98,28 +142,40 @@ public class WorldScannerScreen extends AbstractContainerScreen<WorldScannerMenu
         while (animCounter > TICKS_PER_FRAME * NUM_FRAMES) {
             animCounter -= TICKS_PER_FRAME * NUM_FRAMES;
         }
-        int frame = Mth.floor(animCounter / TICKS_PER_FRAME);
 
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
 
         guiGraphics.blit(CONTAINER_TEXTURE, leftPos, topPos, 0, 0, this.imageWidth, this.imageHeight, MAIN_TEXTURE_DIM, MAIN_TEXTURE_DIM);
 
-        if (menu.getEnergy() > 0) {
-            int display = Mth.ceil(7.f * menu.getEnergy() / menu.getMaxEnergy());
-            guiGraphics.blit(CONTAINER_TEXTURE, leftPos + 54, topPos + 56, 128 + 12 * display, 166 + 12 * frame, 13, 13, MAIN_TEXTURE_DIM, MAIN_TEXTURE_DIM);
+        if (menu.getMaxEnergy() > 0) {
+            float energyPercent = (float) menu.getEnergy() / menu.getMaxEnergy();
+            int barX = leftPos + 92;
+            int barY = topPos + 63;
+            int filledWidth = (int) (PROGRESS_BAR_WIDTH * energyPercent);
+
+            guiGraphics.fill(barX - 1, barY - 1, barX + PROGRESS_BAR_WIDTH + 1, barY + PROGRESS_BAR_HEIGHT + 1, 0x88FFFFFF);
+            guiGraphics.fill(barX, barY, barX + PROGRESS_BAR_WIDTH, barY + PROGRESS_BAR_HEIGHT, 0xFF333333);
+            guiGraphics.fill(barX, barY, barX + filledWidth, barY + PROGRESS_BAR_HEIGHT, 0xFF00FFFF);
+            guiGraphics.drawString(font, (int) (energyPercent * 100) + "%", barX + PROGRESS_BAR_WIDTH + 3, barY - 1, 0xFFFFFF);
         }
 
         if (menu.isMapAvailable()) {
             renderMap(guiGraphics);
+            renderGridOverlay(guiGraphics);
         }
 
-        guiGraphics.blit(CONTAINER_TEXTURE, leftPos + 234, topPos + 78, 124, 166 + frame * 4, 4, 4, MAIN_TEXTURE_DIM, MAIN_TEXTURE_DIM);
+        renderCoordinatesAndControls(guiGraphics);
     }
 
     private void renderMap(GuiGraphics guiGraphics) {
+        int mapScreenX = leftPos + 174;
+        int mapScreenY = topPos + 18;
+
+        guiGraphics.enableScissor(mapScreenX, mapScreenY, mapScreenX + MAP_DIMENSIONS, mapScreenY + MAP_DIMENSIONS);
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(leftPos + 174, topPos + 18, 1.0D);
+        guiGraphics.pose().translate(mapScreenX + panX, mapScreenY + panY, 1.0D);
+        guiGraphics.pose().scale(zoomLevel, zoomLevel, 1.0f);
 
         var mapId = menu.getMapId();
         if (mapId != null) {
@@ -138,12 +194,202 @@ public class WorldScannerScreen extends AbstractContainerScreen<WorldScannerMenu
 
         guiGraphics.flush();
         guiGraphics.pose().popPose();
+        guiGraphics.disableScissor();
+    }
+
+    private void renderGridOverlay(GuiGraphics guiGraphics) {
+        WorldScannerConfig config = ChunkByChunkConfig.get().getWorldScannerConfig();
+        if (config.getWorldScannerScanMode() != WorldScannerConfig.WorldScannerMode.Manual) {
+            return;
+        }
+
+        int mapScreenX = leftPos + 174;
+        int mapScreenY = topPos + 18;
+        int chunkPixelSize = WorldScannerBlockEntity.SCAN_ZOOM;
+
+        float visMinX = -panX / zoomLevel;
+        float visMaxX = (MAP_DIMENSIONS - panX) / zoomLevel;
+        float visMinY = -panY / zoomLevel;
+        float visMaxY = (MAP_DIMENSIONS - panY) / zoomLevel;
+
+        int startX = (int) Math.floor(visMinX / chunkPixelSize) * chunkPixelSize;
+        int endX = (int) Math.ceil(visMaxX / chunkPixelSize) * chunkPixelSize;
+        int startY = (int) Math.floor(visMinY / chunkPixelSize) * chunkPixelSize;
+        int endY = (int) Math.ceil(visMaxY / chunkPixelSize) * chunkPixelSize;
+
+        guiGraphics.enableScissor(mapScreenX, mapScreenY, mapScreenX + MAP_DIMENSIONS, mapScreenY + MAP_DIMENSIONS);
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(mapScreenX + panX, mapScreenY + panY, 2.0D);
+        guiGraphics.pose().scale(zoomLevel, zoomLevel, 1.0f);
+
+        for (int x = startX; x <= endX; x += chunkPixelSize) {
+            guiGraphics.fill(x, startY, x + 1, endY, 0x8800FF00);
+        }
+        for (int y = startY; y <= endY; y += chunkPixelSize) {
+            guiGraphics.fill(startX, y, endX, y + 1, 0x8800FF00);
+        }
+
+        if (selectedChunkX != Integer.MIN_VALUE && selectedChunkZ != Integer.MIN_VALUE) {
+            int selX = (WorldScannerBlockEntity.SCAN_CENTER + selectedChunkX) * chunkPixelSize;
+            int selZ = (WorldScannerBlockEntity.SCAN_CENTER + selectedChunkZ) * chunkPixelSize;
+            boolean isPending = selectedChunkX != config.getManualChunkOffsetX()
+                    || selectedChunkZ != config.getManualChunkOffsetZ();
+            int color = isPending ? 0xFFFFFFFF : 0xFFFFFF00;
+            guiGraphics.fill(selX, selZ, selX + chunkPixelSize, selZ + 1, color);
+            guiGraphics.fill(selX, selZ + chunkPixelSize - 1, selX + chunkPixelSize, selZ + chunkPixelSize, color);
+            guiGraphics.fill(selX, selZ, selX + 1, selZ + chunkPixelSize, color);
+            guiGraphics.fill(selX + chunkPixelSize - 1, selZ, selX + chunkPixelSize, selZ + chunkPixelSize, color);
+        }
+
+        guiGraphics.flush();
+        guiGraphics.pose().popPose();
+        guiGraphics.disableScissor();
+    }
+
+    private void renderCoordinatesAndControls(GuiGraphics guiGraphics) {
+        WorldScannerConfig config = ChunkByChunkConfig.get().getWorldScannerConfig();
+        if (config.getWorldScannerScanMode() == WorldScannerConfig.WorldScannerMode.Manual) {
+            int x = leftPos + 8;
+            int y = topPos + 102;
+            guiGraphics.drawString(font, "§eX: " + config.getManualChunkOffsetX(), x, y, 0xFFFFFF);
+            guiGraphics.drawString(font, "§eZ: " + config.getManualChunkOffsetZ(), x, y + 10, 0xFFFFFF);
+        }
     }
 
     @Override
-    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        guiGraphics.drawString(font, title, titleLabelX, titleLabelY, 0x404040, false);
-        
-        guiGraphics.drawString(font, "?", 285, 6, 0xAAAAAA, false);
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (Screen.hasControlDown()) {
+            int relX = (int) (mouseX - leftPos - 174);
+            int relY = (int) (mouseY - topPos - 18);
+
+            if (relX >= -10 && relY >= -10 && relX < MAP_DIMENSIONS + 10 && relY < MAP_DIMENSIONS + 10) {
+                float oldZoom = zoomLevel;
+                if (scrollY > 0) {
+                    zoomLevel = Math.min(MAX_ZOOM, zoomLevel + ZOOM_STEP);
+                } else {
+                    zoomLevel = Math.max(MIN_ZOOM, zoomLevel - ZOOM_STEP);
+                }
+
+                if (oldZoom != zoomLevel) {
+                    float ratio = zoomLevel / oldZoom;
+                    panX = relX - (relX - panX) * ratio;
+                    panY = relY - (relY - panY) * ratio;
+                    clampPan();
+                }
+                return true;
+            }
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    private void clampPan() {
+        float scaledSize = MAP_DIMENSIONS * zoomLevel;
+        float minPan = Math.min(0, MAP_DIMENSIONS - scaledSize);
+        float maxPan = Math.max(0, MAP_DIMENSIONS - scaledSize);
+        panX = Math.max(minPan, Math.min(maxPan, panX));
+        panY = Math.max(minPan, Math.min(maxPan, panY));
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        int relX = (int) (mouseX - leftPos - 174);
+        int relY = (int) (mouseY - topPos - 18);
+        boolean overMap = relX >= 0 && relY >= 0 && relX < MAP_DIMENSIONS && relY < MAP_DIMENSIONS;
+
+        if (button == 2 && overMap) {
+            isMiddlePanning = true;
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+            return true;
+        }
+
+        if (button == 0 && overMap) {
+            isLeftPanning = true;
+            clickStartX = mouseX;
+            clickStartY = mouseY;
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+            didDrag = false;
+            return true;
+        }
+
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 2) {
+            isMiddlePanning = false;
+            return true;
+        }
+        if (button == 0 && isLeftPanning) {
+            isLeftPanning = false;
+            if (!didDrag && ChunkByChunkConfig.get().getWorldScannerConfig().getWorldScannerScanMode()
+                    == WorldScannerConfig.WorldScannerMode.Manual) {
+                int relX = (int) ((mouseX - leftPos - 174 - panX) / zoomLevel);
+                int relY = (int) ((mouseY - topPos - 18 - panY) / zoomLevel);
+                if (relX >= 0 && relY >= 0 && relX < MAP_DIMENSIONS && relY < MAP_DIMENSIONS) {
+                    int chunkX = Mth.clamp(relX / WorldScannerBlockEntity.SCAN_ZOOM - WorldScannerBlockEntity.SCAN_CENTER, -15, 15);
+                    int chunkZ = Mth.clamp(relY / WorldScannerBlockEntity.SCAN_ZOOM - WorldScannerBlockEntity.SCAN_CENTER, -15, 15);
+
+                    long now = System.currentTimeMillis();
+                    boolean isDoubleClick = (now - lastClickTime) < DOUBLE_CLICK_MS
+                            && lastClickChunkX == chunkX
+                            && lastClickChunkZ == chunkZ;
+
+                    if (isDoubleClick) {
+                        WorldScannerConfig config = ChunkByChunkConfig.get().getWorldScannerConfig();
+                        config.setManualChunkOffsetX(chunkX);
+                        config.setManualChunkOffsetZ(chunkZ);
+                        selectedChunkX = chunkX;
+                        selectedChunkZ = chunkZ;
+                        ConfigUtil.saveDefaultConfig();
+                        this.minecraft.gameMode.handleInventoryButtonClick(menu.containerId, 1);
+                        lastClickTime = 0;
+                    } else {
+                        selectedChunkX = chunkX;
+                        selectedChunkZ = chunkZ;
+                        lastClickTime = now;
+                        lastClickChunkX = chunkX;
+                        lastClickChunkZ = chunkZ;
+                    }
+                }
+            }
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (isMiddlePanning && button == 2) {
+            panX += (float) (mouseX - lastMouseX);
+            panY += (float) (mouseY - lastMouseY);
+            clampPan();
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+            return true;
+        }
+        if (isLeftPanning && button == 0) {
+            double dx = mouseX - clickStartX;
+            double dy = mouseY - clickStartY;
+            if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
+                didDrag = true;
+            }
+            if (didDrag) {
+                panX += (float) (mouseX - lastMouseX);
+                panY += (float) (mouseY - lastMouseY);
+                clampPan();
+            }
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public void onClose() {
+        super.onClose();
     }
 }

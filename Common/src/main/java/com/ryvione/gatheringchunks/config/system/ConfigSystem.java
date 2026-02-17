@@ -1,13 +1,3 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Chunk By Chunk (Ryvione's Fork).
- * Original: https://github.com/immortius/chunkbychunk
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
-
 package com.ryvione.gatheringchunks.config.system;
 
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
@@ -32,10 +22,11 @@ public class ConfigSystem {
     private static final String START_SECTION = "[";
     private static final String END_SECTION = "]";
     private static final String INDENT = "\t";
+    private static final String CONFIG_VERSION_KEY = "config_version";
+    private static final int CURRENT_CONFIG_VERSION = 3;
+    
     private final Map<Class<?>, ConfigMetadata> metadataMap = new HashMap<>();
-
     private static Path centralConfigDir = null;
-
 
     public static void initCentralConfigDir(Path gameDir) {
         centralConfigDir = gameDir.resolve("config").resolve("GatheringChunks");
@@ -46,7 +37,6 @@ public class ConfigSystem {
             LOGGER.error("[ConfigSystem] Failed to create centralized config directory", e);
         }
     }
-
 
     public static Path getCentralConfigPath(String filename) {
         if (centralConfigDir == null) {
@@ -60,32 +50,107 @@ public class ConfigSystem {
         if (!createPathTo(configFile)) {
             return;
         }
-        if (Files.exists(configFile)) {
+        
+        int existingVersion = 0;
+        boolean needsMigration = false;
+        boolean configExists = Files.exists(configFile);
+        boolean loadedSuccessfully = false;
+        
+        if (configExists) {
             LOGGER.info("[ConfigSystem] Loading config from: {}", configFile);
+            existingVersion = readConfigVersion(configFile);
+            
+            if (existingVersion < CURRENT_CONFIG_VERSION) {
+                LOGGER.info("[ConfigSystem] Config version {} is outdated, current version is {}. Creating backup...", 
+                    existingVersion, CURRENT_CONFIG_VERSION);
+                backupConfig(configFile);
+                needsMigration = true;
+            }
+            
             try (BufferedReader reader = Files.newBufferedReader(configFile)) {
                 readInto(reader, object);
+                loadedSuccessfully = true;
+                LOGGER.info("[ConfigSystem] Successfully loaded config from file");
             } catch (IOException | RuntimeException e) {
-                LOGGER.error("[ConfigSystem] Failed to read config at '{}' - Error: {}", configFile, e.getMessage(), e);
+                LOGGER.error("[ConfigSystem] Failed to read config at '{}' - Error: {}. Attempting to use defaults...", configFile, e.getMessage());
+                loadedSuccessfully = false;
             }
-        } else if (defaultFile != null && Files.exists(defaultFile)) {
-            LOGGER.info("[ConfigSystem] Config not found, loading from default: {}", defaultFile);
+        }
+        
+        if (!loadedSuccessfully && defaultFile != null && Files.exists(defaultFile)) {
+            LOGGER.info("[ConfigSystem] Loading config from default: {}", defaultFile);
             try (BufferedReader reader = Files.newBufferedReader(defaultFile)) {
                 readInto(reader, object);
+                loadedSuccessfully = true;
             } catch (IOException | RuntimeException e) {
                 LOGGER.error("[ConfigSystem] Failed to read default config at '{}' - Error: {}", defaultFile, e.getMessage(), e);
             }
         }
 
-        if (!Files.exists(configFile)) {
+        if (!configExists) {
             LOGGER.info("[ConfigSystem] Creating new config file at: {}", configFile);
             try (BufferedWriter writer = Files.newBufferedWriter(configFile)) {
-                write(writer, object);
+                writeWithVersion(writer, object);
+                LOGGER.info("[ConfigSystem] Config file created successfully");
             } catch (IOException | RuntimeException e) {
                 LOGGER.error("[ConfigSystem] Failed to write config at {} - Error: {}", configFile, e.getMessage(), e);
             }
+        } else if (!loadedSuccessfully) {
+            LOGGER.warn("[ConfigSystem] Previous config was corrupted/unreadable. Creating new config file...");
+            try (BufferedWriter writer = Files.newBufferedWriter(configFile)) {
+                writeWithVersion(writer, object);
+                LOGGER.info("[ConfigSystem] New config file created from defaults");
+            } catch (IOException | RuntimeException e) {
+                LOGGER.error("[ConfigSystem] Failed to write config at {} - Error: {}", configFile, e.getMessage(), e);
+            }
+        } else if (needsMigration) {
+            LOGGER.info("[ConfigSystem] Migrating config from version {} to {}. Updated config will be saved.", existingVersion, CURRENT_CONFIG_VERSION);
+            try (BufferedWriter writer = Files.newBufferedWriter(configFile)) {
+                writeWithVersion(writer, object);
+                LOGGER.info("[ConfigSystem] Config migration completed");
+            } catch (IOException | RuntimeException e) {
+                LOGGER.error("[ConfigSystem] Failed to write migrated config at {} - Error: {}", configFile, e.getMessage(), e);
+            }
+        } else {
+            LOGGER.info("[ConfigSystem] Config is up-to-date (version {}), no update needed", existingVersion);
         }
     }
 
+    private int readConfigVersion(Path configFile) {
+        try (BufferedReader reader = Files.newBufferedReader(configFile)) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.startsWith(CONFIG_VERSION_KEY)) {
+                    String[] parts = line.split(EQUALS, 2);
+                    if (parts.length == 2) {
+                        try {
+                            int version = Integer.parseInt(parts[1].trim());
+                            LOGGER.info("[ConfigSystem] Detected config version: {}", version);
+                            return version;
+                        } catch (NumberFormatException e) {
+                            LOGGER.warn("[ConfigSystem] Invalid config version format, treating as version 0");
+                            return 0;
+                        }
+                    }
+                }
+            }
+            LOGGER.info("[ConfigSystem] No config version found, treating as version 0");
+        } catch (IOException e) {
+            LOGGER.warn("[ConfigSystem] Could not read config version: {}", e.getMessage());
+        }
+        return 0;
+    }
+
+    private void backupConfig(Path configFile) {
+        try {
+            Path backupPath = configFile.getParent().resolve(configFile.getFileName() + ".backup");
+            Files.copy(configFile, backupPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            LOGGER.info("[ConfigSystem] Created config backup at: {}", backupPath);
+        } catch (IOException e) {
+            LOGGER.error("[ConfigSystem] Failed to create config backup", e);
+        }
+    }
 
     public void synchConfig(Path configFile, Object object) {
         synchConfig(configFile, null, object);
@@ -111,7 +176,7 @@ public class ConfigSystem {
             return;
         }
         try (BufferedWriter writer = Files.newBufferedWriter(configFile)) {
-            write(writer, object);
+            writeWithVersion(writer, object);
             LOGGER.info("[ConfigSystem] Config written to: {}", configFile);
         } catch (IOException e) {
             LOGGER.error("[ConfigSystem] Failed to write config at {}", configFile, e);
@@ -158,6 +223,12 @@ public class ConfigSystem {
                     if (parts.length == 2) {
                         String fieldName = parts[0].trim();
                         String value = parts[1].trim();
+                        
+                        if (fieldName.equals(CONFIG_VERSION_KEY)) {
+                            line = reader.readLine();
+                            continue;
+                        }
+                        
                         FieldMetadata fieldMetadata = currentMetadata.getFields().get(fieldName.toLowerCase(Locale.ROOT));
                         if (fieldMetadata != null) {
                             fieldMetadata.deserializeValue(currentObject, value);
@@ -173,6 +244,22 @@ public class ConfigSystem {
         } catch (IOException e) {
             LOGGER.error("Failed to read config", e);
         }
+    }
+
+    private void writeWithVersion(Writer writer, Object object) throws IOException {
+        writer.write(START_COMMENT);
+        writer.write(" GatheringChunks Config");
+        writer.write(NEWLINE);
+        writer.write(START_COMMENT);
+        writer.write(" This config is automatically migrated between mod versions");
+        writer.write(NEWLINE);
+        writer.write(CONFIG_VERSION_KEY);
+        writer.write(EQUALS);
+        writer.write(String.valueOf(CURRENT_CONFIG_VERSION));
+        writer.write(NEWLINE);
+        writer.write(NEWLINE);
+        
+        write(writer, object);
     }
 
     public void write(Writer writer, Object object) {
