@@ -2,6 +2,8 @@ package com.ryvione.gatheringchunks.neoforge;
 
 import com.ryvione.gatheringchunks.client.screens.*;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
+import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
+import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import com.ryvione.gatheringchunks.config.system.ConfigSystem;
 import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
 import com.mojang.serialization.MapCodec;
@@ -15,6 +17,8 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -49,10 +53,24 @@ public class GatheringChunksMod {
         ModRegistry.CREATIVE_TABS.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);
+        modEventBus.addListener(this::registerPayloads);
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
         LOGGER.info("Common setup complete");
+    }
+
+    private void registerPayloads(RegisterPayloadHandlersEvent event) {
+        PayloadRegistrar registrar = event.registrar(GatheringChunksConstants.MOD_ID).versioned("1.0");
+        registrar.playToClient(
+                S2COpenConfigPacket.TYPE,
+                S2COpenConfigPacket.CODEC,
+                ClientPacketHandler::handleOpenConfig);
+        registrar.playToClient(
+                S2CSyncConfigPacket.TYPE,
+                S2CSyncConfigPacket.CODEC,
+                ClientPacketHandler::handleSyncConfig);
+        LOGGER.info("[GatheringChunksMod] Registered network payloads");
     }
 
     @EventBusSubscriber(modid = GatheringChunksConstants.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)

@@ -16,7 +16,7 @@ public class GenerationConfig {
 
     @Name("synch_nether_chunk_spawn")
     @Comment("Should the nether start empty with chunks spawning in response to overworld spawns")
-    private boolean synchNether = true;
+    private boolean synchNether = false;
 
     @Name("use_bedrock_chest")
     @Comment("Should the generated chest be a bedrock chest")
@@ -30,6 +30,11 @@ public class GenerationConfig {
     @Comment("The number of items the bedrock chest provides")
     @IntRange(min = 1, max = 64)
     private int chestQuantity = 1;
+
+    @Name("chests_per_chunk")
+    @Comment("The number of chests to spawn per newly generated chunk (1-1500, >1500 may cause performance issues)")
+    @IntRange(min = 1, max = 65536)
+    private int chestsPerChunk = 1;
 
     @Name("chunk_spawner_mode")
     @Comment("How the chunk spawner works: Edge = spawn adjacent chunks, Void = spawn in void, Both = allow both")
@@ -105,6 +110,14 @@ public class GenerationConfig {
 
     public void setChestQuantity(int chestQuantity) {
         this.chestQuantity = chestQuantity;
+    }
+
+    public int getChestsPerChunk() {
+        return chestsPerChunk;
+    }
+
+    public void setChestsPerChunk(int chestsPerChunk) {
+        this.chestsPerChunk = Math.max(1, chestsPerChunk);
     }
 
     public ChunkRewardChestContent getChestContents() {

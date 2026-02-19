@@ -17,7 +17,7 @@
     }
   },
   "result": {
-    "item": "gatheringchunks:mushroomchunkspawner",
+    "id": "gatheringchunks:mushroomchunkspawner",
     "count": 1
   }
 }

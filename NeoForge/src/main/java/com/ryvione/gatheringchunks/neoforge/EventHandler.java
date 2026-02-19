@@ -13,7 +13,9 @@ import com.ryvione.gatheringchunks.server.ServerEventHandler;
 import com.ryvione.gatheringchunks.server.commands.ChestsCommand;
 import com.ryvione.gatheringchunks.server.commands.GatheringChunksCommand;
 import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
+import com.ryvione.gatheringchunks.common.util.ChunkUtil;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -33,6 +35,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
@@ -78,6 +81,13 @@ public class EventHandler {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         ServerEventHandler.onLevelTick(event.getServer());
+    }
+
+    @SubscribeEvent
+    public static void onWorldTick(LevelTickEvent.Post event) {
+        if (event.getLevel() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+            com.ryvione.gatheringchunks.server.CauldronRainFiller.tick(serverLevel);
+        }
     }
 
     @SubscribeEvent
@@ -184,10 +194,16 @@ public class EventHandler {
                         "Forcing respawn to stay inside spawn chunk [{},{}]",
                         spawnChunk.x, spawnChunk.z);
 
+                int safeY = spawnPos.getY();
+                LevelChunk spawnLevelChunk = level.getChunkAt(spawnChunk.getMiddleBlockPosition(0));
+                if (spawnLevelChunk != null) {
+                    safeY = ChunkUtil.getSafeSpawnHeight(spawnLevelChunk, spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ());
+                }
+
                 player.teleportTo(
                         level,
                         spawnChunk.getMiddleBlockX() + 0.5,
-                        spawnPos.getY(),
+                        safeY,
                         spawnChunk.getMiddleBlockZ() + 0.5,
                         player.getYRot(),
                         player.getXRot());

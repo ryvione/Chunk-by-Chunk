@@ -18,6 +18,7 @@ import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.common.mixinterface.IHolderReference;
 import com.ryvione.gatheringchunks.common.mixinterface.IMultiNoiseBiomeSource;
 import com.ryvione.gatheringchunks.server.world.*;
+import com.ryvione.gatheringchunks.server.world.WorldMigrationManager;
 import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -334,6 +335,9 @@ public final class ServerEventHandler {
     }
 
     public static void onServerStarted(MinecraftServer server) {
+        WorldMigrationManager migrationManager = WorldMigrationManager.get(server);
+        migrationManager.runMigrationsIfNeeded(server);
+
         if (ChunkByChunkConfig.get().getGeneration().isEnabled()) {
             checkSpawnInitialChunks(server);
         }

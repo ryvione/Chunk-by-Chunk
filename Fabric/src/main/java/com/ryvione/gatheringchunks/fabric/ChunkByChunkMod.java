@@ -13,8 +13,12 @@ import com.ryvione.gatheringchunks.server.commands.ChestsCommand;
 import com.ryvione.gatheringchunks.server.commands.GatheringChunksCommand;
 import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
 import com.ryvione.gatheringchunks.server.world.SpawnChunkHelper;
+import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
+import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -24,6 +28,8 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -31,7 +37,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.InteractionResult;
+import com.ryvione.gatheringchunks.common.util.ChunkUtil;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,6 +56,9 @@ public class ChunkByChunkMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        PayloadTypeRegistry.playS2C().register(S2COpenConfigPacket.TYPE, S2COpenConfigPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(S2CSyncConfigPacket.TYPE, S2CSyncConfigPacket.CODEC);
+
         LOGGER.info("Fabric mod initializing");
 
         Path gameDir = FabricLoader.getInstance().getGameDir();
@@ -76,8 +87,22 @@ public class ChunkByChunkMod implements ModInitializer {
             }
         });
 
+        ServerTickEvents.END_WORLD_TICK.register(com.ryvione.gatheringchunks.server.CauldronRainFiller::tick);
+
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
             MobLootHandler.onMobDeath(entity, entity.level());
+        });
+
+        ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+            if (!(entity instanceof AbstractPiglin piglin)) return;
+            if (!world.dimension().equals(Level.NETHER)) return;
+            if (!(world.getChunkSource().getGenerator() instanceof SkyChunkGenerator)) return;
+            CompoundTag tag = new CompoundTag();
+            piglin.save(tag);
+            if (tag.getByte("IsImmuneToZombification") != 1) {
+                tag.putByte("IsImmuneToZombification", (byte) 1);
+                piglin.load(tag);
+            }
         });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
@@ -102,10 +127,16 @@ public class ChunkByChunkMod implements ModInitializer {
 
                 LOGGER.debug("Forcing respawn to spawn chunk [{},{}]", spawnChunk.x, spawnChunk.z);
 
+                int safeY = spawnPos.getY();
+                LevelChunk spawnLevelChunk = level.getChunkAt(spawnChunk.getMiddleBlockPosition(0));
+                if (spawnLevelChunk != null) {
+                    safeY = ChunkUtil.getSafeSpawnHeight(spawnLevelChunk, spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ());
+                }
+
                 newPlayer.teleportTo(
                         level,
                         spawnChunk.getMiddleBlockX() + 0.5,
-                        spawnPos.getY(),
+                        safeY,
                         spawnChunk.getMiddleBlockZ() + 0.5,
                         newPlayer.getYRot(),
                         newPlayer.getXRot());
@@ -135,10 +166,16 @@ public class ChunkByChunkMod implements ModInitializer {
                         LOGGER.info("First join: Correcting spawn from empty chunk [{},{}] to spawn chunk [{},{}]",
                                 playerChunk.x, playerChunk.z, spawnChunk.x, spawnChunk.z);
 
+                        int safeY = spawnPos.getY();
+                        LevelChunk spawnLevelChunk = level.getChunkAt(spawnChunk.getMiddleBlockPosition(0));
+                        if (spawnLevelChunk != null) {
+                            safeY = ChunkUtil.getSafeSpawnHeight(spawnLevelChunk, spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ());
+                        }
+
                         player.teleportTo(
                                 level,
                                 spawnChunk.getMiddleBlockX() + 0.5,
-                                spawnPos.getY(),
+                                safeY,
                                 spawnChunk.getMiddleBlockZ() + 0.5,
                                 player.getYRot(),
                                 player.getXRot());

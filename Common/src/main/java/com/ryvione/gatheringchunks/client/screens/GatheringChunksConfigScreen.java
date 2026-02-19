@@ -284,6 +284,29 @@ public class GatheringChunksConfigScreen extends Screen {
         currentY += SPACING;
 
         this.addRenderableWidget(new AbstractSliderButton(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
+                Component.literal("Chests Per Chunk: " + ChunkByChunkConfig.get().getGeneration().getChestsPerChunk()),
+                (ChunkByChunkConfig.get().getGeneration().getChestsPerChunk() - 1) / 65535.0) {
+            {
+                this.setTooltip(Tooltip.create(Component.literal("Number of chests to spawn per chunk (1-65536). Values above 1500 may cause performance issues!")));
+            }
+            @Override
+            protected void updateMessage() {
+                int value = (int) (this.value * 65535) + 1;
+                if (value > 1500) {
+                    setMessage(Component.literal("⚠ Chests Per Chunk: " + value).withStyle(style -> style.withColor(0xFFFF5555)));
+                } else {
+                    setMessage(Component.literal("Chests Per Chunk: " + value));
+                }
+            }
+            @Override
+            protected void applyValue() {
+                int value = (int) (this.value * 65535) + 1;
+                ChunkByChunkConfig.get().getGeneration().setChestsPerChunk(value);
+            }
+        });
+        currentY += SPACING;
+
+        this.addRenderableWidget(new AbstractSliderButton(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
                 Component.literal("Min Chest Depth: " + ChunkByChunkConfig.get().getGeneration().getMinChestSpawnDepth()),
                 (ChunkByChunkConfig.get().getGeneration().getMinChestSpawnDepth() + 64) / 192.0) {
             {

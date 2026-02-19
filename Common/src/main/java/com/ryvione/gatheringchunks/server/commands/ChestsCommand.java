@@ -31,9 +31,8 @@ public class ChestsCommand {
     private static int listChests(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
 
-        if (ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled() &&
-                ChunkByChunkConfig.get().getDifficulty().getHardMode().isDisableChestsCommand()) {
-            source.sendFailure(Component.literal("§cThe /chests command is disabled in Hard Mode"));
+        if (ChunkByChunkConfig.get().getDifficulty().getHardMode().isDisableChestsCommand()) {
+            source.sendFailure(Component.literal("§cThe /chests command is disabled"));
             return 0;
         }
 

@@ -14,6 +14,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -41,8 +42,7 @@ public final class SpawnChunkHelper {
         return true;
     }
 
-    public static void createNextSpawner(ServerLevel targetLevel, ChunkPos chunkPos) {
-        Random random = ChunkUtil.getChunkRandom(targetLevel, chunkPos);
+    private static BlockPos pickChestPos(ServerLevel targetLevel, ChunkPos chunkPos, Random random, List<BlockPos> usedPositions) {
         int minDepth = ChunkByChunkConfig.get().getGeneration().getMinChestSpawnDepth();
         int maxDepth = ChunkByChunkConfig.get().getGeneration().getMaxChestSpawnDepth();
 
@@ -52,8 +52,33 @@ public final class SpawnChunkHelper {
         minPos = Math.max(minPos, targetLevel.getMinBuildHeight());
         maxPos = Math.min(maxPos, targetLevel.getMaxBuildHeight());
 
-        if (minPos > maxPos) {
-            minPos = maxPos;
+        if (minPos > maxPos) minPos = maxPos;
+
+        int attempts = 0;
+        while (attempts < 20) {
+            int yPos;
+            if (minPos == maxPos) {
+                yPos = minPos;
+            } else {
+                yPos = random.nextInt(maxPos - minPos + 1) + minPos;
+            }
+            yPos = Math.max(targetLevel.getMinBuildHeight(), Math.min(targetLevel.getMaxBuildHeight(), yPos));
+
+            int xPos = chunkPos.getMinBlockX() + random.nextInt(16);
+            int zPos = chunkPos.getMinBlockZ() + random.nextInt(16);
+            BlockPos candidate = new BlockPos(xPos, yPos, zPos);
+
+            boolean tooClose = false;
+            for (BlockPos used : usedPositions) {
+                if (candidate.distSqr(used) < 9) {
+                    tooClose = true;
+                    break;
+                }
+            }
+            if (!tooClose) {
+                return candidate;
+            }
+            attempts++;
         }
 
         int yPos;
@@ -62,40 +87,51 @@ public final class SpawnChunkHelper {
         } else {
             yPos = random.nextInt(maxPos - minPos + 1) + minPos;
         }
+        return new BlockPos(
+                chunkPos.getMinBlockX() + random.nextInt(16),
+                yPos,
+                chunkPos.getMinBlockZ() + random.nextInt(16));
+    }
 
-        yPos = Math.max(targetLevel.getMinBuildHeight(), Math.min(targetLevel.getMaxBuildHeight(), yPos));
+    public static void createNextSpawner(ServerLevel targetLevel, ChunkPos chunkPos) {
+        Random random = ChunkUtil.getChunkRandom(targetLevel, chunkPos);
 
-        int xPos = chunkPos.getMinBlockX() + random.nextInt(16);
-        int zPos = chunkPos.getMinBlockZ() + random.nextInt(16);
-        BlockPos blockPos = new BlockPos(xPos, yPos, zPos);
+        int chestsToSpawn = ChunkByChunkConfig.get().getGeneration().getChestsPerChunk();
 
-        if (ChunkByChunkConfig.get().getGeneration().useBedrockChest()) {
-            targetLevel.setBlock(blockPos, Services.PLATFORM.bedrockChestBlock().defaultBlockState(), Block.UPDATE_CLIENTS);
-        } else {
-            targetLevel.setBlock(blockPos, Blocks.CHEST.defaultBlockState(), Block.UPDATE_CLIENTS);
-        }
-
-        if (targetLevel.getBlockEntity(blockPos) instanceof RandomizableContainerBlockEntity chestEntity) {
-            List<ItemStack> items = ChunkByChunkConfig.get().getGeneration().getChestContents().getItems(random,
-                    ChunkByChunkConfig.get().getGeneration().getChestQuantity());
-            for (int i = 0; i < items.size(); i++) {
-                chestEntity.setItem(i, items.get(i));
-            }
-        }
-
+        List<BlockPos> spawnedPositions = new ArrayList<>();
         ChestTracker tracker = ChestTracker.get(targetLevel.getServer());
-        tracker.addChest(blockPos);
 
-        for (ServerPlayer player : targetLevel.getServer().getPlayerList().getPlayers()) {
-            if (tracker.isTrackerEnabled(player.getUUID())) {
-                if (targetLevel.getBlockState(blockPos).getBlock() instanceof net.minecraft.world.level.block.ChestBlock ||
-                        targetLevel.getBlockState(blockPos).getBlock() == Services.PLATFORM.bedrockChestBlock()) {
+        for (int i = 0; i < chestsToSpawn; i++) {
+            BlockPos blockPos = pickChestPos(targetLevel, chunkPos, random, spawnedPositions);
 
-                    player.sendSystemMessage(
-                            Component.literal("§6[Chunk Chest] §eA new chest has been spawned at §b" +
-                                    blockPos.getX() + ", " + blockPos.getY() + ", " + blockPos.getZ() +
-                                    " §ein chunk §b[" + chunkPos.x + ", " + chunkPos.z + "]")
-                    );
+            if (ChunkByChunkConfig.get().getGeneration().useBedrockChest()) {
+                targetLevel.setBlock(blockPos, Services.PLATFORM.bedrockChestBlock().defaultBlockState(), Block.UPDATE_CLIENTS);
+            } else {
+                targetLevel.setBlock(blockPos, Blocks.CHEST.defaultBlockState(), Block.UPDATE_CLIENTS);
+            }
+
+            if (targetLevel.getBlockEntity(blockPos) instanceof RandomizableContainerBlockEntity chestEntity) {
+                List<ItemStack> items = ChunkByChunkConfig.get().getGeneration().getChestContents().getItems(random,
+                        ChunkByChunkConfig.get().getGeneration().getChestQuantity());
+                for (int slot = 0; slot < items.size(); slot++) {
+                    chestEntity.setItem(slot, items.get(slot));
+                }
+            }
+
+            spawnedPositions.add(blockPos);
+            tracker.addChest(blockPos);
+
+            final BlockPos notifyPos = blockPos;
+            for (ServerPlayer player : targetLevel.getServer().getPlayerList().getPlayers()) {
+                if (tracker.isTrackerEnabled(player.getUUID())) {
+                    if (targetLevel.getBlockState(notifyPos).getBlock() instanceof net.minecraft.world.level.block.ChestBlock ||
+                            targetLevel.getBlockState(notifyPos).getBlock() == Services.PLATFORM.bedrockChestBlock()) {
+                        player.sendSystemMessage(
+                                Component.literal("§6[Chunk Chest] §eA new chest has been spawned at §b" +
+                                        notifyPos.getX() + ", " + notifyPos.getY() + ", " + notifyPos.getZ() +
+                                        " §ein chunk §b[" + chunkPos.x + ", " + chunkPos.z + "]")
+                        );
+                    }
                 }
             }
         }

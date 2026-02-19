@@ -4,7 +4,8 @@
   "package": "com.ryvione.gatheringchunks.mixins",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "FluidTickMixin"
+    "FluidTickMixin",
+    "NetherPortalForcerMixin"
   ],
   "client": [
     "BucketFluidAccessor",

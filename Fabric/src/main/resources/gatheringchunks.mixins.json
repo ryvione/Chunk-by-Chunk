@@ -15,7 +15,8 @@
     "HolderReferenceAccessor",
     "MultiNoiseBiomeSourceAccessor",
     "NoiseBasedChunkGeneratorMixin",
-    "OverworldBiomeBuilderAccessor"
+    "OverworldBiomeBuilderAccessor",
+    "NetherPortalForcerMixin"
   ],
   "client": [
     "LevelRendererMixin",

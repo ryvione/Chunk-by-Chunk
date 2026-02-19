@@ -1,15 +1,22 @@
 package com.ryvione.gatheringchunks.fabric;
 
+import com.ryvione.gatheringchunks.client.ClientConfigStorage;
 import com.ryvione.gatheringchunks.client.screens.*;
 import com.ryvione.gatheringchunks.common.CommonRegistry;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
+import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
+import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import com.ryvione.gatheringchunks.common.update.UpdateChecker;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 public class ChunkByChunkClientMod implements ClientModInitializer {
     public static final Logger LOGGER = LogManager.getLogger(GatheringChunksConstants.MOD_ID);
+
     @Override
     public void onInitializeClient() {
         LOGGER.info("Client Initializing");
@@ -18,7 +25,18 @@ public class ChunkByChunkClientMod implements ClientModInitializer {
         MenuScreens.register(CommonRegistry.WORLD_SCANNER_MENU, WorldScannerScreen::new);
         MenuScreens.register(CommonRegistry.WORLD_MENDER_MENU, WorldMenderScreen::new);
         MenuScreens.register(CommonRegistry.CHUNK_ENGINE_MENU, ChunkEngineScreen::new);
-        LOGGER.debug("Client networking disabled (API changed in 1.21.1)");
+
+        ClientPlayNetworking.registerGlobalReceiver(S2COpenConfigPacket.TYPE,
+                (payload, context) -> context.client().execute(() -> {
+                    LOGGER.info("[ClientMod] Opening config screen from server packet");
+                    Minecraft.getInstance().setScreen(new GatheringChunksConfigScreen(null));
+                }));
+
+        ClientPlayNetworking.registerGlobalReceiver(S2CSyncConfigPacket.TYPE,
+                (payload, context) -> context.client().execute(() -> {
+                    LOGGER.info("[ClientMod] Received config sync from server");
+                    ClientConfigStorage.handleServerConfigSync(payload.configJson());
+                }));
 
         LOGGER.info("Checking for mod updates...");
         UpdateChecker.checkForUpdates();

@@ -337,6 +337,7 @@ public class ChunkSpawnController extends SavedData {
                 case UPDATE_BARRIERS -> {
                     ChunkBarrierManager.updateBarriersAfterChunkSpawn(targetLevel, currentSpawnRequest.sourceChunkPos,
                             currentSpawnRequest.targetChunkPos);
+                    triggerLightingUpdate(targetLevel, currentSpawnRequest.targetChunkPos);
                     phase = SpawnPhase.SYNCH_CHUNKS;
                     setDirty();
                 }
@@ -528,29 +529,33 @@ public class ChunkSpawnController extends SavedData {
         if (!ChunkByChunkConfig.get().getGeneration().isSynchNether()) {
             return;
         }
-        
+
         if (targetLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
             for (ResourceKey<Level> synchLevelId : generator.getSynchedLevels()) {
                 ServerLevel synchLevel = server.getLevel(synchLevelId);
-                if (synchLevel != null
-                        && synchLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator synchGenerator) {
-
-                    ChunkPos targetChunk = getSyncedChunkPos(targetLevel, synchLevel,
-                            currentSpawnRequest.targetChunkPos());
-
-                    if (SpawnChunkHelper.isEmptyChunk(synchLevel, targetChunk)) {
-                        GatheringChunksConstants.LOGGER.info("[Sync] Triggering sync spawn for chunk {} in {}",
-                                targetChunk, synchLevelId.location());
-                        request(targetChunk, synchLevelId, targetChunk, synchGenerator.getGenerationLevel(), false,
-                                currentSpawnRequest.overwrite, false);
-                    } else {
-                        GatheringChunksConstants.LOGGER.info(
-                                "[Sync] Skipping sync for chunk {} in {} - chunk is not empty", targetChunk,
-                                synchLevelId.location());
-                    }
-                } else {
+                if (synchLevel == null) {
                     GatheringChunksConstants.LOGGER.warn(
-                            "[Sync] Could not sync with {}; level null or not a sky dimension",
+                            "[Sync] Could not sync with {}; level is null", synchLevelId.location());
+                    continue;
+                }
+
+                if (!(synchLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator synchGenerator)) {
+                    GatheringChunksConstants.LOGGER.warn(
+                            "[Sync] Could not sync with {}; not a sky dimension", synchLevelId.location());
+                    continue;
+                }
+
+                ChunkPos mappedChunk = getSyncedChunkPosWithScale(targetLevel, synchLevel,
+                        currentSpawnRequest.targetChunkPos());
+
+                if (SpawnChunkHelper.isEmptyChunk(synchLevel, mappedChunk)) {
+                    GatheringChunksConstants.LOGGER.info("[Sync] Triggering sync spawn for chunk {} in {}",
+                            mappedChunk, synchLevelId.location());
+                    request(mappedChunk, synchLevelId, mappedChunk, synchGenerator.getGenerationLevel(), false,
+                            currentSpawnRequest.overwrite, false);
+                } else {
+                    GatheringChunksConstants.LOGGER.debug(
+                            "[Sync] Skipping sync for chunk {} in {} - chunk is already present", mappedChunk,
                             synchLevelId.location());
                 }
             }
@@ -568,6 +573,33 @@ public class ChunkSpawnController extends SavedData {
             int dz = sourcePos.z - sourceOrigin.z;
             return new ChunkPos(targetOrigin.x + dx, targetOrigin.z + dz);
         }
+        return sourcePos;
+    }
+
+    public ChunkPos getSyncedChunkPosWithScale(ServerLevel source, ServerLevel target, ChunkPos sourcePos) {
+        double sourceScale = source.dimensionType().coordinateScale();
+        double targetScale = target.dimensionType().coordinateScale();
+        String sourceDim = source.dimension().location().toString();
+        String targetDim = target.dimension().location().toString();
+        ChunkPos sourceOrigin = originChunks.get(sourceDim);
+        ChunkPos targetOrigin = originChunks.get(targetDim);
+
+        if (sourceOrigin != null && targetOrigin != null) {
+            int dx = sourcePos.x - sourceOrigin.x;
+            int dz = sourcePos.z - sourceOrigin.z;
+            double scaleFactor = sourceScale / targetScale;
+            int mappedDx = (int) Math.round(dx * scaleFactor);
+            int mappedDz = (int) Math.round(dz * scaleFactor);
+            return new ChunkPos(targetOrigin.x + mappedDx, targetOrigin.z + mappedDz);
+        }
+
+        if (Math.abs(sourceScale - targetScale) > 0.001) {
+            double scaleFactor = sourceScale / targetScale;
+            int scaledX = (int) Math.round(sourcePos.x * scaleFactor);
+            int scaledZ = (int) Math.round(sourcePos.z * scaleFactor);
+            return new ChunkPos(scaledX, scaledZ);
+        }
+
         return sourcePos;
     }
 
@@ -870,12 +902,12 @@ public class ChunkSpawnController extends SavedData {
         if (!ChunkByChunkConfig.get().getGeneration().isSynchNether()) {
             return;
         }
-        
+
         if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
             for (ResourceKey<Level> synchLevelId : generator.getSynchedLevels()) {
                 ServerLevel synchLevel = server.getLevel(synchLevelId);
                 if (synchLevel != null) {
-                    ChunkPos targetChunk = getSyncedChunkPos(level, synchLevel, chunkPos);
+                    ChunkPos targetChunk = getSyncedChunkPosWithScale(level, synchLevel, chunkPos);
                     GatheringChunksConstants.LOGGER.info("[Sync] Triggering sync erase for chunk {} in {}", targetChunk,
                             synchLevelId.location());
                     com.ryvione.gatheringchunks.common.blocks.ChunkEraserBlock.eraseChunkDirectly(synchLevel,
@@ -1085,6 +1117,42 @@ public class ChunkSpawnController extends SavedData {
             if (!isWaterOnlyChunk(sourceLevel, neighbor, theme)) {
                 cache.add(neighbor);
             }
+        }
+    }
+
+    private static void triggerLightingUpdate(ServerLevel level, ChunkPos chunkPos) {
+        try {
+            net.minecraft.world.level.lighting.LevelLightEngine lightEngine = level.getLightEngine();
+            int minX = chunkPos.getMinBlockX();
+            int maxX = chunkPos.getMaxBlockX();
+            int minZ = chunkPos.getMinBlockZ();
+            int maxZ = chunkPos.getMaxBlockZ();
+            for (int x = minX; x <= maxX; x++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    for (int y = level.getMinBuildHeight(); y < level.getMaxBuildHeight(); y++) {
+                        BlockPos pos = new BlockPos(x, y, z);
+                        net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
+                        if (!state.isAir()) {
+                            level.getChunkSource().blockChanged(pos);
+                        }
+                    }
+                }
+            }
+            int[][] borderOffsets = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+            for (int[] off : borderOffsets) {
+                ChunkPos neighbor = new ChunkPos(chunkPos.x + off[0], chunkPos.z + off[1]);
+                if (level.hasChunk(neighbor.x, neighbor.z)) {
+                    for (int y = level.getMinBuildHeight(); y < level.getMaxBuildHeight(); y++) {
+                        BlockPos edgePos = new BlockPos(
+                            off[0] == 1 ? chunkPos.getMaxBlockX() : (off[0] == -1 ? chunkPos.getMinBlockX() : chunkPos.getMiddleBlockX()),
+                            y,
+                            off[1] == 1 ? chunkPos.getMaxBlockZ() : (off[1] == -1 ? chunkPos.getMinBlockZ() : chunkPos.getMiddleBlockZ()));
+                        level.getChunkSource().blockChanged(edgePos);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            GatheringChunksConstants.LOGGER.warn("[LightUpdate] Failed to trigger lighting update for chunk {}: {}", chunkPos, e.getMessage());
         }
     }
 
