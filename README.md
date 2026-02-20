@@ -19,15 +19,6 @@ This is a maintained fork of the original [Chunk By Chunk](https://github.com/im
 
 The original Chunk By Chunk is an excellent mod that deserves to be kept alive and updated. Since the original repository appears to be discontinued, I've decided to continue its development, fixing bugs, adding features, and ensuring compatibility with newer Minecraft versions.
 
-## New Features & Improvements
-
-- Configuration Management: Command-based config reload and UI modification hooks.
-- Platform Support: Full parity between Fabric and NeoForge versions.
-- Progression Helper: Intelligent system to assist players when stuck, featuring expanded search radius and multi-container detection.
-- Server Optimization: Improved chunk generation search logic for smoother performance.
-- Chunk Eraser: Capability to remove existing chunks for better world management.
-- Modern Compatibility: Fully updated for Minecraft 1.21.1.
-
 ## Features
 
 - World Expansion: Start with a single chunk and expand your world manually.
