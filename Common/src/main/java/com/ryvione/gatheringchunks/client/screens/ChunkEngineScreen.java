@@ -1,3 +1,12 @@
+/*
+ * Original work Copyright (c) immortius
+ * Modified work Copyright (c) 2026 Ryvione
+ *
+ * This file is part of Gathering Chunks (Ryvione's Fork).
+ * Original: https://github.com/immortius/chunkbychunk
+ *
+ * Licensed under the MIT License. See LICENSE file in the project root for details.
+ */
 package com.ryvione.gatheringchunks.client.screens;
 
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -39,14 +48,14 @@ public class ChunkEngineScreen extends AbstractContainerScreen<ChunkEngineMenu> 
                 if (this.minecraft != null && this.minecraft.gameMode != null) {
                     this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, 99);
                 }
-            }).bounds(x + 50, y + 35, 100, 20).build();
+            }).bounds(x + 7, y + 34, 76, 16).build();
             this.addRenderableWidget(this.submitButton);
 
             this.upgradeButton = Button.builder(Component.literal("Upgrade Limit"), button -> {
-                 if (this.minecraft != null && this.minecraft.gameMode != null) {
+                if (this.minecraft != null && this.minecraft.gameMode != null) {
                     this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, 100);
                 }
-            }).bounds(x + 50, y + 60, 100, 20).build();
+            }).bounds(x + 87, y + 34, 76, 16).build();
             this.addRenderableWidget(this.upgradeButton);
         }
     }
@@ -70,9 +79,9 @@ public class ChunkEngineScreen extends AbstractContainerScreen<ChunkEngineMenu> 
             int current = this.menu.getData().get(ChunkEngineBlockEntity.DATA_MAX_CHUNKS);
             int spawned = this.menu.getData().get(ChunkEngineBlockEntity.DATA_SPAWNED_CHUNKS);
             int stored = this.menu.getData().get(ChunkEngineBlockEntity.DATA_STORED_FRAGMENTS);
-            
-            guiGraphics.drawString(this.font, "Generated Chunks: " + spawned + "/" + current, this.leftPos + 8, this.topPos + 8, 0x404040, false);
-            guiGraphics.drawString(this.font, "Stored Fragments: " + stored, this.leftPos + 8, this.topPos + 20, 0x404040, false);
+
+            guiGraphics.drawString(this.font, "Chunks: " + spawned + " / " + current, this.leftPos + 7, this.topPos + 8, 0x404040, false);
+            guiGraphics.drawString(this.font, "Fragments: " + stored, this.leftPos + 7, this.topPos + 18, 0x404040, false);
 
             int nextMax = current + 1;
             Item requiredItem = null;
@@ -84,30 +93,28 @@ public class ChunkEngineScreen extends AbstractContainerScreen<ChunkEngineMenu> 
             else if (current == 48) requiredItem = Items.NETHER_STAR;
 
             if (requiredItem != null) {
-                guiGraphics.drawString(this.font, "Engine Upgrade Required", this.leftPos + 8, this.topPos + 85, 0xFF5555, false);
-                guiGraphics.drawString(this.font, "Cost: 1 " + requiredItem.getName(new ItemStack(requiredItem)).getString(), this.leftPos + 8, this.topPos + 95, 0x404040, false);
-                 this.upgradeButton.active = true;
+                String costText = "Upgrade: 1x " + requiredItem.getName(new ItemStack(requiredItem)).getString();
+                guiGraphics.drawString(this.font, costText, this.leftPos + 7, this.topPos + 62, 0xFF5555, false);
+                this.upgradeButton.active = true;
             } else {
                 double cost = 16 * Math.pow(1.2, nextMax - 5);
                 int fragCost = (int) cost;
-                guiGraphics.drawString(this.font, "Upgrade Cost: " + fragCost + " fragments", this.leftPos + 8, this.topPos + 85, 0x404040, false);
-                 this.upgradeButton.active = stored >= fragCost;
+                guiGraphics.drawString(this.font, "Upgrade: " + fragCost + " frags", this.leftPos + 7, this.topPos + 62, 0x404040, false);
+                this.upgradeButton.active = stored >= fragCost;
             }
         } else {
-             int remainingTicks = this.menu.getRemainingTicks();
+            int remainingTicks = this.menu.getRemainingTicks();
             if (remainingTicks > 0) {
                 int seconds = remainingTicks / 20;
                 String timeStr = String.format("%02d:%02d", seconds / 60, seconds % 60);
-                guiGraphics.drawString(this.font, Component.literal("Time: " + timeStr), this.leftPos + 40, this.topPos + 72, 0x404040, false);
+                guiGraphics.drawString(this.font, Component.literal("Fuel: " + timeStr), this.leftPos + 40, this.topPos + 40, 0x404040, false);
             }
         }
     }
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-       if (!ChunkByChunkConfig.get().getDifficulty().isExperimentalChunkLimit()) {
-            guiGraphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 4210752, false);
-            guiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 4210752, false);
-       }
+        guiGraphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 4210752, false);
+        guiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 4210752, false);
     }
 }

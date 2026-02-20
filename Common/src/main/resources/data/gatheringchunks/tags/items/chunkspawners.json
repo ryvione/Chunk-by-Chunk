@@ -6,6 +6,8 @@
     "gatheringchunks:badlandschunkspawner",
     "gatheringchunks:desertchunkspawner",
     "gatheringchunks:forestchunkspawner",
+    "gatheringchunks:darkforestchunkspawner",
+    "gatheringchunks:taigachunkspawner",
     "gatheringchunks:junglechunkspawner",
     "gatheringchunks:mountainchunkspawner",
     "gatheringchunks:mushroomchunkspawner",
@@ -13,6 +15,14 @@
     "gatheringchunks:rockychunkspawner",
     "gatheringchunks:savannachunkspawner",
     "gatheringchunks:snowchunkspawner",
-    "gatheringchunks:swampchunkspawner"
+    "gatheringchunks:icespikeschunkspawner",
+    "gatheringchunks:swampchunkspawner",
+    "gatheringchunks:mangroveswampchunkspawner",
+    "gatheringchunks:oceanchunkspawner",
+    "gatheringchunks:netherwasteschunkspawner",
+    "gatheringchunks:crimsonforestchunkspawner",
+    "gatheringchunks:warpedforestchunkspawner",
+    "gatheringchunks:soulsandvalleychunkspawner",
+    "gatheringchunks:basaltdeltaschunkspawner"
   ]
 }

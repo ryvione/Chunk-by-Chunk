@@ -42,137 +42,120 @@ public class SpawnChunkBlock extends Block {
         if (level.isClientSide()) {
             return InteractionResult.SUCCESS;
         }
-        if (level instanceof ServerLevel serverLevel
-                && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
-            ChunkSpawnController chunkSpawnController = ChunkSpawnController.get(serverLevel.getServer());
+        if (!(level instanceof ServerLevel serverLevel)
+                || !(player instanceof net.minecraft.server.level.ServerPlayer serverPlayer)) {
+            return InteractionResult.PASS;
+        }
 
-            String effectiveBiomeTheme = biomeTheme;
-            boolean effectiveRandom = random;
+        ChunkSpawnController chunkSpawnController = ChunkSpawnController.get(serverLevel.getServer());
 
-            if (biomeTheme.isEmpty() && !random) {
-                ChunkPos currentChunk = new ChunkPos(pos);
-                String inheritedBiome = findAdjacentBiomeTheme(serverLevel, currentChunk);
-                if (inheritedBiome != null && !inheritedBiome.isEmpty()) {
-                    effectiveBiomeTheme = inheritedBiome;
-                }
-            }
+        String effectiveBiomeTheme = biomeTheme;
+        boolean effectiveRandom = random;
 
-            if (chunkSpawnController.isValidForLevel(serverLevel, effectiveBiomeTheme, effectiveRandom)) {
-                ChunkSpawnerMode mode = ChunkByChunkConfig.get().getGeneration().getChunkSpawnerMode();
-                ChunkPos ownChunk = new ChunkPos(pos);
-
-                if ((mode == ChunkSpawnerMode.Void || mode == ChunkSpawnerMode.Both)
-                        && SpawnChunkHelper.isEmptyChunk(serverLevel, ownChunk)) {
-
-                    if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, pos, false,
-                            false)) {
-                        level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f,
-                                1.0f);
-                        level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-                        return InteractionResult.SUCCESS;
-                    }
-                }
-
-                if (mode == ChunkSpawnerMode.Edge || mode == ChunkSpawnerMode.Both) {
-                    ChunkPos spawnerChunk = ownChunk;
-
-                    List<BlockPos> targetPositions = new ArrayList<>();
-                    Direction targetDirection = hit.getDirection();
-                    if (!HORIZONTAL_DIR.contains(targetDirection)) {
-                        targetDirection = Direction.NORTH;
-                    }
-
-                    targetPositions.add(pos.relative(targetDirection));
-                    targetPositions.add(pos.relative(targetDirection.getCounterClockWise()));
-                    targetPositions.add(pos.relative(targetDirection.getClockWise()));
-                    targetPositions.add(pos.relative(targetDirection.getOpposite()));
-
-                    targetPositions.add(pos.relative(targetDirection).relative(targetDirection.getClockWise()));
-                    targetPositions.add(pos.relative(targetDirection).relative(targetDirection.getCounterClockWise()));
-                    targetPositions
-                            .add(pos.relative(targetDirection.getOpposite()).relative(targetDirection.getClockWise()));
-                    targetPositions.add(pos.relative(targetDirection.getOpposite())
-                            .relative(targetDirection.getCounterClockWise()));
-
-                    for (BlockPos targetPos : targetPositions) {
-                        ChunkPos targetChunkPos = new ChunkPos(targetPos);
-
-                        if (targetChunkPos.equals(spawnerChunk)) {
-                            continue;
-                        }
-
-                        boolean isChunkLoaded = serverLevel.hasChunk(targetChunkPos.x, targetChunkPos.z);
-                        if (!isChunkLoaded) {
-                            continue;
-                        }
-
-                        boolean isChunkEmpty = SpawnChunkHelper.isEmptyChunk(level, targetChunkPos);
-                        boolean shouldOverwrite = false;
-
-                        BlockPos chunkCenter = targetChunkPos.getMiddleBlockPosition(pos.getY());
-                        double distanceToCenter = Math.sqrt(
-                                Math.pow(pos.getX() - chunkCenter.getX(), 2) +
-                                        Math.pow(pos.getZ() - chunkCenter.getZ(), 2)
-                        );
-
-                        boolean isNearCenter = distanceToCenter <= 5.0;
-
-                        if (!isChunkEmpty) {
-                            if (isNearCenter) {
-                                ChunkOverwriteConfirmation.PendingOverwrite pending = ChunkOverwriteConfirmation
-                                        .getPendingOverwrite(serverPlayer, targetChunkPos);
-
-                                if (pending != null && pending.biomeTheme.equals(effectiveBiomeTheme)
-                                        && pending.random == effectiveRandom) {
-                                    ChunkOverwriteConfirmation.removePendingOverwrite(serverPlayer);
-                                    serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                            "§6[ChunkByChunk] §eOverwriting chunk at [" + targetChunkPos.x + ", "
-                                                    + targetChunkPos.z + "]"));
-                                    shouldOverwrite = true;
-                                } else {
-                                    ChunkOverwriteConfirmation.addPendingOverwrite(serverPlayer, targetChunkPos,
-                                            effectiveBiomeTheme, effectiveRandom);
-                                    serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                            "§c[ChunkByChunk] §6WARNING: §eChunk at [" + targetChunkPos.x + ", "
-                                                    + targetChunkPos.z + "] is already occupied!"));
-                                    serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                            "§e§lSpawner placed NEAR CENTER - Overwrite mode activated!"));
-                                    serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                            "§eClick the spawner again within 30 seconds to confirm overwrite."));
-                                    return InteractionResult.CONSUME;
-                                }
-                            } else {
-                                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                        "§c[ChunkByChunk] §eChunk at [" + targetChunkPos.x + ", "
-                                                + targetChunkPos.z + "] is already occupied!"));
-                                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                        "§ePlace spawner NEAR CHUNK CENTER to enable overwrite mode."));
-                                return InteractionResult.CONSUME;
-                            }
-                        }
-
-                        if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, targetPos,
-                                false, shouldOverwrite)) {
-                            if (!effectiveBiomeTheme.isEmpty()) {
-                                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                        "§6[ChunkByChunk] §eSpawning '" + effectiveBiomeTheme + "' terrain..."));
-                            }
-                            level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS,
-                                    1.0f, 1.0f);
-                            level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-                            return InteractionResult.SUCCESS;
-                        } else {
-                            GatheringChunksConstants.LOGGER.warn("Chunk spawn request failed for " + targetChunkPos
-                                    + " (Theme: " + effectiveBiomeTheme + ")");
-                        }
-                    }
-
-                    serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                            "§c[ChunkByChunk] §eNo valid adjacent chunks found or spawn limit reached."));
-                    return InteractionResult.CONSUME;
-                }
+        if (biomeTheme.isEmpty() && !random) {
+            ChunkPos currentChunk = new ChunkPos(pos);
+            String inheritedBiome = findAdjacentBiomeTheme(serverLevel, currentChunk);
+            if (inheritedBiome != null && !inheritedBiome.isEmpty()) {
+                effectiveBiomeTheme = inheritedBiome;
             }
         }
+
+        if (!chunkSpawnController.isValidForLevel(serverLevel, effectiveBiomeTheme, effectiveRandom)) {
+            return InteractionResult.PASS;
+        }
+
+        ChunkSpawnerMode mode = ChunkByChunkConfig.get().getGeneration().getChunkSpawnerMode();
+        ChunkPos ownChunk = new ChunkPos(pos);
+        boolean ownChunkEmpty = SpawnChunkHelper.isEmptyChunk(serverLevel, ownChunk);
+
+        if ((mode == ChunkSpawnerMode.Void || mode == ChunkSpawnerMode.Both) && ownChunkEmpty) {
+            if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, pos, false, false)) {
+                level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
+                level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                return InteractionResult.SUCCESS;
+            }
+        }
+
+    
+        if (!ownChunkEmpty) {
+            ChunkOverwriteConfirmation.PendingOverwrite pending =
+                    ChunkOverwriteConfirmation.getAnyPendingOverwrite(serverPlayer);
+
+            if (pending != null
+                    && pending.targetChunk.equals(ownChunk)
+                    && pending.biomeTheme.equals(effectiveBiomeTheme)
+                    && pending.random == effectiveRandom) {
+                ChunkOverwriteConfirmation.removePendingOverwrite(serverPlayer);
+                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "§6[ChunkByChunk] §eOverwriting chunk at [" + ownChunk.x + ", " + ownChunk.z + "]"));
+
+                if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, pos,
+                        false, true)) {
+                    level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
+                    level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                    return InteractionResult.SUCCESS;
+                } else {
+                    serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                            "§c[ChunkByChunk] §eOverwrite request failed (spawn limit reached?)."));
+                    return InteractionResult.CONSUME;
+                }
+            } else {
+                ChunkOverwriteConfirmation.addPendingOverwrite(serverPlayer, ownChunk,
+                        effectiveBiomeTheme, effectiveRandom);
+                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "§c[ChunkByChunk] §6WARNING: §eThis chunk is already generated!"));
+                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "§eClick again within 30 seconds to overwrite chunk ["
+                                + ownChunk.x + ", " + ownChunk.z + "]."));
+                return InteractionResult.CONSUME;
+            }
+        }
+
+        if (mode == ChunkSpawnerMode.Edge || mode == ChunkSpawnerMode.Both) {
+            Direction targetDirection = hit.getDirection();
+            if (!HORIZONTAL_DIR.contains(targetDirection)) {
+                targetDirection = Direction.NORTH;
+            }
+
+            List<ChunkPos> adjacentChunks = new ArrayList<>();
+            List<BlockPos> candidates = List.of(
+                    pos.relative(targetDirection),
+                    pos.relative(targetDirection.getCounterClockWise()),
+                    pos.relative(targetDirection.getClockWise()),
+                    pos.relative(targetDirection.getOpposite()),
+                    pos.relative(targetDirection).relative(targetDirection.getClockWise()),
+                    pos.relative(targetDirection).relative(targetDirection.getCounterClockWise()),
+                    pos.relative(targetDirection.getOpposite()).relative(targetDirection.getClockWise()),
+                    pos.relative(targetDirection.getOpposite()).relative(targetDirection.getCounterClockWise())
+            );
+            for (BlockPos tp : candidates) {
+                ChunkPos cp = new ChunkPos(tp);
+                if (!cp.equals(ownChunk) && !adjacentChunks.contains(cp)) {
+                    adjacentChunks.add(cp);
+                }
+            }
+
+            for (ChunkPos targetChunkPos : adjacentChunks) {
+                if (!serverLevel.hasChunk(targetChunkPos.x, targetChunkPos.z)) continue;
+                if (!SpawnChunkHelper.isEmptyChunk(level, targetChunkPos)) continue;
+
+                BlockPos requestPos = targetChunkPos.getMiddleBlockPosition(pos.getY());
+                if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom,
+                        requestPos, false, false)) {
+                    level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
+                    level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                    return InteractionResult.SUCCESS;
+                } else {
+                    GatheringChunksConstants.LOGGER.warn("Chunk spawn request failed for " + targetChunkPos
+                            + " (Theme: " + effectiveBiomeTheme + ")");
+                }
+            }
+
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                    "§c[ChunkByChunk] §eNo valid adjacent empty chunks found or spawn limit reached."));
+            return InteractionResult.CONSUME;
+        }
+
         return InteractionResult.PASS;
     }
 

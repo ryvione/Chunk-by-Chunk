@@ -21,7 +21,6 @@
       "minecraft:snowy_plains",
       "minecraft:snowy_beach",
       "minecraft:snowy_taiga",
-      "minecraft:ice_spikes",
       "minecraft:frozen_river"
     ],
     "desert": [
@@ -37,13 +36,9 @@
     ],
     "forest": [
       "minecraft:forest",
-      "minecraft:dark_forest",
       "minecraft:flower_forest",
       "minecraft:birch_forest",
-      "minecraft:old_growth_birch_forest",
-      "minecraft:old_growth_pine_taiga",
-      "minecraft:old_growth_spruce_taiga",
-      "minecraft:taiga"
+      "minecraft:old_growth_birch_forest"
     ],
     "savanna": [
       "minecraft:savanna",
@@ -71,6 +66,31 @@
       "minecraft:stony_peaks",
       "minecraft:snowy_slopes",
       "minecraft:grove"
+    ],
+    "darkforest": [
+      "minecraft:dark_forest"
+    ],
+    "taiga": [
+      "minecraft:taiga",
+      "minecraft:old_growth_pine_taiga",
+      "minecraft:old_growth_spruce_taiga"
+    ],
+    "icespikes": [
+      "minecraft:ice_spikes"
+    ],
+    "ocean": [
+      "minecraft:ocean",
+      "minecraft:deep_ocean",
+      "minecraft:cold_ocean",
+      "minecraft:deep_cold_ocean",
+      "minecraft:lukewarm_ocean",
+      "minecraft:deep_lukewarm_ocean",
+      "minecraft:warm_ocean",
+      "minecraft:frozen_ocean",
+      "minecraft:deep_frozen_ocean"
+    ],
+    "mangroveswamp": [
+      "minecraft:mangrove_swamp"
     ]
   }
 }

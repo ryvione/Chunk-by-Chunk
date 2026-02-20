@@ -16,7 +16,7 @@
     "MultiNoiseBiomeSourceAccessor",
     "NoiseBasedChunkGeneratorMixin",
     "OverworldBiomeBuilderAccessor",
-    "NetherPortalForcerMixin"
+    "StructureCheckMixin"
   ],
   "client": [
     "LevelRendererMixin",

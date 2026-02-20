@@ -1,0 +1,26 @@
+{
+  "type" : "minecraft:crafting_shaped",
+  "pattern": [
+    "bCb",
+    "CXC",
+    "sCb"
+  ],
+  "key" : {
+    "b" : {
+      "item": "minecraft:bone"
+    },
+    "s" : {
+      "item": "minecraft:soul_sand"
+    },
+    "C" : {
+      "item": "minecraft:copper_ingot"
+    },
+    "X" : {
+      "item": "gatheringchunks:worldcore"
+    }
+  },
+  "result" : {
+    "id" : "gatheringchunks:soulsandvalleychunkspawner",
+    "count" : 1
+  }
+}

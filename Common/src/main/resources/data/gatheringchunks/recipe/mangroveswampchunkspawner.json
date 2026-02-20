@@ -1,0 +1,26 @@
+{
+  "type" : "minecraft:crafting_shaped",
+  "pattern": [
+    "pCp",
+    "CXC",
+    "mCm"
+  ],
+  "key" : {
+    "p" : {
+      "item": "minecraft:mangrove_propagule"
+    },
+    "m" : {
+      "item": "minecraft:mud"
+    },
+    "C" : {
+      "item": "minecraft:copper_ingot"
+    },
+    "X" : {
+      "item": "gatheringchunks:worldcore"
+    }
+  },
+  "result" : {
+    "id" : "gatheringchunks:mangroveswampchunkspawner",
+    "count" : 1
+  }
+}

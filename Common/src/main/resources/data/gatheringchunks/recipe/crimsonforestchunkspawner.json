@@ -1,0 +1,26 @@
+{
+  "type" : "minecraft:crafting_shaped",
+  "pattern": [
+    "rCr",
+    "CXC",
+    "fCf"
+  ],
+  "key" : {
+    "r" : {
+      "item": "minecraft:crimson_roots"
+    },
+    "f" : {
+      "item": "minecraft:crimson_fungus"
+    },
+    "C" : {
+      "item": "minecraft:copper_ingot"
+    },
+    "X" : {
+      "item": "gatheringchunks:worldcore"
+    }
+  },
+  "result" : {
+    "id" : "gatheringchunks:crimsonforestchunkspawner",
+    "count" : 1
+  }
+}

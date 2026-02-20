@@ -1,3 +1,12 @@
+/*
+ * Original work Copyright (c) immortius
+ * Modified work Copyright (c) 2026 Ryvione
+ *
+ * This file is part of Gathering Chunks (Ryvione's Fork).
+ * Original: https://github.com/immortius/chunkbychunk
+ *
+ * Licensed under the MIT License. See LICENSE file in the project root for details.
+ */
 package com.ryvione.gatheringchunks.common.blockEntities;
 
 import com.ryvione.gatheringchunks.common.blocks.ChunkEngineBlock;
@@ -102,6 +111,11 @@ public class ChunkEngineBlockEntity extends BaseFueledBlockEntity {
     public static void serverTick(Level level, BlockPos pos, BlockState state, ChunkEngineBlockEntity engine) {
         boolean requiresFuel = com.ryvione.gatheringchunks.config.ChunkByChunkConfig.get().getDifficulty().isEngineRequiresFuel();
         boolean wasLit = state.getValue(ChunkEngineBlock.LIT);
+
+        if (requiresFuel && engine.getRemainingFuel() == 0) {
+            engine.checkConsumeFuelItem();
+        }
+
         boolean isLit = !requiresFuel || engine.getRemainingFuel() > 0;
 
         if (isLit) {
@@ -112,11 +126,6 @@ public class ChunkEngineBlockEntity extends BaseFueledBlockEntity {
             if (level instanceof ServerLevel serverLevel) {
                 ChunkEngineManager.get(serverLevel.getServer()).registerEngine(serverLevel, pos);
             }
-        }
-
-        if (requiresFuel && !isLit && engine.isFuel(engine.getItem(SLOT_FUEL))) {
-            engine.checkConsumeFuelItem();
-            isLit = true;
         }
 
         if (wasLit != isLit) {

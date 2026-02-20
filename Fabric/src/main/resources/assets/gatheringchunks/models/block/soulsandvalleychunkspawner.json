@@ -1,0 +1,12 @@
+{
+  "parent" : "block/cube",
+  "textures" : {
+    "up" : "gatheringchunks:block/soulsandvalleychunkspawner",
+    "down" : "gatheringchunks:block/soulsandvalleychunkspawner",
+    "north" : "gatheringchunks:block/soulsandvalleychunkspawner",
+    "east" : "gatheringchunks:block/soulsandvalleychunkspawner",
+    "south" : "gatheringchunks:block/soulsandvalleychunkspawner",
+    "west" : "gatheringchunks:block/soulsandvalleychunkspawner",
+    "particle": "gatheringchunks:block/soulsandvalleychunkspawner"
+  }
+}

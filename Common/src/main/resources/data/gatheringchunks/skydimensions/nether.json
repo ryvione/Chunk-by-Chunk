@@ -4,7 +4,24 @@
   "generationType" : "nether",
   "allowChunkSpawner" : true,
   "allowUnstableChunkSpawner" : true,
-  "allowBiomeSpawners": false,
+  "allowBiomeSpawners": true,
   "synchToDimensions": [],
-  "initialChunks" : 1
+  "initialChunks" : 1,
+  "biomeThemes": {
+    "netherwastes": [
+      "minecraft:nether_wastes"
+    ],
+    "crimsonforest": [
+      "minecraft:crimson_forest"
+    ],
+    "warpedforest": [
+      "minecraft:warped_forest"
+    ],
+    "soulsandvalley": [
+      "minecraft:soul_sand_valley"
+    ],
+    "basaltdeltas": [
+      "minecraft:basalt_deltas"
+    ]
+  }
 }

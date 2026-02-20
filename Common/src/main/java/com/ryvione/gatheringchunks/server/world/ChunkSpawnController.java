@@ -1,3 +1,12 @@
+/*
+ * Original work Copyright (c) immortius
+ * Modified work Copyright (c) 2026 Ryvione
+ *
+ * This file is part of Gathering Chunks (Ryvione's Fork).
+ * Original: https://github.com/immortius/chunkbychunk
+ *
+ * Licensed under the MIT License. See LICENSE file in the project root for details.
+ */
 package com.ryvione.gatheringchunks.server.world;
 
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
@@ -212,7 +221,7 @@ public class ChunkSpawnController extends SavedData {
     public void tick() {
         Iterator<PendingSearch> it = pendingSearches.iterator();
         int totalAttemptsThisTick = 0;
-        int maxAttemptsPerTick = 2;
+        int maxAttemptsPerTick = 8;
 
         while (it.hasNext() && totalAttemptsThisTick < maxAttemptsPerTick) {
             PendingSearch search = it.next();
@@ -233,14 +242,12 @@ public class ChunkSpawnController extends SavedData {
             ChunkPos candidatePos = new ChunkPos(offsetX, offsetZ);
 
             boolean alreadyLoaded = sourceLevelInstance.hasChunk(candidatePos.x, candidatePos.z);
-            boolean shouldCheck = alreadyLoaded;
-
-            if (!alreadyLoaded && search.attempts % 5 == 0) {
+            if (!alreadyLoaded) {
+            
                 sourceLevelInstance.setChunkForced(candidatePos.x, candidatePos.z, true);
-                shouldCheck = true;
             }
 
-            if (shouldCheck) {
+            {
                 try {
                     if (!isWaterOnlyChunk(sourceLevelInstance, candidatePos, search.biomeTheme)) {
                         if (search.targetProfile != null) {
@@ -272,7 +279,7 @@ public class ChunkSpawnController extends SavedData {
                         }
                     }
                 } finally {
-                    if (!alreadyLoaded && search.attempts % 5 == 0) {
+                    if (!alreadyLoaded) {
                         sourceLevelInstance.setChunkForced(candidatePos.x, candidatePos.z, false);
                     }
                 }
@@ -605,7 +612,7 @@ public class ChunkSpawnController extends SavedData {
 
     private TerrainProfile analyzeChunkTerrain(ServerLevel level, ChunkPos pos, String biomeTheme) {
         try {
-            ChunkAccess chunk = level.getChunk(pos.x, pos.z, ChunkStatus.SURFACE, true);
+            net.minecraft.world.level.chunk.LevelChunk chunk = level.getChunkSource().getChunkNow(pos.x, pos.z);
             if (chunk == null) {
                 return null;
             }
@@ -711,57 +718,56 @@ public class ChunkSpawnController extends SavedData {
     }
 
     private static boolean isWaterOnlyChunk(ServerLevel level, ChunkPos chunkPos, String biomeTheme) {
+        if (biomeTheme.equals("netherwastes") || biomeTheme.equals("soulsandvalley") ||
+                biomeTheme.equals("crimsonforest") || biomeTheme.equals("warpedforest") ||
+                biomeTheme.equals("basaltdeltas")) {
+            return false;
+        }
+        if (biomeTheme.equals("ocean")) {
+            return false;
+        }
         try {
-            ChunkAccess chunk = level.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, true);
+            net.minecraft.world.level.chunk.LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x, chunkPos.z);
             if (chunk == null) {
-                return true;
+                return false;
             }
 
-            int waterBlockCount = 0;
-            int totalSurfaceBlocks = 0;
-            Set<Block> uniqueBlocks = new HashSet<>();
+            int solidGroundCount = 0;
+            int totalSamples = 0;
 
-            for (int x = 0; x < 16; x += 2) {
-                for (int z = 0; z < 16; z += 2) {
-                    int y = chunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, x, z);
-                    if (y > level.getMinBuildHeight()) {
-                        totalSurfaceBlocks++;
-                        BlockPos surfacePos = new BlockPos(chunkPos.getMinBlockX() + x, y, chunkPos.getMinBlockZ() + z);
-                        BlockState state = chunk.getBlockState(surfacePos);
+            for (int x = 0; x < 16; x += 4) {
+                for (int z = 0; z < 16; z += 4) {
+                    totalSamples++;
+
+                    int surfaceY = chunk.getHeight(
+                            net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+
+                    if (surfaceY <= level.getMinBuildHeight()) {
+                        continue;
+                    }
+
+                    boolean foundGround = false;
+                    for (int y = surfaceY; y >= level.getMinBuildHeight(); y--) {
+                        BlockPos checkPos = new BlockPos(chunkPos.getMinBlockX() + x, y, chunkPos.getMinBlockZ() + z);
+                        BlockState state = chunk.getBlockState(checkPos);
                         Block block = state.getBlock();
+                        if (block instanceof AirBlock) continue;
+                        if (block instanceof LiquidBlock || block == Blocks.WATER) continue;
+                        foundGround = true;
+                        break;
+                    }
 
-                        if (block == Blocks.WATER) {
-                            waterBlockCount++;
-                        } else if (!(block instanceof AirBlock)) {
-                            uniqueBlocks.add(block);
-                        }
-
-                        for (int dy = 1; dy <= 3; dy++) {
-                            BlockState belowState = chunk.getBlockState(surfacePos.below(dy));
-                            Block belowBlock = belowState.getBlock();
-                            if (!(belowBlock instanceof AirBlock) && !(belowBlock instanceof LiquidBlock)) {
-                                uniqueBlocks.add(belowBlock);
-                            }
-                        }
+                    if (foundGround) {
+                        solidGroundCount++;
                     }
                 }
             }
 
-            if (totalSurfaceBlocks == 0) {
-                return false;
-            }
+            if (totalSamples == 0) return false;
 
-            float waterPercentage = (float) waterBlockCount / totalSurfaceBlocks;
+            float solidFraction = (float) solidGroundCount / totalSamples;
+            return solidFraction < 0.3f;
 
-            boolean isLandBiome = !biomeTheme.isEmpty() &&
-                    !biomeTheme.equals("ocean") &&
-                    !biomeTheme.equals("river");
-
-            if (isLandBiome) {
-                return waterPercentage > 0.3f || uniqueBlocks.size() < 3;
-            } else {
-                return waterPercentage > 0.85f;
-            }
         } catch (Exception e) {
             GatheringChunksConstants.LOGGER.warn("Failed to check for water-only chunk: " + e.getMessage());
             return false;

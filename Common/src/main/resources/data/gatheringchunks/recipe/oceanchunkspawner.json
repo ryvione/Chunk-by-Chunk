@@ -1,0 +1,26 @@
+{
+  "type" : "minecraft:crafting_shaped",
+  "pattern": [
+    "kCk",
+    "CXC",
+    "sCk"
+  ],
+  "key" : {
+    "k" : {
+      "item": "minecraft:kelp"
+    },
+    "s" : {
+      "item": "minecraft:sand"
+    },
+    "C" : {
+      "item": "minecraft:copper_ingot"
+    },
+    "X" : {
+      "item": "gatheringchunks:worldcore"
+    }
+  },
+  "result" : {
+    "id" : "gatheringchunks:oceanchunkspawner",
+    "count" : 1
+  }
+}

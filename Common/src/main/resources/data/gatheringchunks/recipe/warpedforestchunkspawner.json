@@ -1,0 +1,26 @@
+{
+  "type" : "minecraft:crafting_shaped",
+  "pattern": [
+    "rCr",
+    "CXC",
+    "fCf"
+  ],
+  "key" : {
+    "r" : {
+      "item": "minecraft:warped_roots"
+    },
+    "f" : {
+      "item": "minecraft:warped_fungus"
+    },
+    "C" : {
+      "item": "minecraft:copper_ingot"
+    },
+    "X" : {
+      "item": "gatheringchunks:worldcore"
+    }
+  },
+  "result" : {
+    "id" : "gatheringchunks:warpedforestchunkspawner",
+    "count" : 1
+  }
+}

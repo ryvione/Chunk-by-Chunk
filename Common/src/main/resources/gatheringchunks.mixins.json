@@ -5,7 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "FluidTickMixin",
-    "NetherPortalForcerMixin"
+    "StructureCheckMixin"
   ],
   "client": [
     "BucketFluidAccessor",
