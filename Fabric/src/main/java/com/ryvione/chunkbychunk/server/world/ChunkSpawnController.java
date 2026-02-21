@@ -213,9 +213,9 @@ public class ChunkSpawnController extends SavedData {
     private void completeSpawnRequest() {
         if (forcedTargetChunk) {
             targetLevel.setChunkForced(currentSpawnRequest.targetChunkPos().x, currentSpawnRequest.targetChunkPos().z, false);
-            sourceLevel.setChunkForced(currentSpawnRequest.sourceChunkPos().x, currentSpawnRequest.sourceChunkPos().z, false);
-            currentSpawnRequest = null;
         }
+        sourceLevel.setChunkForced(currentSpawnRequest.sourceChunkPos().x, currentSpawnRequest.sourceChunkPos().z, false);
+        currentSpawnRequest = null;
     }
     private static void copyBlocks(ServerLevel sourceLevel, ChunkPos sourceChunkPos, ServerLevel targetLevel, ChunkPos targetChunkPos, int fromLayer, int toLayer) {
         int xOffset = targetChunkPos.getMinBlockX() - sourceChunkPos.getMinBlockX();

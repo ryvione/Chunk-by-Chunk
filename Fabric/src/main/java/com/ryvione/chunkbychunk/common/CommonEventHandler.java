@@ -24,4 +24,16 @@ public final class CommonEventHandler {
                 !playerEntity.level().dimension().equals(Level.OVERWORLD) ||
                 !SpawnChunkHelper.isEmptyChunk(level, new ChunkPos(pos));
     }
+    public static boolean isBlockPlacementAllowed(BlockPos interactedPos, BlockPos placePos, Entity playerEntity, LevelAccessor level) {
+        if (ChunkByChunkConfig.get().getGameplayConfig().isBlockPlacementAllowedOutsideSpawnedChunks()) {
+            return true;
+        }
+        if (!playerEntity.level().dimension().equals(Level.OVERWORLD)) {
+            return true;
+        }
+        if (!SpawnChunkHelper.isEmptyChunk(level, new ChunkPos(interactedPos)) && SpawnChunkHelper.isEmptyChunk(level, new ChunkPos(placePos))) {
+            return true;
+        }
+        return !SpawnChunkHelper.isEmptyChunk(level, new ChunkPos(placePos));
+    }
 }

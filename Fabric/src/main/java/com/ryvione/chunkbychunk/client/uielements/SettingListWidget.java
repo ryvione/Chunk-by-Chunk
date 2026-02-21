@@ -19,7 +19,6 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Component;
 import com.ryvione.chunkbychunk.common.ChunkByChunkConstants;
 import com.ryvione.chunkbychunk.config.ChunkByChunkConfig;
 import com.ryvione.chunkbychunk.config.system.*;

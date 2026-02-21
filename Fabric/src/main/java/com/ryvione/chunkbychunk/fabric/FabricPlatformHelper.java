@@ -23,7 +23,6 @@ import com.ryvione.chunkbychunk.common.menus.BedrockChestMenu;
 import com.ryvione.chunkbychunk.common.menus.WorldForgeMenu;
 import com.ryvione.chunkbychunk.common.menus.WorldMenderMenu;
 import com.ryvione.chunkbychunk.common.menus.WorldScannerMenu;
-import com.ryvione.chunkbychunk.mixins.BucketFluidAccessor;
 import com.ryvione.chunkbychunk.interop.CBCPlatformHelper;
 import com.ryvione.chunkbychunk.mixins.BucketFluidAccessor;
 import java.util.List;

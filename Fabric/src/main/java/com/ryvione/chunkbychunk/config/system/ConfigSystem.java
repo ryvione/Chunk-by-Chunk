@@ -118,7 +118,7 @@ public class ConfigSystem {
                         LOGGER.warn("Invalid section statement {}", line);
                     }
                 } else if (!line.startsWith(START_COMMENT) && !line.isEmpty()) {
-                    String[] parts = line.split(EQUALS);
+                    String[] parts = line.split(EQUALS, 2);
                     if (parts.length == 2) {
                         String fieldName = parts[0].trim();
                         String value = parts[1].trim();

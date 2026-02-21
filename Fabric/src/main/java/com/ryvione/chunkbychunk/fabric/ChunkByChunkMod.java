@@ -180,7 +180,7 @@ public class ChunkByChunkMod implements ModInitializer {
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
             BlockPos pos = hitResult.getBlockPos();
             BlockPos placePos = pos.relative(hitResult.getDirection());
-            if (!CommonEventHandler.isBlockPlacementAllowed(placePos, player, world)) {
+            if (!CommonEventHandler.isBlockPlacementAllowed(pos, placePos, player, world)) {
                 return InteractionResult.CONSUME;
             }
             return InteractionResult.PASS;

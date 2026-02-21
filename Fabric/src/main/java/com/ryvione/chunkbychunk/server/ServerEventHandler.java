@@ -90,7 +90,9 @@ public final class ServerEventHandler {
     private static void applySkyDimensionConfig(RegistryAccess registryAccess) {
         if (ChunkByChunkConfig.get().getGeneration().isSynchNether()) {
             SkyDimensions.getSkyDimensions().values().stream().filter(x -> "minecraft:the_nether".equals(x.dimensionId) || "the_nether".equals(x.dimensionId)).forEach(x -> {
-                x.synchToDimensions.add("minecraft:overworld");
+                if (!x.synchToDimensions.contains("minecraft:overworld")) {
+                    x.synchToDimensions.add("minecraft:overworld");
+                }
             });
         }
         if (ChunkByChunkConfig.get().getGeneration().sealWorld()) {

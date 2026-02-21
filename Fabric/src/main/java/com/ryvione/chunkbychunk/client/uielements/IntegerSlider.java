@@ -11,7 +11,6 @@
 package com.ryvione.chunkbychunk.client.uielements;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import java.util.function.Consumer;
 import java.util.function.Supplier;

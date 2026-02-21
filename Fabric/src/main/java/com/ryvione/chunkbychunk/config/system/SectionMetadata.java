@@ -10,7 +10,6 @@
 
 package com.ryvione.chunkbychunk.config.system;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Component;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Locale;

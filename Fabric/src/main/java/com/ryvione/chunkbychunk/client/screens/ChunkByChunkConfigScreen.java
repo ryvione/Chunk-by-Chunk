@@ -49,7 +49,6 @@ public class ChunkByChunkConfigScreen extends Screen {
     public void onClose() {
         ConfigUtil.loadDefaultConfig();
         super.onClose();
-        this.minecraft.setScreen(lastScreen);
     }
     @Override
     public void tick() {

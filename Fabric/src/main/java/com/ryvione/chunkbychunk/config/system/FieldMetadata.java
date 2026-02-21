@@ -11,7 +11,6 @@
 package com.ryvione.chunkbychunk.config.system;
 import com.google.common.base.Strings;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Component;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
