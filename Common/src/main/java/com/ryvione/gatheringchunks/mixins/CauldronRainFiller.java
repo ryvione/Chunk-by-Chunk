@@ -12,10 +12,12 @@ package com.ryvione.gatheringchunks.server;
 import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
 import com.ryvione.gatheringchunks.server.world.SpawnChunkHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -72,10 +74,23 @@ public class CauldronRainFiller {
             BlockPos top = new BlockPos(x, y - 1, z);
             var state = level.getBlockState(top);
 
+            Holder<Biome> biomeHolder = level.getBiome(top);
+            boolean isColdBiome = biomeHolder.value().coldEnoughToSnow(top);
+
             if (state.is(Blocks.CAULDRON)) {
-                level.setBlockAndUpdate(top, Blocks.WATER_CAULDRON.defaultBlockState()
-                        .setValue(LayeredCauldronBlock.LEVEL, 1));
-            } else if (state.is(Blocks.WATER_CAULDRON)) {
+                if (isColdBiome) {
+                    level.setBlockAndUpdate(top, Blocks.POWDER_SNOW_CAULDRON.defaultBlockState()
+                            .setValue(LayeredCauldronBlock.LEVEL, 1));
+                } else {
+                    level.setBlockAndUpdate(top, Blocks.WATER_CAULDRON.defaultBlockState()
+                            .setValue(LayeredCauldronBlock.LEVEL, 1));
+                }
+            } else if (state.is(Blocks.WATER_CAULDRON) && !isColdBiome) {
+                int current = state.getValue(LayeredCauldronBlock.LEVEL);
+                if (current < 3) {
+                    level.setBlockAndUpdate(top, state.setValue(LayeredCauldronBlock.LEVEL, current + 1));
+                }
+            } else if (state.is(Blocks.POWDER_SNOW_CAULDRON) && isColdBiome) {
                 int current = state.getValue(LayeredCauldronBlock.LEVEL);
                 if (current < 3) {
                     level.setBlockAndUpdate(top, state.setValue(LayeredCauldronBlock.LEVEL, current + 1));

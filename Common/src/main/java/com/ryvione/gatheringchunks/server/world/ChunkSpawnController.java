@@ -22,6 +22,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ChunkResult;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.datafix.DataFixTypes;
@@ -436,6 +437,12 @@ public class ChunkSpawnController extends SavedData {
 
     private static void copyBlocks(ServerLevel sourceLevel, ChunkPos sourceChunkPos, ServerLevel targetLevel,
             ChunkPos targetChunkPos, int fromLayer, int toLayer, boolean overwrite) {
+        net.minecraft.world.level.chunk.ChunkAccess targetChunkAccess =
+                targetLevel.getChunkSource().getChunkNow(targetChunkPos.x, targetChunkPos.z);
+        if (targetChunkAccess != null && !targetChunkAccess.getPersistedStatus().isOrAfter(
+                net.minecraft.world.level.chunk.status.ChunkStatus.FULL)) {
+            return;
+        }
         int xOffset = targetChunkPos.getMinBlockX() - sourceChunkPos.getMinBlockX();
         int zOffset = targetChunkPos.getMinBlockZ() - sourceChunkPos.getMinBlockZ();
         Block sealedBlock = Blocks.BEDROCK;
@@ -471,7 +478,7 @@ public class ChunkSpawnController extends SavedData {
                                 && newBlock.getBlock() instanceof LeavesBlock) {
                             newBlock = newBlock.setValue(LeavesBlock.PERSISTENT, true);
                         }
-                        targetLevel.setBlock(targetBlock, newBlock, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+                        targetLevel.setBlock(targetBlock, newBlock, Block.UPDATE_CLIENTS | Block.UPDATE_SUPPRESS_DROPS);
                         BlockEntity fromBlockEntity = sourceLevel.getBlockEntity(sourceBlock);
                         BlockEntity toBlockEntity = targetLevel.getBlockEntity(targetBlock);
                         if (fromBlockEntity != null && toBlockEntity != null) {
@@ -556,10 +563,16 @@ public class ChunkSpawnController extends SavedData {
                         currentSpawnRequest.targetChunkPos());
 
                 if (SpawnChunkHelper.isEmptyChunk(synchLevel, mappedChunk)) {
-                    GatheringChunksConstants.LOGGER.info("[Sync] Triggering sync spawn for chunk {} in {}",
+                    GatheringChunksConstants.LOGGER.info("[Sync] Scheduling deferred sync spawn for chunk {} in {}",
                             mappedChunk, synchLevelId.location());
-                    request(mappedChunk, synchLevelId, mappedChunk, synchGenerator.getGenerationLevel(), false,
-                            currentSpawnRequest.overwrite, false);
+                    final ChunkPos finalMappedChunk = mappedChunk;
+                    final ResourceKey<Level> finalSynchLevelId = synchLevelId;
+                    final ResourceKey<Level> finalGenerationLevel = synchGenerator.getGenerationLevel();
+                    final boolean finalOverwrite = currentSpawnRequest.overwrite;
+                    server.tell(new net.minecraft.server.TickTask(server.getTickCount() + 1, () ->
+                        request(finalMappedChunk, finalSynchLevelId, finalMappedChunk, finalGenerationLevel, false,
+                                finalOverwrite, false)
+                    ));
                 } else {
                     GatheringChunksConstants.LOGGER.debug(
                             "[Sync] Skipping sync for chunk {} in {} - chunk is already present", mappedChunk,
@@ -902,6 +915,65 @@ public class ChunkSpawnController extends SavedData {
             }
         }
         return false;
+    }
+
+    public void checkAndSyncExistingChunks() {
+        if (!ChunkByChunkConfig.get().getGeneration().isSynchNether()) {
+            return;
+        }
+
+        for (ServerLevel level : server.getAllLevels()) {
+            if (!(level.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator)) {
+                continue;
+            }
+
+            for (ResourceKey<Level> synchLevelId : generator.getSynchedLevels()) {
+                ServerLevel synchLevel = server.getLevel(synchLevelId);
+                if (synchLevel == null) {
+                    continue;
+                }
+
+                if (!(synchLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator synchGenerator)) {
+                    continue;
+                }
+
+                String dim = level.dimension().location().toString();
+                ChunkPos origin = originChunks.get(dim);
+                if (origin == null) {
+                    continue;
+                }
+
+                int spawnedCount = spawnedChunkCount.getOrDefault(dim, 0);
+                if (spawnedCount == 0) {
+                    continue;
+                }
+
+                int radius = (int) Math.ceil(Math.sqrt(spawnedCount)) + 2;
+                int delay = 1;
+                for (int dx = -radius; dx <= radius; dx++) {
+                    for (int dz = -radius; dz <= radius; dz++) {
+                        ChunkPos sourceChunk = new ChunkPos(origin.x + dx, origin.z + dz);
+                        if (SpawnChunkHelper.isEmptyChunk(level, sourceChunk)) {
+                            continue;
+                        }
+
+                        ChunkPos mappedChunk = getSyncedChunkPosWithScale(level, synchLevel, sourceChunk);
+                        if (SpawnChunkHelper.isEmptyChunk(synchLevel, mappedChunk)) {
+                            GatheringChunksConstants.LOGGER.info(
+                                    "[SyncRetroactive] Scheduling sync for existing chunk {} -> {} in {}",
+                                    sourceChunk, mappedChunk, synchLevelId.location());
+                            final ChunkPos finalMappedChunk = mappedChunk;
+                            final ResourceKey<Level> finalSynchLevelId = synchLevelId;
+                            final ResourceKey<Level> finalGenerationLevel = synchGenerator.getGenerationLevel();
+                            final int tickDelay = delay++;
+                            server.tell(new TickTask(server.getTickCount() + tickDelay, () ->
+                                    request(finalMappedChunk, finalSynchLevelId, finalMappedChunk, finalGenerationLevel, false, false, false)
+                            ));
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public void syncErase(ServerLevel level, ChunkPos chunkPos) {

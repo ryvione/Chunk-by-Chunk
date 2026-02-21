@@ -11,25 +11,22 @@ package com.ryvione.gatheringchunks.client.screens;
 
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import com.ryvione.gatheringchunks.config.*;
-import com.ryvione.gatheringchunks.config.system.ConfigSystem;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-import java.nio.file.Paths;
-
 public class GatheringChunksConfigScreen extends Screen {
 
     private final Screen parentScreen;
     private final GatheringChunksConfig config;
+
     private static final int BUTTON_WIDTH = 200;
     private static final int BUTTON_HEIGHT = 20;
     private static final int SPACING = 24;
     private static final int SECTION_SPACING = 10;
     private int scrollOffset = 0;
     private static final int SCROLL_SPEED = 20;
-    private static final ConfigSystem CONFIG_SYSTEM = new ConfigSystem();
 
     private int contentHeight = 0;
     private boolean isScrollbarDragging = false;
@@ -292,8 +289,12 @@ public class GatheringChunksConfigScreen extends Screen {
         });
         currentY += SPACING;
 
-        this.addRenderableWidget(new AbstractSliderButton(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
-                Component.literal("Chests Per Chunk: " + ChunkByChunkConfig.get().getGeneration().getChestsPerChunk()),
+        int sliderWidth = BUTTON_WIDTH - 60;
+        int fieldWidth = 54;
+        int fieldX = centerX - BUTTON_WIDTH / 2 + sliderWidth + 4;
+
+        this.addRenderableWidget(new AbstractSliderButton(centerX - BUTTON_WIDTH / 2, currentY, sliderWidth, BUTTON_HEIGHT,
+                Component.literal("Chests/Chunk: " + ChunkByChunkConfig.get().getGeneration().getChestsPerChunk()),
                 (ChunkByChunkConfig.get().getGeneration().getChestsPerChunk() - 1) / 65535.0) {
             {
                 this.setTooltip(Tooltip.create(Component.literal("Number of chests to spawn per chunk (1-65536). Values above 1500 may cause performance issues!")));
@@ -302,9 +303,9 @@ public class GatheringChunksConfigScreen extends Screen {
             protected void updateMessage() {
                 int value = (int) (this.value * 65535) + 1;
                 if (value > 1500) {
-                    setMessage(Component.literal("⚠ Chests Per Chunk: " + value).withStyle(style -> style.withColor(0xFFFF5555)));
+                    setMessage(Component.literal("⚠ Chests/Chunk: " + value).withStyle(style -> style.withColor(0xFFFF5555)));
                 } else {
-                    setMessage(Component.literal("Chests Per Chunk: " + value));
+                    setMessage(Component.literal("Chests/Chunk: " + value));
                 }
             }
             @Override
@@ -313,6 +314,21 @@ public class GatheringChunksConfigScreen extends Screen {
                 ChunkByChunkConfig.get().getGeneration().setChestsPerChunk(value);
             }
         });
+
+        EditBox chestsField = new EditBox(this.font, fieldX, currentY, fieldWidth, BUTTON_HEIGHT,
+                Component.literal("Chests Per Chunk"));
+        chestsField.setValue(String.valueOf(ChunkByChunkConfig.get().getGeneration().getChestsPerChunk()));
+        chestsField.setMaxLength(6);
+        chestsField.setTooltip(Tooltip.create(Component.literal("Enter exact chest count (1-65536)")));
+        chestsField.setResponder(val -> {
+            try {
+                int parsed = Integer.parseInt(val.trim());
+                if (parsed >= 1 && parsed <= 65536) {
+                    ChunkByChunkConfig.get().getGeneration().setChestsPerChunk(parsed);
+                }
+            } catch (NumberFormatException ignored) {}
+        });
+        this.addRenderableWidget(chestsField);
         currentY += SPACING;
 
         this.addRenderableWidget(new AbstractSliderButton(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
@@ -545,7 +561,7 @@ public class GatheringChunksConfigScreen extends Screen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics, mouseX, mouseY, partialTick);
         super.render(graphics, mouseX, mouseY, partialTick);
-        graphics.drawCenteredString(this.font, this.title, this.width / 2, 20, 0xFFFFFF);
+        graphics.drawCenteredString(this.font, "Gathering Chunks Config", this.width / 2, 10, 0xFFFFFF);
         drawScrollBar(graphics, mouseX, mouseY);
     }
 
@@ -629,7 +645,7 @@ public class GatheringChunksConfigScreen extends Screen {
 
     @Override
     public void onClose() {
-        CONFIG_SYSTEM.write(Paths.get("defaultconfigs", GatheringChunksConstants.MOD_ID + ".toml"), ChunkByChunkConfig.get());
+        com.ryvione.gatheringchunks.common.util.ConfigUtil.saveDefaultConfig();
         if (this.minecraft != null) {
             this.minecraft.setScreen(parentScreen);
         }

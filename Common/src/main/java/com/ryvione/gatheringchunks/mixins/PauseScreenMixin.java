@@ -10,11 +10,13 @@
 package com.ryvione.gatheringchunks.mixins;
 
 import com.ryvione.gatheringchunks.client.screens.GatheringChunksConfigScreen;
+import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -33,7 +35,7 @@ public abstract class PauseScreenMixin extends Screen {
         int y = this.height / 4 + 72 - 16;
 
         this.addRenderableWidget(Button.builder(
-                        Component.literal("⚙"),
+                        Component.literal("\u2699"),
                         button -> {
                             if (this.minecraft != null) {
                                 this.minecraft.setScreen(new GatheringChunksConfigScreen(this));

@@ -76,41 +76,6 @@ public class SpawnChunkBlock extends Block {
             }
         }
 
-    
-        if (!ownChunkEmpty) {
-            ChunkOverwriteConfirmation.PendingOverwrite pending =
-                    ChunkOverwriteConfirmation.getAnyPendingOverwrite(serverPlayer);
-
-            if (pending != null
-                    && pending.targetChunk.equals(ownChunk)
-                    && pending.biomeTheme.equals(effectiveBiomeTheme)
-                    && pending.random == effectiveRandom) {
-                ChunkOverwriteConfirmation.removePendingOverwrite(serverPlayer);
-                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                        "§6[ChunkByChunk] §eOverwriting chunk at [" + ownChunk.x + ", " + ownChunk.z + "]"));
-
-                if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, pos,
-                        false, true)) {
-                    level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
-                    level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-                    return InteractionResult.SUCCESS;
-                } else {
-                    serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                            "§c[ChunkByChunk] §eOverwrite request failed (spawn limit reached?)."));
-                    return InteractionResult.CONSUME;
-                }
-            } else {
-                ChunkOverwriteConfirmation.addPendingOverwrite(serverPlayer, ownChunk,
-                        effectiveBiomeTheme, effectiveRandom);
-                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                        "§c[ChunkByChunk] §6WARNING: §eThis chunk is already generated!"));
-                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                        "§eClick again within 30 seconds to overwrite chunk ["
-                                + ownChunk.x + ", " + ownChunk.z + "]."));
-                return InteractionResult.CONSUME;
-            }
-        }
-
         if (mode == ChunkSpawnerMode.Edge || mode == ChunkSpawnerMode.Both) {
             Direction targetDirection = hit.getDirection();
             if (!HORIZONTAL_DIR.contains(targetDirection)) {
@@ -154,6 +119,40 @@ public class SpawnChunkBlock extends Block {
             serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                     "§c[ChunkByChunk] §eNo valid adjacent empty chunks found or spawn limit reached."));
             return InteractionResult.CONSUME;
+        }
+
+        if (!ownChunkEmpty) {
+            ChunkOverwriteConfirmation.PendingOverwrite pending =
+                    ChunkOverwriteConfirmation.getAnyPendingOverwrite(serverPlayer);
+
+            if (pending != null
+                    && pending.targetChunk.equals(ownChunk)
+                    && pending.biomeTheme.equals(effectiveBiomeTheme)
+                    && pending.random == effectiveRandom) {
+                ChunkOverwriteConfirmation.removePendingOverwrite(serverPlayer);
+                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "§6[ChunkByChunk] §eOverwriting chunk at [" + ownChunk.x + ", " + ownChunk.z + "]"));
+
+                if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, pos,
+                        false, true)) {
+                    level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
+                    level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                    return InteractionResult.SUCCESS;
+                } else {
+                    serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                            "§c[ChunkByChunk] §eOverwrite request failed (spawn limit reached?)."));
+                    return InteractionResult.CONSUME;
+                }
+            } else {
+                ChunkOverwriteConfirmation.addPendingOverwrite(serverPlayer, ownChunk,
+                        effectiveBiomeTheme, effectiveRandom);
+                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "§c[ChunkByChunk] §6WARNING: §eThis chunk is already generated!"));
+                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "§eClick again within 30 seconds to overwrite chunk ["
+                                + ownChunk.x + ", " + ownChunk.z + "]."));
+                return InteractionResult.CONSUME;
+            }
         }
 
         return InteractionResult.PASS;

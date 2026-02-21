@@ -120,6 +120,19 @@ public final class ServerEventHandler {
                             x.synchToDimensions.add("minecraft:the_nether");
                         }
                     });
+        } else {
+            SkyDimensions.getSkyDimensions().values().stream()
+                    .filter(x -> "minecraft:the_nether".equals(x.dimensionId) || "the_nether".equals(x.dimensionId))
+                    .forEach(x -> {
+                        x.synchToDimensions.remove("minecraft:overworld");
+                        x.synchToDimensions.remove("overworld");
+                    });
+            SkyDimensions.getSkyDimensions().values().stream()
+                    .filter(x -> "minecraft:overworld".equals(x.dimensionId) || "overworld".equals(x.dimensionId))
+                    .forEach(x -> {
+                        x.synchToDimensions.remove("minecraft:the_nether");
+                        x.synchToDimensions.remove("the_nether");
+                    });
         }
         if (ChunkByChunkConfig.get().getGeneration().sealWorld()) {
             SkyDimensions.getSkyDimensions().values().stream()
@@ -349,6 +362,11 @@ public final class ServerEventHandler {
 
         if (ChunkByChunkConfig.get().getGeneration().isEnabled()) {
             checkSpawnInitialChunks(server);
+            if (ChunkByChunkConfig.get().getGeneration().isSynchNether()) {
+                server.tell(new net.minecraft.server.TickTask(server.getTickCount() + 40, () -> {
+                    ChunkSpawnController.get(server).checkAndSyncExistingChunks();
+                }));
+            }
         }
     }
 
@@ -395,8 +413,7 @@ public final class ServerEventHandler {
         TagKey<Block> leavesTag = BlockTags.LEAVES;
         Set<Block> copper = ImmutableSet.of(Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE, Blocks.RAW_COPPER_BLOCK);
         BlockPos spawnPos = overworldLevel.getSharedSpawnPos();
-        boolean disableVillage = ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled() &&
-                ChunkByChunkConfig.get().getDifficulty().getHardMode().isDisableVillages();
+        boolean disableVillage = ChunkByChunkConfig.get().getDifficulty().getHardMode().isDisableVillages();
 
         if (!disableVillage) {
             if (ChunkByChunkConfig.get().getDifficulty().isAlwaysSpawnVillage()) {
@@ -701,5 +718,83 @@ public final class ServerEventHandler {
         if (server.getTickCount() % 200 == 0 && ChunkByChunkConfig.get().getDifficulty().isEnableProgressionHelper()) {
             PlayerProgressionHelper.checkPlayers(server);
         }
+    }
+
+    public static void onPlayerChangedDimension(ServerPlayer player, ResourceKey<Level> fromLevel, ResourceKey<Level> toLevel) {
+        ServerLevel targetLevel = player.server.getLevel(toLevel);
+        if (targetLevel == null) return;
+        checkAndRedirectPlayerToNearestChunk(player, targetLevel);
+    }
+
+    public static void onPlayerArrived(ServerPlayer player, ServerLevel targetLevel) {
+        checkAndRedirectPlayerToNearestChunk(player, targetLevel);
+    }
+
+    private static void checkAndRedirectPlayerToNearestChunk(ServerPlayer player, ServerLevel targetLevel) {
+        if (!ChunkByChunkConfig.get().getGeneration().isEnabled()) {
+            return;
+        }
+
+        if (!(targetLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator)) {
+            return;
+        }
+
+        BlockPos playerPos = player.blockPosition();
+        ChunkPos playerChunk = new ChunkPos(playerPos);
+
+        if (!SpawnChunkHelper.isEmptyChunk(targetLevel, playerChunk)) {
+            return;
+        }
+
+        LOGGER.info("[PortalFix] Player {} arrived in empty chunk [{},{}] in {}, finding nearest spawned chunk",
+                player.getName().getString(), playerChunk.x, playerChunk.z, targetLevel.dimension().location());
+
+        ChunkPos nearest = findNearestSpawnedChunk(targetLevel, playerChunk, 64);
+        if (nearest == null) {
+            BlockPos spawn = targetLevel.getSharedSpawnPos();
+            nearest = new ChunkPos(spawn);
+            LOGGER.info("[PortalFix] No nearby spawned chunk found, using spawn chunk [{},{}]", nearest.x, nearest.z);
+        } else {
+            LOGGER.info("[PortalFix] Found nearest spawned chunk [{},{}]", nearest.x, nearest.z);
+        }
+
+        LevelChunk targetChunk = targetLevel.getChunk(nearest.x, nearest.z);
+        int safeY = ChunkUtil.getSafeSpawnHeight(targetChunk, nearest.getMiddleBlockX(), nearest.getMiddleBlockZ());
+
+        player.teleportTo(
+                targetLevel,
+                nearest.getMiddleBlockX() + 0.5,
+                safeY,
+                nearest.getMiddleBlockZ() + 0.5,
+                player.getYRot(),
+                player.getXRot()
+        );
+    }
+
+    private static ChunkPos findNearestSpawnedChunk(ServerLevel level, ChunkPos origin, int maxRadius) {
+        SpiralIterator spiral = new SpiralIterator(origin.x, origin.z);
+        int checked = 0;
+        int maxChecks = (2 * maxRadius + 1) * (2 * maxRadius + 1);
+
+        while (checked < maxChecks) {
+            int cx = spiral.getX();
+            int cz = spiral.getY();
+
+            if (Math.abs(cx - origin.x) > maxRadius || Math.abs(cz - origin.z) > maxRadius) {
+                spiral.next();
+                checked++;
+                continue;
+            }
+
+            ChunkPos candidate = new ChunkPos(cx, cz);
+            if (!SpawnChunkHelper.isEmptyChunk(level, candidate)) {
+                return candidate;
+            }
+
+            spiral.next();
+            checked++;
+        }
+
+        return null;
     }
 }

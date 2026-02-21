@@ -24,6 +24,7 @@ import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
 import com.ryvione.gatheringchunks.server.world.SpawnChunkHelper;
 import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
 import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
+import com.ryvione.gatheringchunks.interop.Services;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -119,6 +120,13 @@ public class ChunkByChunkMod implements ModInitializer {
             ChestsCommand.register(dispatcher);
         });
 
+        ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+            if (!(entity instanceof ServerPlayer player)) return;
+            if (!world.dimension().equals(Level.OVERWORLD) && !world.dimension().equals(Level.NETHER)) return;
+            if (!(world.getChunkSource().getGenerator() instanceof SkyChunkGenerator)) return;
+            ServerEventHandler.onPlayerArrived(player, (ServerLevel) world);
+        });
+
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
             if (!ChunkByChunkConfig.get().getGeneration().isEnabled())
                 return;
@@ -157,6 +165,18 @@ public class ChunkByChunkMod implements ModInitializer {
                 return;
 
             ServerPlayer player = handler.getPlayer();
+
+            try {
+                com.google.gson.Gson gson = new com.google.gson.GsonBuilder().create();
+                String configJson = gson.toJson(ChunkByChunkConfig.get().getGatheringChunksConfig());
+                com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket packet =
+                        new com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket(configJson);
+                Services.PLATFORM.sendConfigSyncPacket(player, packet);
+                LOGGER.debug("[ChunkByChunkMod] Synced config to player {} on join", player.getName().getString());
+            } catch (Exception e) {
+                LOGGER.warn("[ChunkByChunkMod] Failed to sync config to player on join: {}", e.getMessage());
+            }
+
             ServerLevel level = player.serverLevel();
             if (!level.dimension().equals(Level.OVERWORLD))
                 return;

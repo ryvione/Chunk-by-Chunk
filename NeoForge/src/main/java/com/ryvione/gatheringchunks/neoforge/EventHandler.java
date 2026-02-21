@@ -62,13 +62,16 @@ public class EventHandler {
 
         GatheringChunksConstants.LOGGER.info("ServerAboutToStartEvent - loading config & preparing dimensions");
 
-        configSystem.synchConfig(
-                server.getWorldPath(LevelResource.ROOT)
-                        .resolve("serverconfig")
-                        .resolve(GatheringChunksConstants.CONFIG_FILE),
-                Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH)
-                        .resolve(GatheringChunksConstants.CONFIG_FILE),
-                ChunkByChunkConfig.get());
+        java.nio.file.Path serverConfigPath = server.getWorldPath(LevelResource.ROOT)
+                .resolve("serverconfig")
+                .resolve(GatheringChunksConstants.CONFIG_FILE);
+
+        java.nio.file.Path defaultFilePath = Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH)
+                .resolve(GatheringChunksConstants.CONFIG_FILE);
+
+        configSystem.synchConfig(serverConfigPath, defaultFilePath, ChunkByChunkConfig.get());
+
+        configSystem.write(ConfigSystem.getCentralConfigPath(GatheringChunksConstants.CONFIG_FILE), ChunkByChunkConfig.get());
 
         if (ChunkByChunkConfig.get().getGeneration().isEnabled()) {
             GatheringChunksConstants.LOGGER.info("Applying sky dimension configuration EARLY (before level load)");
@@ -90,6 +93,13 @@ public class EventHandler {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         ServerEventHandler.onLevelTick(event.getServer());
+    }
+
+    @SubscribeEvent
+    public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            ServerEventHandler.onPlayerChangedDimension(player, event.getFrom(), event.getTo());
+        }
     }
 
     @SubscribeEvent
@@ -155,6 +165,17 @@ public class EventHandler {
 
         if (event.getEntity() instanceof ServerPlayer player) {
             UpdateNotification.sendUpdateNotification(player);
+
+            try {
+                com.google.gson.Gson gson = new com.google.gson.GsonBuilder().create();
+                String configJson = gson.toJson(ChunkByChunkConfig.get().getGatheringChunksConfig());
+                com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket packet =
+                        new com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket(configJson);
+                com.ryvione.gatheringchunks.interop.Services.PLATFORM.sendConfigSyncPacket(player, packet);
+                GatheringChunksConstants.LOGGER.debug("[EventHandler] Synced config to player {} on login", player.getName().getString());
+            } catch (Exception e) {
+                GatheringChunksConstants.LOGGER.warn("[EventHandler] Failed to sync config to player on login: {}", e.getMessage());
+            }
 
             ServerLevel level = player.serverLevel();
             if (!level.dimension().equals(Level.OVERWORLD))

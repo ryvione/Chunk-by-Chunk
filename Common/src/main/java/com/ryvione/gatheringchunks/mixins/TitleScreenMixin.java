@@ -1,12 +1,3 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Gathering Chunks (Ryvione's Fork).
- * Original: https://github.com/immortius/chunkbychunk
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
 package com.ryvione.gatheringchunks.mixins;
 
 import com.ryvione.gatheringchunks.client.UpdateNotificationOverlay;
@@ -35,7 +26,7 @@ public abstract class TitleScreenMixin extends Screen {
         int y = this.height / 4 + 48 + 24;
 
         this.addRenderableWidget(Button.builder(
-                        Component.literal("⚙ GC"),
+                        Component.literal("\u2699 GC"),
                         button -> {
                             if (this.minecraft != null) {
                                 this.minecraft.setScreen(new GatheringChunksConfigScreen(this));
@@ -48,6 +39,6 @@ public abstract class TitleScreenMixin extends Screen {
 
     @Inject(method = "render", at = @At("RETURN"))
     private void onRender(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-        UpdateNotificationOverlay.renderUpdateWarning(guiGraphics, (TitleScreen)(Object)this);
+        UpdateNotificationOverlay.renderUpdateWarning(guiGraphics, (TitleScreen) (Object) this);
     }
 }

@@ -1,12 +1,3 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Gathering Chunks (Ryvione's Fork).
- * Original: https://github.com/immortius/chunkbychunk
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
 package com.ryvione.gatheringchunks.common.blockEntities;
 
 import com.ryvione.gatheringchunks.common.blocks.ChunkEngineBlock;
@@ -31,17 +22,13 @@ import java.util.Map;
 
 public class ChunkEngineBlockEntity extends BaseFueledBlockEntity {
     public static final int SLOT_FUEL = 0;
-    public static final int SLOT_STORAGE_START = 1;
-    public static final int NUM_SLOTS = 6;
+    public static final int NUM_SLOTS = 1;
 
     public static final int DATA_REMAINING_FUEL = 0;
     public static final int DATA_CHARGED_FUEL = 1;
     public static final int DATA_MAX_CHUNKS = 2;
     public static final int DATA_SPAWNED_CHUNKS = 3;
-    public static final int DATA_STORED_FRAGMENTS = 4;
-    public static final int NUM_DATA = 5;
-
-    private int storedFragments = 0;
+    public static final int NUM_DATA = 4;
 
     private static final Map<Item, FuelValueSupplier> ITEM_FUEL;
 
@@ -70,7 +57,6 @@ public class ChunkEngineBlockEntity extends BaseFueledBlockEntity {
                     }
                     yield 0;
                 }
-                case DATA_STORED_FRAGMENTS -> storedFragments;
                 default -> 0;
             };
         }
@@ -79,8 +65,6 @@ public class ChunkEngineBlockEntity extends BaseFueledBlockEntity {
         public void set(int index, int value) {
             if (index == DATA_REMAINING_FUEL) {
                 setRemainingFuel(value);
-            } else if (index == DATA_STORED_FRAGMENTS) {
-                storedFragments = value;
             }
         }
 
@@ -122,7 +106,6 @@ public class ChunkEngineBlockEntity extends BaseFueledBlockEntity {
             if (requiresFuel) {
                 engine.consumeFuel(1);
             }
-            
             if (level instanceof ServerLevel serverLevel) {
                 ChunkEngineManager.get(serverLevel.getServer()).registerEngine(serverLevel, pos);
             }
@@ -141,7 +124,7 @@ public class ChunkEngineBlockEntity extends BaseFueledBlockEntity {
 
     @Override
     public int[] getSlotsForFace(Direction direction) {
-        return new int[]{SLOT_FUEL, 1, 2, 3, 4, 5};
+        return new int[]{SLOT_FUEL};
     }
 
     @Override
@@ -152,31 +135,5 @@ public class ChunkEngineBlockEntity extends BaseFueledBlockEntity {
     @Override
     public boolean canTakeItemThroughFace(int slot, ItemStack itemStack, Direction direction) {
         return true;
-    }
-
-    public void addStoredFragments(int amount) {
-        this.storedFragments += amount;
-        setChanged();
-    }
-    
-    public int getStoredFragments() {
-        return storedFragments;
-    }
-    
-    public void consumeStoredFragments(int amount) {
-        this.storedFragments = Math.max(0, this.storedFragments - amount);
-        setChanged();
-    }
-    
-    @Override
-    protected void loadAdditional(net.minecraft.nbt.CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
-        super.loadAdditional(tag, provider);
-        this.storedFragments = tag.getInt("StoredFragments");
-    }
-
-    @Override
-    protected void saveAdditional(net.minecraft.nbt.CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
-        super.saveAdditional(tag, provider);
-        tag.putInt("StoredFragments", this.storedFragments);
     }
 }
