@@ -124,6 +124,8 @@ public class ChunkByChunkMod implements ModInitializer {
             if (!(entity instanceof ServerPlayer player)) return;
             if (!world.dimension().equals(Level.OVERWORLD) && !world.dimension().equals(Level.NETHER)) return;
             if (!(world.getChunkSource().getGenerator() instanceof SkyChunkGenerator)) return;
+            // Skip redirect for first-join players — scheduleSpawnTeleport handles them
+            if (!INITIAL_SPAWNED_PLAYERS.contains(player.getUUID())) return;
             ServerEventHandler.onPlayerArrived(player, (ServerLevel) world);
         });
 
@@ -144,10 +146,15 @@ public class ChunkByChunkMod implements ModInitializer {
 
                 LOGGER.debug("Forcing respawn to spawn chunk [{},{}]", spawnChunk.x, spawnChunk.z);
 
-                int safeY = spawnPos.getY();
+                int safeY = level.getMaxBuildHeight();
                 LevelChunk spawnLevelChunk = level.getChunkAt(spawnChunk.getMiddleBlockPosition(0));
                 if (spawnLevelChunk != null) {
-                    safeY = ChunkUtil.getSafeSpawnHeight(spawnLevelChunk, spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ());
+                    int candidateY = ChunkUtil.getSafeSpawnHeight(spawnLevelChunk, spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ());
+                    if (candidateY > level.getMinBuildHeight() + 10) {
+                        safeY = candidateY;
+                    } else {
+                        safeY = spawnLevelChunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, 8, 8) + 1;
+                    }
                 }
 
                 newPlayer.teleportTo(
@@ -185,32 +192,10 @@ public class ChunkByChunkMod implements ModInitializer {
                 boolean isFirstJoin = !INITIAL_SPAWNED_PLAYERS.contains(player.getUUID());
 
                 if (isFirstJoin) {
-                    BlockPos playerPos = player.blockPosition();
-                    ChunkPos playerChunk = new ChunkPos(playerPos);
-
-                    if (SpawnChunkHelper.isEmptyChunk(level, playerChunk)) {
-                        BlockPos spawnPos = level.getSharedSpawnPos();
-                        ChunkPos spawnChunk = new ChunkPos(spawnPos);
-
-                        LOGGER.info("First join: Correcting spawn from empty chunk [{},{}] to spawn chunk [{},{}]",
-                                playerChunk.x, playerChunk.z, spawnChunk.x, spawnChunk.z);
-
-                        int safeY = spawnPos.getY();
-                        LevelChunk spawnLevelChunk = level.getChunkAt(spawnChunk.getMiddleBlockPosition(0));
-                        if (spawnLevelChunk != null) {
-                            safeY = ChunkUtil.getSafeSpawnHeight(spawnLevelChunk, spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ());
-                        }
-
-                        player.teleportTo(
-                                level,
-                                spawnChunk.getMiddleBlockX() + 0.5,
-                                safeY,
-                                spawnChunk.getMiddleBlockZ() + 0.5,
-                                player.getYRot(),
-                                player.getXRot());
-                    }
-
                     INITIAL_SPAWNED_PLAYERS.add(player.getUUID());
+
+                    final int MAX_WAIT_TICKS = 600; 
+                    scheduleSpawnTeleport(server, player.getUUID(), server.getTickCount(), MAX_WAIT_TICKS);
                 }
             }
         });
@@ -236,5 +221,64 @@ public class ChunkByChunkMod implements ModInitializer {
                         ServerEventHandler.onResourceManagerReload(resourceManager);
                     }
                 });
+    }
+
+    private static void scheduleSpawnTeleport(net.minecraft.server.MinecraftServer server, UUID playerUUID,
+            int startTick, int maxWaitTicks) {
+        server.tell(new net.minecraft.server.TickTask(server.getTickCount() + 5, () -> {
+            if (!server.isRunning()) return;
+
+            ServerPlayer p = server.getPlayerList().getPlayer(playerUUID);
+            if (p == null) return; 
+
+            ServerLevel lvl = p.serverLevel();
+            if (!lvl.dimension().equals(Level.OVERWORLD)) return;
+            if (!(lvl.getChunkSource().getGenerator() instanceof SkyChunkGenerator)) return;
+
+            BlockPos spawnPos = lvl.getSharedSpawnPos();
+            ChunkPos spawnChunk = new ChunkPos(spawnPos);
+
+            boolean chunkReady = !com.ryvione.gatheringchunks.server.world.SpawnChunkHelper.isEmptyChunk(lvl, spawnChunk);
+
+            int ticksWaited = server.getTickCount() - startTick;
+
+            if (!chunkReady && ticksWaited < maxWaitTicks) {
+                if (ticksWaited % 20 == 0) {
+                    LOGGER.info("[FirstJoin] Waiting for spawn chunk [{},{}] to be placed... ({}t elapsed)",
+                            spawnChunk.x, spawnChunk.z, ticksWaited);
+                }
+                scheduleSpawnTeleport(server, playerUUID, startTick, maxWaitTicks);
+                return;
+            }
+
+            if (!chunkReady) {
+                LOGGER.warn("[FirstJoin] Spawn chunk still empty after {}t — teleporting anyway", ticksWaited);
+            } else {
+                LOGGER.info("[FirstJoin] Spawn chunk [{},{}] is ready after {}t — teleporting player",
+                        spawnChunk.x, spawnChunk.z, ticksWaited);
+            }
+
+            int safeY;
+            LevelChunk spawnLevelChunk = lvl.getChunkAt(spawnChunk.getMiddleBlockPosition(0));
+            if (spawnLevelChunk != null) {
+                int candidateY = com.ryvione.gatheringchunks.common.util.ChunkUtil.getSafeSpawnHeight(
+                        spawnLevelChunk, spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ());
+                if (candidateY > lvl.getMinBuildHeight() + 10) {
+                    safeY = candidateY;
+                } else {
+                    safeY = spawnLevelChunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, 8, 8) + 1;
+                }
+            } else {
+                safeY = lvl.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,
+                        spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ()) + 1;
+            }
+
+            p.teleportTo(lvl,
+                    spawnChunk.getMiddleBlockX() + 0.5,
+                    safeY,
+                    spawnChunk.getMiddleBlockZ() + 0.5,
+                    p.getYRot(),
+                    p.getXRot());
+        }));
     }
 }

@@ -202,6 +202,10 @@ import java.util.Random;
         return true;
     }
 
+    public static void placeTreeAtPublic(ServerLevel level, BlockPos pos, Random random, Holder<Biome> biomeHolder) {
+        placeTreeAt(level, pos, random, biomeHolder);
+    }
+
     private static void placeTreeAt(ServerLevel level, BlockPos pos, Random random, Holder<Biome> biomeHolder) {
         if (biomeHolder.is(Biomes.SAVANNA) || biomeHolder.is(Biomes.SAVANNA_PLATEAU) ||
                 biomeHolder.is(Biomes.WINDSWEPT_SAVANNA)) {

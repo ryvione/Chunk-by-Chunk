@@ -65,6 +65,8 @@ public class SkyChunkGenerator extends ChunkGenerator {
     private Holder<Biome> unspawnedBiome;
     private final Map<String, ResourceKey<Level>> biomeDimensions = new ConcurrentHashMap<>();
     private Set<Long> spawnedChunks = ConcurrentHashMap.newKeySet();
+    @Nullable
+    private transient net.minecraft.server.level.ServerLevel associatedLevel;
 
     public enum EmptyGenerationType {
         Normal,
@@ -173,6 +175,10 @@ public class SkyChunkGenerator extends ChunkGenerator {
         spawnedChunks.remove(chunkPos);
     }
 
+    public void setAssociatedLevel(net.minecraft.server.level.ServerLevel level) {
+        this.associatedLevel = level;
+    }
+
     @Override
     protected MapCodec<? extends ChunkGenerator> codec() {
         return CODEC;
@@ -275,6 +281,12 @@ public class SkyChunkGenerator extends ChunkGenerator {
     @Override
     public WeightedRandomList<MobSpawnSettings.SpawnerData> getMobsAt(Holder<Biome> biome,
             StructureManager structureManager, MobCategory mobCategory, BlockPos pos) {
+        if (associatedLevel != null) {
+            ChunkPos chunkPos = new ChunkPos(pos);
+            if (SpawnChunkHelper.isEmptyChunk(associatedLevel, chunkPos)) {
+                return WeightedRandomList.create();
+            }
+        }
         return parent.getMobsAt(biome, structureManager, mobCategory, pos);
     }
 

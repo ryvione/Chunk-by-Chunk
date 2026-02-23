@@ -191,10 +191,22 @@ public class EventHandler {
                             "Correcting initial spawn position from chunk [{},{}] to spawn chunk [{},{}]",
                             playerChunk.x, playerChunk.z, spawnChunk.x, spawnChunk.z);
 
+                    int safeY = level.getMaxBuildHeight();
+                    net.minecraft.world.level.chunk.LevelChunk spawnLevelChunk =
+                            level.getChunkAt(spawnChunk.getMiddleBlockPosition(0));
+                    if (spawnLevelChunk != null) {
+                        int candidateY = ChunkUtil.getSafeSpawnHeight(spawnLevelChunk, spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ());
+                        if (candidateY > level.getMinBuildHeight() + 10) {
+                            safeY = candidateY;
+                        } else {
+                            safeY = spawnLevelChunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, 8, 8) + 1;
+                        }
+                    }
+
                     player.teleportTo(
                             level,
                             spawnChunk.getMiddleBlockX() + 0.5,
-                            spawnPos.getY(),
+                            safeY,
                             spawnChunk.getMiddleBlockZ() + 0.5,
                             player.getYRot(),
                             player.getXRot());
@@ -224,10 +236,15 @@ public class EventHandler {
                         "Forcing respawn to stay inside spawn chunk [{},{}]",
                         spawnChunk.x, spawnChunk.z);
 
-                int safeY = spawnPos.getY();
+                int safeY = level.getMaxBuildHeight();
                 LevelChunk spawnLevelChunk = level.getChunkAt(spawnChunk.getMiddleBlockPosition(0));
                 if (spawnLevelChunk != null) {
-                    safeY = ChunkUtil.getSafeSpawnHeight(spawnLevelChunk, spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ());
+                    int candidateY = ChunkUtil.getSafeSpawnHeight(spawnLevelChunk, spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ());
+                    if (candidateY > level.getMinBuildHeight() + 10) {
+                        safeY = candidateY;
+                    } else {
+                        safeY = spawnLevelChunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, 8, 8) + 1;
+                    }
                 }
 
                 player.teleportTo(

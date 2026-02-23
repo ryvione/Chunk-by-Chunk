@@ -421,6 +421,29 @@ public class ChunkSpawnController extends SavedData {
                     GatheringChunksConstants.LOGGER.info("[Sync] Set origin for {} to {}", dim,
                             currentSpawnRequest.targetChunkPos());
                 }
+                if (targetLevel.dimension().equals(net.minecraft.world.level.Level.OVERWORLD)) {
+                    ChunkPos initialPos = currentSpawnRequest.targetChunkPos();
+                    net.minecraft.world.level.storage.ServerLevelData levelData =
+                            (net.minecraft.world.level.storage.ServerLevelData) targetLevel.getLevelData();
+                    if (SpawnChunkHelper.isWaterSurfaceChunk(targetLevel, initialPos)) {
+                        GatheringChunksConstants.LOGGER.info("[InitialSpawn] Water-surface chunk detected at {} - building island", initialPos);
+                        net.minecraft.core.BlockPos islandTop = SpawnChunkHelper.buildIslandOnWaterChunk(targetLevel, initialPos);
+                        if (islandTop != null) {
+                            levelData.setSpawn(islandTop, levelData.getSpawnAngle());
+                            GatheringChunksConstants.LOGGER.info("[InitialSpawn] Island built, spawn set to {}", islandTop);
+                        }
+                    } else {
+                        int spawnX = initialPos.getMiddleBlockX();
+                        int spawnZ = initialPos.getMiddleBlockZ();
+                        net.minecraft.world.level.chunk.LevelChunk placedChunk = targetLevel.getChunkSource().getChunkNow(initialPos.x, initialPos.z);
+                        if (placedChunk != null) {
+                            int surfaceY = com.ryvione.gatheringchunks.common.util.ChunkUtil.getSafeSpawnHeight(placedChunk, spawnX, spawnZ);
+                            net.minecraft.core.BlockPos correctedSpawn = new net.minecraft.core.BlockPos(spawnX, surfaceY, spawnZ);
+                            levelData.setSpawn(correctedSpawn, levelData.getSpawnAngle());
+                            GatheringChunksConstants.LOGGER.info("[InitialSpawn] Corrected spawn Y to surface: {}", correctedSpawn);
+                        }
+                    }
+                }
                 ChunkEngineManager.get(server).notifyInitialChunkSpawned(targetLevel,
                         currentSpawnRequest.targetChunkPos);
             } else {
@@ -863,6 +886,25 @@ public class ChunkSpawnController extends SavedData {
                 BiomeCoordinateCache cache = BiomeCoordinateCache.get(server);
 
                 if (cache.hasCachedChunks(sourceDimKey, biomeTheme)) {
+                    List<ChunkPos> adjacentChunksEarly = getAdjacentChunksWithTheme(targetChunkPos, biomeTheme);
+                    if (!adjacentChunksEarly.isEmpty()) {
+                        ChunkPos chainedPos = tryChainedSourceMatch(level, targetChunkPos, biomeTheme);
+                        if (chainedPos != null) {
+                            GatheringChunksConstants.LOGGER
+                                    .info("Using CHAINED source chunk (cache-priority) for '" + biomeTheme + "' at " + chainedPos);
+                            ServerLevel srcLvl = server.getLevel(sourceLevel);
+                            if (srcLvl != null) {
+                                TerrainProfile prof = analyzeChunkTerrain(srcLvl, chainedPos, biomeTheme);
+                                if (prof != null) {
+                                    chunkTerrainProfiles.put(targetChunkPos, prof);
+                                    setDirty();
+                                }
+                            }
+                            return request(targetChunkPos, level.dimension(), chainedPos, sourceLevel, immediate, overwrite,
+                                    isInitial);
+                        }
+                    }
+
                     long biomeSeed = biomeTheme.hashCode() + (targetChunkPos.x * 31L + targetChunkPos.z * 17L);
                     Random seedFinder = new Random(biomeSeed);
 
@@ -871,6 +913,15 @@ public class ChunkSpawnController extends SavedData {
                         GatheringChunksConstants.LOGGER
                                 .info("Using CACHED chunk for '" + biomeTheme + "' at " + cachedChunk +
                                         " (Cache size: " + cache.getCachedChunkCount(sourceDimKey, biomeTheme) + ")");
+                        ServerLevel srcLvl = server.getLevel(sourceLevel);
+                        if (srcLvl != null) {
+                            TerrainProfile prof = analyzeChunkTerrain(srcLvl, cachedChunk, biomeTheme);
+                            if (prof != null) {
+                                chunkTerrainProfiles.put(targetChunkPos, prof);
+                                updatePreScanCache(srcLvl, cachedChunk, biomeTheme);
+                                setDirty();
+                            }
+                        }
                         return request(targetChunkPos, level.dimension(), cachedChunk, sourceLevel, immediate,
                                 overwrite, isInitial);
                     }

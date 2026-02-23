@@ -5,7 +5,7 @@ plugins {
 
 version = rootProject.version
 group = rootProject.group
-archivesBaseName = "${mod_name}-fabric-${minecraft_version}"
+archivesBaseName = "${mod_name}-Fabric-${minecraft_version}"
 
 repositories {
     maven {

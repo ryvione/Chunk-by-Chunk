@@ -26,6 +26,7 @@ import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.common.mixinterface.IHolderReference;
 import com.ryvione.gatheringchunks.common.mixinterface.IMultiNoiseBiomeSource;
+import com.ryvione.gatheringchunks.server.EntityTickWatchdog;
 import com.ryvione.gatheringchunks.server.world.*;
 import com.ryvione.gatheringchunks.server.world.WorldMigrationManager;
 import net.minecraft.core.*;
@@ -360,6 +361,12 @@ public final class ServerEventHandler {
         WorldMigrationManager migrationManager = WorldMigrationManager.get(server);
         migrationManager.runMigrationsIfNeeded(server);
 
+        for (ServerLevel level : server.getAllLevels()) {
+            if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
+                generator.setAssociatedLevel(level);
+            }
+        }
+
         if (ChunkByChunkConfig.get().getGeneration().isEnabled()) {
             checkSpawnInitialChunks(server);
             if (ChunkByChunkConfig.get().getGeneration().isSynchNether()) {
@@ -380,8 +387,9 @@ public final class ServerEventHandler {
             ChunkPos chunkSpawnPos = new ChunkPos(overworldSpawnPos);
             if (SpawnChunkHelper.isEmptyChunk(overworldLevel, chunkSpawnPos)) {
                 overworldSpawnPos = findAppropriateSpawnChunk(overworldLevel, generationLevel, server.registryAccess());
+                String initialBiomeTheme = resolveInitialBiomeTheme(server);
                 spawnInitialChunks(overworldLevel, skyGenerator.getInitialChunks(), overworldSpawnPos,
-                        ChunkByChunkConfig.get().getDifficulty().spawnNewChunkChest());
+                        ChunkByChunkConfig.get().getDifficulty().spawnNewChunkChest(), initialBiomeTheme);
             }
         } else {
             overworldSpawnPos = overworldLevel.getSharedSpawnPos();
@@ -390,10 +398,32 @@ public final class ServerEventHandler {
             if (level != overworldLevel
                     && level.getChunkSource().getGenerator() instanceof SkyChunkGenerator levelGenerator) {
                 if (levelGenerator.getInitialChunks() > 0) {
-                    spawnInitialChunks(level, levelGenerator.getInitialChunks(), overworldSpawnPos, false);
+                    spawnInitialChunks(level, levelGenerator.getInitialChunks(), overworldSpawnPos, false, "");
                 }
             }
         }
+    }
+
+    /**
+     * Returns the biome theme name (e.g. "cherryblossum") that matches the configured
+     * initial chunk biome filter, or "" if no filter is set.
+     */
+    private static String resolveInitialBiomeTheme(MinecraftServer server) {
+        java.util.List<String> allowedBiomes = ChunkByChunkConfig.get().getGeneration().getInitialChunkBiomes();
+        if (allowedBiomes == null || allowedBiomes.isEmpty()) {
+            return "";
+        }
+        for (com.ryvione.gatheringchunks.common.data.SkyDimensionData config : SkyDimensions.getSkyDimensions().values()) {
+            if (!"minecraft:overworld".equals(config.dimensionId)) continue;
+            for (Map.Entry<String, List<String>> themeEntry : config.biomeThemes.entrySet()) {
+                String themeName = themeEntry.getKey();
+                List<String> themeBiomes = themeEntry.getValue();
+                if (themeBiomes.stream().anyMatch(allowedBiomes::contains)) {
+                    return themeName;
+                }
+            }
+        }
+        return "";
     }
 
     private static BlockPos findAppropriateSpawnChunk(ServerLevel overworldLevel, ServerLevel generationLevel,
@@ -462,20 +492,47 @@ public final class ServerEventHandler {
                     }
 
                     try {
-                        LevelChunk chunk = generationLevel.getChunkSource().getChunkNow(pos.x, pos.z);
-                        if (chunk == null) {
-                            continue;
-                        }
+                        java.util.List<String> allowedBiomes = ChunkByChunkConfig.get().getGeneration().getInitialChunkBiomes();
+                        boolean biomeFilterActive = allowedBiomes != null && !allowedBiomes.isEmpty();
 
-                        if (isGoodSpawnChunk(chunk, logsTag, leavesTag, copper)) {
-                            BlockPos goodSpawn = new BlockPos(
-                                    pos.getMiddleBlockX(),
-                                    ChunkUtil.getSafeSpawnHeight(chunk, pos.getMiddleBlockX(), pos.getMiddleBlockZ()),
-                                    pos.getMiddleBlockZ());
-                            foundSpawn.set(goodSpawn);
-                            LOGGER.info("[SpawnFinder] Found spawn at {} after {} checks ({}ms)",
-                                    pos, checkedCount.get(), System.currentTimeMillis() - startTime);
-                            break outerLoop;
+                        if (biomeFilterActive) {
+                            ServerLevel biomeLevel = findBiomeGenLevel(overworldLevel.getServer(), allowedBiomes);
+                            if (biomeLevel == null) {
+                                LevelChunk chunk = generationLevel.getChunk(pos.x, pos.z);
+                                if (isGoodSpawnChunk(chunk, logsTag, leavesTag, copper)) {
+                                    BlockPos goodSpawn = new BlockPos(
+                                            pos.getMiddleBlockX(),
+                                            ChunkUtil.getSafeSpawnHeight(chunk, pos.getMiddleBlockX(), pos.getMiddleBlockZ()),
+                                            pos.getMiddleBlockZ());
+                                    foundSpawn.set(goodSpawn);
+                                    LOGGER.info("[SpawnFinder] Found spawn (no themed dim) at {} after {} checks ({}ms)",
+                                            pos, checkedCount.get(), System.currentTimeMillis() - startTime);
+                                    break outerLoop;
+                                }
+                            } else {
+                                if (isAllowedInitialChunkBiome(biomeLevel, pos)) {
+                                    int surfaceY = biomeLevel.getHeight(
+                                            net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,
+                                            pos.getMiddleBlockX(), pos.getMiddleBlockZ()) + 1;
+                                    BlockPos goodSpawn = new BlockPos(pos.getMiddleBlockX(), surfaceY, pos.getMiddleBlockZ());
+                                    foundSpawn.set(goodSpawn);
+                                    LOGGER.info("[SpawnFinder] Found biome-filtered spawn ({}) at {} after {} checks ({}ms)",
+                                            biomeLevel.dimension().location(), pos, checkedCount.get(), System.currentTimeMillis() - startTime);
+                                    break outerLoop;
+                                }
+                            }
+                        } else {
+                            LevelChunk chunk = generationLevel.getChunk(pos.x, pos.z);
+                            if (isGoodSpawnChunk(chunk, logsTag, leavesTag, copper)) {
+                                BlockPos goodSpawn = new BlockPos(
+                                        pos.getMiddleBlockX(),
+                                        ChunkUtil.getSafeSpawnHeight(chunk, pos.getMiddleBlockX(), pos.getMiddleBlockZ()),
+                                        pos.getMiddleBlockZ());
+                                foundSpawn.set(goodSpawn);
+                                LOGGER.info("[SpawnFinder] Found spawn at {} after {} checks ({}ms)",
+                                        pos, checkedCount.get(), System.currentTimeMillis() - startTime);
+                                break outerLoop;
+                            }
                         }
                     } catch (Exception e) {
                         LOGGER.debug("[SpawnFinder] Error checking {}: {}", pos, e.getMessage());
@@ -528,6 +585,53 @@ public final class ServerEventHandler {
         return true;
     }
 
+    private static boolean isBasicSpawnChunk(LevelChunk chunk, TagKey<Block> logsTag, TagKey<Block> leavesTag) {
+        int logCount = ChunkUtil.countBlocks(chunk, logsTag);
+        if (logCount <= 2)
+            return false;
+
+        int leavesCount = ChunkUtil.countBlocks(chunk, leavesTag);
+        return leavesCount > 3;
+    }
+
+    private static boolean isAllowedInitialChunkBiome(ServerLevel level, ChunkPos pos) {
+        java.util.List<String> allowedBiomes = ChunkByChunkConfig.get().getGeneration().getInitialChunkBiomes();
+        if (allowedBiomes == null || allowedBiomes.isEmpty()) {
+            return true;
+        }
+        BlockPos center = new BlockPos(pos.getMiddleBlockX(), 64, pos.getMiddleBlockZ());
+        net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> biomeHolder = level.getBiome(center);
+        java.util.Optional<net.minecraft.resources.ResourceKey<net.minecraft.world.level.biome.Biome>> biomeKey =
+                biomeHolder.unwrapKey();
+        if (biomeKey.isEmpty()) {
+            return false;
+        }
+        String biomeId = biomeKey.get().location().toString();
+        return allowedBiomes.contains(biomeId);
+    }
+
+    private static ServerLevel findBiomeGenLevel(net.minecraft.server.MinecraftServer server, java.util.List<String> allowedBiomes) {
+        for (com.ryvione.gatheringchunks.common.data.SkyDimensionData config : SkyDimensions.getSkyDimensions().values()) {
+            if (!"minecraft:overworld".equals(config.dimensionId)) continue;
+            for (Map.Entry<String, List<String>> themeEntry : config.biomeThemes.entrySet()) {
+                String themeName = themeEntry.getKey();
+                List<String> themeBiomes = themeEntry.getValue();
+                boolean hasMatch = themeBiomes.stream().anyMatch(allowedBiomes::contains);
+                if (hasMatch) {
+                    String genDimId = "minecraft:overworld_" + themeName + "_gen";
+                    ResourceKey<Level> levelKey = ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,
+                            net.minecraft.resources.ResourceLocation.parse(genDimId));
+                    ServerLevel level = server.getLevel(levelKey);
+                    if (level != null) {
+                        LOGGER.info("[SpawnFinder] Using biome gen dimension {} for allowed biomes", genDimId);
+                        return level;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     private static BlockPos findBiome(ServerLevel overworldLevel, ServerLevel generationLevel,
             RegistryAccess registryAccess, BlockPos spawnPos, String startingBiome) {
         if (startingBiome.startsWith("#")) {
@@ -578,7 +682,7 @@ public final class ServerEventHandler {
     }
 
     private static void spawnInitialChunks(ServerLevel level, int initialChunks, BlockPos overworldSpawn,
-            boolean spawnChest) {
+            boolean spawnChest, String biomeTheme) {
         ChunkSpawnController chunkSpawnController = ChunkSpawnController.get(level.getServer());
         BlockPos scaledSpawn = new BlockPos(
                 Mth.floor(overworldSpawn.getX() / level.dimensionType().coordinateScale()),
@@ -586,8 +690,10 @@ public final class ServerEventHandler {
                 Mth.floor(overworldSpawn.getZ() / level.dimensionType().coordinateScale()));
         ChunkPos centerChunkPos = new ChunkPos(scaledSpawn);
 
-        LOGGER.info("[InitialSpawn] Queuing {} chunks for async spawn at [{}, {}]",
-                initialChunks, centerChunkPos.x, centerChunkPos.z);
+        String effectiveTheme = (biomeTheme != null && !biomeTheme.isEmpty()) ? biomeTheme : "";
+
+        LOGGER.info("[InitialSpawn] Queuing {} chunks for async spawn at [{}, {}] (theme='{}')",
+                initialChunks, centerChunkPos.x, centerChunkPos.z, effectiveTheme);
         long startTime = System.currentTimeMillis();
 
         List<ChunkPos> queuedChunks = new ArrayList<>();
@@ -598,10 +704,10 @@ public final class ServerEventHandler {
                 ChunkPos targetPos = new ChunkPos(centerChunkPos.x + offset[0], centerChunkPos.z + offset[1]);
                 boolean isInitial = (offset[0] == 0 && offset[1] == 0);
 
-                if (chunkSpawnController.request(level, "", false, targetPos.getMiddleBlockPosition(0),
+                if (chunkSpawnController.request(level, effectiveTheme, false, targetPos.getMiddleBlockPosition(0),
                         false, false, isInitial)) {
                     queuedChunks.add(targetPos);
-                    LOGGER.info("[InitialSpawn] Queued chunk {} (async)", targetPos);
+                    LOGGER.info("[InitialSpawn] Queued chunk {} (async, theme='{}')", targetPos, effectiveTheme);
 
                     if (spawnChest && isInitial) {
                         SpawnChunkHelper.createNextSpawner(level, targetPos);
@@ -616,10 +722,10 @@ public final class ServerEventHandler {
                 ChunkPos targetPos = new ChunkPos(spiralIterator.getX(), spiralIterator.getY());
                 boolean isInitial = (i == 0);
 
-                if (chunkSpawnController.request(level, "", false, targetPos.getMiddleBlockPosition(0),
+                if (chunkSpawnController.request(level, effectiveTheme, false, targetPos.getMiddleBlockPosition(0),
                         false, false, isInitial)) {
                     queuedChunks.add(targetPos);
-                    LOGGER.info("[InitialSpawn] Queued chunk {} (async)", targetPos);
+                    LOGGER.info("[InitialSpawn] Queued chunk {} (async, theme='{}')", targetPos, effectiveTheme);
 
                     if (spawnChest && isInitial) {
                         SpawnChunkHelper.createNextSpawner(level, targetPos);
@@ -718,6 +824,8 @@ public final class ServerEventHandler {
         if (server.getTickCount() % 200 == 0 && ChunkByChunkConfig.get().getDifficulty().isEnableProgressionHelper()) {
             PlayerProgressionHelper.checkPlayers(server);
         }
+
+        EntityTickWatchdog.tick(server);
     }
 
     public static void onPlayerChangedDimension(ServerPlayer player, ResourceKey<Level> fromLevel, ResourceKey<Level> toLevel) {

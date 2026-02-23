@@ -15,13 +15,17 @@ import com.google.gson.GsonBuilder;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.config.GatheringChunksConfig;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ClientConfigStorage {
@@ -89,32 +93,71 @@ public class ClientConfigStorage {
                 LOGGER.error("[ClientConfigStorage] Received empty config JSON");
                 return;
             }
-            
+
             GatheringChunksConfig syncedConfig = GSON.fromJson(configJson, GatheringChunksConfig.class);
             if (syncedConfig == null) {
                 LOGGER.error("[ClientConfigStorage] Failed to deserialize config from JSON");
                 return;
             }
 
-            GatheringChunksConfig targetConfig = ChunkByChunkConfig.get().getGatheringChunksConfig();
-            
+            GatheringChunksConfig localConfig = ChunkByChunkConfig.get().getGatheringChunksConfig();
+            List<String> mismatches = detectMismatches(localConfig, syncedConfig);
+
             try {
-                targetConfig.setPreventFluidFlowIntoVoid(syncedConfig.isPreventFluidFlowIntoVoid());
-                targetConfig.setAutoSpawnTrees(syncedConfig.isAutoSpawnTrees());
-                targetConfig.setMobsDropFragments(syncedConfig.isMobsDropFragments());
-                targetConfig.setFragmentDropChance(syncedConfig.getFragmentDropChance());
-                targetConfig.setMinFragmentDrop(syncedConfig.getMinFragmentDrop());
-                targetConfig.setMaxFragmentDrop(syncedConfig.getMaxFragmentDrop());
+                localConfig.setPreventFluidFlowIntoVoid(syncedConfig.isPreventFluidFlowIntoVoid());
+                localConfig.setAutoSpawnTrees(syncedConfig.isAutoSpawnTrees());
+                localConfig.setMobsDropFragments(syncedConfig.isMobsDropFragments());
+                localConfig.setFragmentDropChance(syncedConfig.getFragmentDropChance());
+                localConfig.setMinFragmentDrop(syncedConfig.getMinFragmentDrop());
+                localConfig.setMaxFragmentDrop(syncedConfig.getMaxFragmentDrop());
             } catch (Exception fieldError) {
                 LOGGER.warn("[ClientConfigStorage] Error applying individual config fields: {}", fieldError.getMessage());
             }
 
-            rememberServerConfig(currentServerId, syncedConfig);
+            if (!mismatches.isEmpty()) {
+                LOGGER.info("[ClientConfigStorage] Config mismatch detected with server - {} fields overridden", mismatches.size());
+                sendConfigMismatchMessage(mismatches);
+            }
 
+            rememberServerConfig(currentServerId, syncedConfig);
             LOGGER.info("[ClientConfigStorage] Applied synced config from server: {}", currentServerId);
         } catch (Exception e) {
             LOGGER.error("[ClientConfigStorage] Failed to apply synced config: {}", e.getMessage());
             LOGGER.debug("[ClientConfigStorage] Full error:", e);
+        }
+    }
+
+    private static List<String> detectMismatches(GatheringChunksConfig local, GatheringChunksConfig server) {
+        List<String> mismatches = new ArrayList<>();
+        if (local.isPreventFluidFlowIntoVoid() != server.isPreventFluidFlowIntoVoid()) {
+            mismatches.add("Prevent Fluid Flow Into Void: " + local.isPreventFluidFlowIntoVoid() + " -> " + server.isPreventFluidFlowIntoVoid());
+        }
+        if (local.isAutoSpawnTrees() != server.isAutoSpawnTrees()) {
+            mismatches.add("Auto-Spawn Trees: " + local.isAutoSpawnTrees() + " -> " + server.isAutoSpawnTrees());
+        }
+        if (local.isMobsDropFragments() != server.isMobsDropFragments()) {
+            mismatches.add("Mobs Drop Fragments: " + local.isMobsDropFragments() + " -> " + server.isMobsDropFragments());
+        }
+        if (local.getFragmentDropChance() != server.getFragmentDropChance()) {
+            mismatches.add("Fragment Drop Chance: " + local.getFragmentDropChance() + "% -> " + server.getFragmentDropChance() + "%");
+        }
+        if (local.getMinFragmentDrop() != server.getMinFragmentDrop()) {
+            mismatches.add("Min Fragment Drop: " + local.getMinFragmentDrop() + " -> " + server.getMinFragmentDrop());
+        }
+        if (local.getMaxFragmentDrop() != server.getMaxFragmentDrop()) {
+            mismatches.add("Max Fragment Drop: " + local.getMaxFragmentDrop() + " -> " + server.getMaxFragmentDrop());
+        }
+        return mismatches;
+    }
+
+    private static void sendConfigMismatchMessage(List<String> mismatches) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+
+        mc.player.sendSystemMessage(Component.literal(
+                "§6[Gathering Chunks] §eYour config differed from the server's. The server config has been applied:"));
+        for (String mismatch : mismatches) {
+            mc.player.sendSystemMessage(Component.literal("§7  » §f" + mismatch));
         }
     }
 

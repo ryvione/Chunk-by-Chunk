@@ -76,7 +76,7 @@ public class SpawnChunkBlock extends Block {
             }
         }
 
-        if (mode == ChunkSpawnerMode.Edge || mode == ChunkSpawnerMode.Both) {
+        if ((mode == ChunkSpawnerMode.Edge || mode == ChunkSpawnerMode.Both) && !ownChunkEmpty) {
             Direction targetDirection = hit.getDirection();
             if (!HORIZONTAL_DIR.contains(targetDirection)) {
                 targetDirection = Direction.NORTH;
@@ -115,10 +115,6 @@ public class SpawnChunkBlock extends Block {
                             + " (Theme: " + effectiveBiomeTheme + ")");
                 }
             }
-
-            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                    "§c[ChunkByChunk] §eNo valid adjacent empty chunks found or spawn limit reached."));
-            return InteractionResult.CONSUME;
         }
 
         if (!ownChunkEmpty) {

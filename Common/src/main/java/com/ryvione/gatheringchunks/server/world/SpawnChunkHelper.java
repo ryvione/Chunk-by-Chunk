@@ -13,15 +13,20 @@ import com.ryvione.gatheringchunks.common.util.ChunkUtil;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.interop.Services;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.levelgen.Heightmap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +54,84 @@ public final class SpawnChunkHelper {
         }
 
         return true;
+    }
+
+    public static boolean isWaterSurfaceChunk(ServerLevel level, ChunkPos chunkPos) {
+        LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x, chunkPos.z);
+        if (chunk == null) return false;
+
+        int waterCount = 0;
+        int totalSamples = 0;
+
+        for (int lx = 0; lx < 16; lx += 4) {
+            for (int lz = 0; lz < 16; lz += 4) {
+                totalSamples++;
+                int surfaceY = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, lx, lz);
+                if (surfaceY <= level.getMinBuildHeight()) continue;
+
+                BlockPos checkPos = new BlockPos(chunkPos.getMinBlockX() + lx, surfaceY, chunkPos.getMinBlockZ() + lz);
+                if (level.getBlockState(checkPos).getBlock() instanceof LiquidBlock) {
+                    waterCount++;
+                } else {
+                    BlockPos oneBelow = checkPos.below();
+                    if (level.getBlockState(oneBelow).getBlock() instanceof LiquidBlock) {
+                        waterCount++;
+                    }
+                }
+            }
+        }
+
+        if (totalSamples == 0) return false;
+        return (float) waterCount / totalSamples >= 1.0f;
+    }
+
+    public static BlockPos buildIslandOnWaterChunk(ServerLevel level, ChunkPos chunkPos) {
+        LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x, chunkPos.z);
+        if (chunk == null) return null;
+
+        int centerX = chunkPos.getMiddleBlockX();
+        int centerZ = chunkPos.getMiddleBlockZ();
+        int localCX = 8;
+        int localCZ = 8;
+        int waterY = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, localCX, localCZ);
+
+        int islandY = waterY;
+
+        int[][] islandOffsets = {
+            {0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1},
+            {2, 0}, {-2, 0}, {0, 2}, {0, -2},
+            {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
+        };
+
+        for (int[] off : islandOffsets) {
+            int bx = centerX + off[0];
+            int bz = centerZ + off[1];
+            int dist = Math.abs(off[0]) + Math.abs(off[1]);
+
+            boolean isCenter = (off[0] == 0 && off[1] == 0);
+            boolean isDiag = (Math.abs(off[0]) == 1 && Math.abs(off[1]) == 1);
+            boolean isEdge = dist == 2 || isDiag;
+
+            Block topBlock = isCenter ? Blocks.GRASS_BLOCK : (isEdge ? Blocks.DIRT : Blocks.GRASS_BLOCK);
+
+            level.setBlock(new BlockPos(bx, islandY, bz), topBlock.defaultBlockState(), Block.UPDATE_ALL);
+            for (int dy = 1; dy <= 3; dy++) {
+                level.setBlock(new BlockPos(bx, islandY - dy, bz), Blocks.DIRT.defaultBlockState(), Block.UPDATE_ALL);
+            }
+        }
+
+        BlockPos islandSurface = new BlockPos(centerX, islandY + 1, centerZ);
+
+        Random random = ChunkUtil.getChunkRandom(level, chunkPos);
+        Holder<Biome> biome = level.getBiome(islandSurface);
+
+        BlockPos tree1Pos = islandSurface;
+        BlockPos tree2Pos = new BlockPos(centerX + 3, islandY + 1, centerZ + 3);
+
+        TreePlacementHandler.placeTreeAtPublic(level, tree1Pos, random, biome);
+        TreePlacementHandler.placeTreeAtPublic(level, tree2Pos, random, biome);
+
+        return islandSurface;
     }
 
     private static BlockPos pickChestPos(ServerLevel targetLevel, ChunkPos chunkPos, Random random, List<BlockPos> usedPositions) {

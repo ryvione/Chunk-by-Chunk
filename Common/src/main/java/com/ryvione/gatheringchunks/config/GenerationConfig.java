@@ -13,6 +13,9 @@ import com.ryvione.gatheringchunks.config.system.Comment;
 import com.ryvione.gatheringchunks.config.system.IntRange;
 import com.ryvione.gatheringchunks.config.system.Name;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class GenerationConfig {
 
     @Name("enabled")
@@ -72,6 +75,34 @@ public class GenerationConfig {
     @Name("disable_water_only_chunks")
     @Comment("Prevent spawning chunks that are mostly water (for biome spawners)")
     private boolean disableWaterOnlyChunks = true;
+
+    @Name("initial_chunk_biomes")
+    @Comment("List of biome IDs allowed for the initial chunk spawn location.\n" +
+             "Leave empty to allow any biome.\n" +
+             "Example: [\"minecraft:plains\", \"minecraft:forest\"]")
+    private List<String> initialChunkBiomes = new java.util.ArrayList<>(Arrays.asList(
+            "minecraft:plains",
+            "minecraft:sunflower_plains",
+            "minecraft:forest",
+            "minecraft:flower_forest",
+            "minecraft:birch_forest",
+            "minecraft:old_growth_birch_forest",
+            "minecraft:dark_forest",
+            "minecraft:taiga",
+            "minecraft:old_growth_pine_taiga",
+            "minecraft:old_growth_spruce_taiga",
+            "minecraft:savanna",
+            "minecraft:savanna_plateau",
+            "minecraft:windswept_savanna",
+            "minecraft:jungle",
+            "minecraft:sparse_jungle",
+            "minecraft:bamboo_jungle",
+            "minecraft:cherry_grove",
+            "minecraft:meadow",
+            "minecraft:windswept_forest",
+            "minecraft:windswept_hills",
+            "minecraft:grove"
+    ));
 
     public boolean isEnabled() {
         return enabled;
@@ -167,5 +198,13 @@ public class GenerationConfig {
 
     public void setSealWorld(boolean sealWorld) {
         this.sealWorld = sealWorld;
+    }
+
+    public List<String> getInitialChunkBiomes() {
+        return initialChunkBiomes;
+    }
+
+    public void setInitialChunkBiomes(List<String> initialChunkBiomes) {
+        this.initialChunkBiomes = initialChunkBiomes;
     }
 }

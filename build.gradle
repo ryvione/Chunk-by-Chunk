@@ -1,6 +1,35 @@
 plugins {
     id 'java'
 }
+
+def versionProps = new Properties()
+file("version.properties").withInputStream { versionProps.load(it) }
+
+def vMajor = versionProps.getProperty("major", "1")
+def vMinor = versionProps.getProperty("minor", "0")
+def vPatch = versionProps.getProperty("patch", "0")
+def vPrerelease = versionProps.getProperty("prerelease", "").trim()
+def vBuild = versionProps.getProperty("build", "1").trim()
+def vHotfix = versionProps.getProperty("hotfix", "").trim()
+def vBeta = versionProps.getProperty("beta", "").trim()
+
+def computedVersion = "${vMajor}.${vMinor}.${vPatch}"
+if (!vBeta.isEmpty()) {
+    computedVersion += "-Beta.${vBeta}"
+}
+if (!vPrerelease.isEmpty()) {
+    computedVersion += "-${vPrerelease}"
+}
+computedVersion += "-Build.${vBuild}"
+if (!vHotfix.isEmpty()) {
+    computedVersion += "-Hotfix.${vHotfix}"
+}
+
+version = computedVersion
+ext.modFullVersion = computedVersion
+
+println "[GatheringChunks] Version: ${computedVersion}"
+
 subprojects {
     apply plugin: 'java'
     group = 'com.ryvione'
@@ -50,6 +79,7 @@ subprojects {
         enabled = false
     }
 }
+
 task copyToReleases(type: Copy) {
     dependsOn ':Fabric:build', ':NeoForge:build'
     from files('Fabric/build/libs', 'NeoForge/build/libs')

@@ -369,6 +369,22 @@ public class GatheringChunksConfigScreen extends Screen {
         });
         currentY += SPACING;
 
+        int enabledCount = ChunkByChunkConfig.get().getGeneration().getInitialChunkBiomes().size();
+        String biomeBtnLabel = enabledCount == 0
+                ? "[EXPERIMENTAL] Initial Chunk Biomes: Any biome"
+                : "[EXPERIMENTAL] Initial Chunk Biomes: " + enabledCount + " selected";
+        this.addRenderableWidget(Button.builder(
+                        Component.literal(biomeBtnLabel),
+                        button -> {
+                            if (this.minecraft != null) {
+                                this.minecraft.setScreen(new InitialBiomeSelectorScreen(this));
+                            }
+                        })
+                .bounds(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.literal("⚠ EXPERIMENTAL: Biome filtering may not work correctly and can cause unexpected spawns.\nSelect which biomes are allowed for the initial chunk spawn.\nEmpty selection = any biome allowed.")))
+                .build());
+        currentY += SPACING;
+
         currentY += SECTION_SPACING;
 
         currentY = addSectionLabel(centerX, currentY, "Gameplay", 0xFF5555FF);
@@ -648,6 +664,286 @@ public class GatheringChunksConfigScreen extends Screen {
         com.ryvione.gatheringchunks.common.util.ConfigUtil.saveDefaultConfig();
         if (this.minecraft != null) {
             this.minecraft.setScreen(parentScreen);
+        }
+    }
+
+    public static class InitialBiomeSelectorScreen extends Screen {
+
+        private static final java.util.List<String> ALL_SELECTABLE_BIOMES = java.util.List.of(
+                "minecraft:plains",
+                "minecraft:sunflower_plains",
+                "minecraft:forest",
+                "minecraft:flower_forest",
+                "minecraft:birch_forest",
+                "minecraft:old_growth_birch_forest",
+                "minecraft:dark_forest",
+                "minecraft:taiga",
+                "minecraft:old_growth_pine_taiga",
+                "minecraft:old_growth_spruce_taiga",
+                "minecraft:savanna",
+                "minecraft:savanna_plateau",
+                "minecraft:windswept_savanna",
+                "minecraft:jungle",
+                "minecraft:sparse_jungle",
+                "minecraft:bamboo_jungle",
+                "minecraft:cherry_grove",
+                "minecraft:meadow",
+                "minecraft:windswept_forest",
+                "minecraft:windswept_hills",
+                "minecraft:grove",
+                "minecraft:stony_peaks",
+                "minecraft:wooded_badlands",
+                "minecraft:eroded_badlands",
+                "minecraft:badlands",
+                "minecraft:desert",
+                "minecraft:snowy_plains",
+                "minecraft:snowy_taiga",
+                "minecraft:snowy_slopes",
+                "minecraft:frozen_peaks",
+                "minecraft:jagged_peaks",
+                "minecraft:ice_spikes",
+                "minecraft:swamp",
+                "minecraft:mangrove_swamp",
+                "minecraft:river",
+                "minecraft:beach",
+                "minecraft:ocean",
+                "minecraft:deep_ocean",
+                "minecraft:mushroom_fields"
+        );
+
+        private static final java.util.Map<String, String> BIOME_DISPLAY_NAMES = new java.util.LinkedHashMap<>();
+        static {
+            BIOME_DISPLAY_NAMES.put("minecraft:plains", "Plains");
+            BIOME_DISPLAY_NAMES.put("minecraft:sunflower_plains", "Sunflower Plains");
+            BIOME_DISPLAY_NAMES.put("minecraft:forest", "Forest");
+            BIOME_DISPLAY_NAMES.put("minecraft:flower_forest", "Flower Forest");
+            BIOME_DISPLAY_NAMES.put("minecraft:birch_forest", "Birch Forest");
+            BIOME_DISPLAY_NAMES.put("minecraft:old_growth_birch_forest", "Old Growth Birch Forest");
+            BIOME_DISPLAY_NAMES.put("minecraft:dark_forest", "Dark Forest");
+            BIOME_DISPLAY_NAMES.put("minecraft:taiga", "Taiga");
+            BIOME_DISPLAY_NAMES.put("minecraft:old_growth_pine_taiga", "Old Growth Pine Taiga");
+            BIOME_DISPLAY_NAMES.put("minecraft:old_growth_spruce_taiga", "Old Growth Spruce Taiga");
+            BIOME_DISPLAY_NAMES.put("minecraft:savanna", "Savanna");
+            BIOME_DISPLAY_NAMES.put("minecraft:savanna_plateau", "Savanna Plateau");
+            BIOME_DISPLAY_NAMES.put("minecraft:windswept_savanna", "Windswept Savanna");
+            BIOME_DISPLAY_NAMES.put("minecraft:jungle", "Jungle");
+            BIOME_DISPLAY_NAMES.put("minecraft:sparse_jungle", "Sparse Jungle");
+            BIOME_DISPLAY_NAMES.put("minecraft:bamboo_jungle", "Bamboo Jungle");
+            BIOME_DISPLAY_NAMES.put("minecraft:cherry_grove", "Cherry Grove");
+            BIOME_DISPLAY_NAMES.put("minecraft:meadow", "Meadow");
+            BIOME_DISPLAY_NAMES.put("minecraft:windswept_forest", "Windswept Forest");
+            BIOME_DISPLAY_NAMES.put("minecraft:windswept_hills", "Windswept Hills");
+            BIOME_DISPLAY_NAMES.put("minecraft:grove", "Grove");
+            BIOME_DISPLAY_NAMES.put("minecraft:stony_peaks", "Stony Peaks");
+            BIOME_DISPLAY_NAMES.put("minecraft:wooded_badlands", "Wooded Badlands");
+            BIOME_DISPLAY_NAMES.put("minecraft:eroded_badlands", "Eroded Badlands");
+            BIOME_DISPLAY_NAMES.put("minecraft:badlands", "Badlands");
+            BIOME_DISPLAY_NAMES.put("minecraft:desert", "Desert");
+            BIOME_DISPLAY_NAMES.put("minecraft:snowy_plains", "Snowy Plains");
+            BIOME_DISPLAY_NAMES.put("minecraft:snowy_taiga", "Snowy Taiga");
+            BIOME_DISPLAY_NAMES.put("minecraft:snowy_slopes", "Snowy Slopes");
+            BIOME_DISPLAY_NAMES.put("minecraft:frozen_peaks", "Frozen Peaks");
+            BIOME_DISPLAY_NAMES.put("minecraft:jagged_peaks", "Jagged Peaks");
+            BIOME_DISPLAY_NAMES.put("minecraft:ice_spikes", "Ice Spikes");
+            BIOME_DISPLAY_NAMES.put("minecraft:swamp", "Swamp");
+            BIOME_DISPLAY_NAMES.put("minecraft:mangrove_swamp", "Mangrove Swamp");
+            BIOME_DISPLAY_NAMES.put("minecraft:river", "River");
+            BIOME_DISPLAY_NAMES.put("minecraft:beach", "Beach");
+            BIOME_DISPLAY_NAMES.put("minecraft:ocean", "Ocean");
+            BIOME_DISPLAY_NAMES.put("minecraft:deep_ocean", "Deep Ocean");
+            BIOME_DISPLAY_NAMES.put("minecraft:mushroom_fields", "Mushroom Fields");
+        }
+
+        private static final int ENTRY_HEIGHT = 22;
+        private static final int ENTRY_WIDTH = 220;
+        private static final int SCROLLBAR_WIDTH = 8;
+        private static final int SCROLL_SPEED = 20;
+
+        private int VIEW_TOP;
+        private int VIEW_BOTTOM;
+        private int viewHeight;
+
+        private final Screen parentScreen;
+        private int scrollOffset = 0;
+        private int contentHeight = 0;
+        private boolean isScrollbarDragging = false;
+
+        public InitialBiomeSelectorScreen(Screen parent) {
+            super(Component.literal("Initial Chunk Biomes"));
+            this.parentScreen = parent;
+        }
+
+        @Override
+        protected void init() {
+            super.init();
+            this.clearWidgets();
+
+            VIEW_TOP = 44;
+            VIEW_BOTTOM = this.height - 36;
+            viewHeight = Math.max(0, VIEW_BOTTOM - VIEW_TOP);
+
+            int centerX = this.width / 2;
+
+            java.util.List<String> enabled = ChunkByChunkConfig.get().getGeneration().getInitialChunkBiomes();
+            int currentY = VIEW_TOP - scrollOffset;
+
+            for (String biomeId : ALL_SELECTABLE_BIOMES) {
+                boolean active = enabled.contains(biomeId);
+                String displayName = BIOME_DISPLAY_NAMES.getOrDefault(biomeId, biomeId);
+                final String fBiomeId = biomeId;
+
+                int btnY = currentY;
+                if (btnY + ENTRY_HEIGHT > VIEW_TOP && btnY < VIEW_BOTTOM) {
+                    Button btn = Button.builder(
+                            buildBiomeLabel(displayName, active),
+                            button -> {
+                                java.util.List<String> current =
+                                        new java.util.ArrayList<>(ChunkByChunkConfig.get().getGeneration().getInitialChunkBiomes());
+                                if (current.contains(fBiomeId)) {
+                                    current.remove(fBiomeId);
+                                } else {
+                                    current.add(fBiomeId);
+                                }
+                                ChunkByChunkConfig.get().getGeneration().setInitialChunkBiomes(current);
+                                this.rebuildWidgets();
+                            })
+                            .bounds(centerX - ENTRY_WIDTH / 2, btnY, ENTRY_WIDTH, ENTRY_HEIGHT - 2)
+                            .build();
+                    this.addRenderableWidget(btn);
+                }
+                currentY += ENTRY_HEIGHT;
+            }
+
+            contentHeight = ALL_SELECTABLE_BIOMES.size() * ENTRY_HEIGHT;
+
+            int bottomBtnY = this.height - 28;
+
+            this.addRenderableWidget(Button.builder(
+                    Component.literal("Select All"),
+                    button -> {
+                        ChunkByChunkConfig.get().getGeneration().setInitialChunkBiomes(
+                                new java.util.ArrayList<>(ALL_SELECTABLE_BIOMES));
+                        this.rebuildWidgets();
+                    })
+                    .bounds(centerX - ENTRY_WIDTH / 2, bottomBtnY, ENTRY_WIDTH / 2 - 2, 20)
+                    .build());
+
+            this.addRenderableWidget(Button.builder(
+                    Component.literal("Clear All  (any biome)"),
+                    button -> {
+                        ChunkByChunkConfig.get().getGeneration().setInitialChunkBiomes(new java.util.ArrayList<>());
+                        this.rebuildWidgets();
+                    })
+                    .bounds(centerX + 2, bottomBtnY, ENTRY_WIDTH / 2 - 2, 20)
+                    .build());
+        }
+
+        private Component buildBiomeLabel(String displayName, boolean active) {
+            if (active) {
+                return Component.literal("[ON]  " + displayName).withStyle(style -> style.withColor(0xFF55FF55));
+            } else {
+                return Component.literal("[OFF] " + displayName).withStyle(style -> style.withColor(0xFFAAAAAA));
+            }
+        }
+
+        @Override
+        public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            this.renderBackground(graphics, mouseX, mouseY, partialTick);
+
+            super.render(graphics, mouseX, mouseY, partialTick);
+
+            graphics.fill(0, 0, this.width, VIEW_TOP - 2, 0xCC000000);
+            graphics.drawCenteredString(this.font, "Initial Chunk Biomes", this.width / 2, 10, 0xFFFFFF);
+            int enabledCount = ChunkByChunkConfig.get().getGeneration().getInitialChunkBiomes().size();
+            String sub = enabledCount == 0 ? "Any biome allowed" : enabledCount + " biome(s) selected";
+            graphics.drawCenteredString(this.font, sub, this.width / 2, 22, 0xFFAAAAFF);
+
+            graphics.fill(0, VIEW_BOTTOM + 2, this.width, this.height, 0xCC000000);
+
+            graphics.fill(this.width / 2 - ENTRY_WIDTH / 2, VIEW_TOP - 2,
+                    this.width / 2 + ENTRY_WIDTH / 2, VIEW_TOP - 1, 0xFF555555);
+            graphics.fill(this.width / 2 - ENTRY_WIDTH / 2, VIEW_BOTTOM + 2,
+                    this.width / 2 + ENTRY_WIDTH / 2, VIEW_BOTTOM + 3, 0xFF555555);
+
+            drawScrollBar(graphics);
+        }
+
+        private void drawScrollBar(GuiGraphics graphics) {
+            if (contentHeight <= viewHeight) return;
+            int trackX = this.width / 2 + ENTRY_WIDTH / 2 + 4;
+            int thumbHeight = Math.max(16, viewHeight * viewHeight / Math.max(1, contentHeight));
+            int maxOffset = Math.max(0, contentHeight - viewHeight);
+            int thumbRange = Math.max(1, viewHeight - thumbHeight);
+            int thumbY = VIEW_TOP + (int) ((long) scrollOffset * thumbRange / Math.max(1, maxOffset));
+            graphics.fill(trackX, VIEW_TOP, trackX + SCROLLBAR_WIDTH, VIEW_BOTTOM, 0xFF333333);
+            graphics.fill(trackX, thumbY, trackX + SCROLLBAR_WIDTH, thumbY + thumbHeight, 0xFFAAAAAA);
+        }
+
+        private int getMaxOffset() {
+            return Math.max(0, contentHeight - viewHeight);
+        }
+
+        @Override
+        public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+            scrollOffset = Math.max(0, Math.min(getMaxOffset(), scrollOffset - (int) (scrollY * SCROLL_SPEED)));
+            this.rebuildWidgets();
+            return true;
+        }
+
+        @Override
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            if (button == 0 && contentHeight > viewHeight) {
+                int trackX = this.width / 2 + ENTRY_WIDTH / 2 + 4;
+                int thumbHeight = Math.max(16, viewHeight * viewHeight / Math.max(1, contentHeight));
+                int maxOffset = getMaxOffset();
+                int thumbRange = Math.max(1, viewHeight - thumbHeight);
+                int thumbY = VIEW_TOP + (int) ((long) scrollOffset * thumbRange / Math.max(1, maxOffset));
+                if (mouseX >= trackX && mouseX <= trackX + SCROLLBAR_WIDTH) {
+                    if (mouseY >= thumbY && mouseY <= thumbY + thumbHeight) {
+                        isScrollbarDragging = true;
+                        return true;
+                    } else if (mouseY >= VIEW_TOP && mouseY <= VIEW_BOTTOM) {
+                        int clickPos = (int) mouseY - VIEW_TOP - thumbHeight / 2;
+                        scrollOffset = Math.max(0, Math.min(maxOffset,
+                                (int) ((long) clickPos * maxOffset / Math.max(1, thumbRange))));
+                        this.rebuildWidgets();
+                        return true;
+                    }
+                }
+            }
+            return super.mouseClicked(mouseX, mouseY, button);
+        }
+
+        @Override
+        public boolean mouseReleased(double mouseX, double mouseY, int button) {
+            if (isScrollbarDragging && button == 0) {
+                isScrollbarDragging = false;
+                return true;
+            }
+            return super.mouseReleased(mouseX, mouseY, button);
+        }
+
+        @Override
+        public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+            if (isScrollbarDragging && button == 0) {
+                int thumbHeight = Math.max(16, viewHeight * viewHeight / Math.max(1, contentHeight));
+                int maxOffset = getMaxOffset();
+                int thumbRange = Math.max(1, viewHeight - thumbHeight);
+                int clickPos = (int) mouseY - VIEW_TOP - thumbHeight / 2;
+                scrollOffset = Math.max(0, Math.min(maxOffset,
+                        (int) ((long) clickPos * maxOffset / Math.max(1, thumbRange))));
+                this.rebuildWidgets();
+                return true;
+            }
+            return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        }
+
+        @Override
+        public void onClose() {
+            com.ryvione.gatheringchunks.common.util.ConfigUtil.saveDefaultConfig();
+            if (this.minecraft != null) {
+                this.minecraft.setScreen(parentScreen);
+            }
         }
     }
 }

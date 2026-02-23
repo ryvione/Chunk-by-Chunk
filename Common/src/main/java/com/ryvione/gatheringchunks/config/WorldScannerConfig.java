@@ -14,7 +14,7 @@ import com.ryvione.gatheringchunks.config.system.IntRange;
 import com.ryvione.gatheringchunks.config.system.Name;
 
 public class WorldScannerConfig {
-    private static final boolean MANUAL_SYSTEM_ENABLED = true;
+    private static boolean MANUAL_SYSTEM_ENABLED = true;
     @Name("fuel_per_fragment")
     @IntRange(min = 1, max = 512)
     @Comment("The amount of fuel provided by each world fragment (and then scaled up for world shard, crystal and core")
