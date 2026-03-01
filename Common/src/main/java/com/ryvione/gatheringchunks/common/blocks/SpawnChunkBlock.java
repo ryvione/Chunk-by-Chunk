@@ -68,15 +68,27 @@ public class SpawnChunkBlock extends Block {
         ChunkPos ownChunk = new ChunkPos(pos);
         boolean ownChunkEmpty = SpawnChunkHelper.isEmptyChunk(serverLevel, ownChunk);
 
-        if ((mode == ChunkSpawnerMode.Void || mode == ChunkSpawnerMode.Both) && ownChunkEmpty) {
-            if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, pos, false, false)) {
-                level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
-                level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-                return InteractionResult.SUCCESS;
+        if (mode == ChunkSpawnerMode.Void || mode == ChunkSpawnerMode.Both) {
+            if (ownChunkEmpty) {
+                if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, pos, false, false)) {
+                    level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
+                    level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                    return InteractionResult.SUCCESS;
+                }
+            } else if (mode == ChunkSpawnerMode.Void) {
+                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "§c[ChunkByChunk] §eVoid mode is active: place this spawner inside an empty (void) chunk, not on already-generated terrain."));
+                return InteractionResult.CONSUME;
             }
         }
 
-        if ((mode == ChunkSpawnerMode.Edge || mode == ChunkSpawnerMode.Both) && !ownChunkEmpty) {
+        if (mode == ChunkSpawnerMode.Edge || mode == ChunkSpawnerMode.Both) {
+            if (mode == ChunkSpawnerMode.Edge && ownChunkEmpty) {
+                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "§c[ChunkByChunk] §eEdge mode is active: place this spawner inside an already-generated chunk, facing the void chunk you want to expand into."));
+                return InteractionResult.CONSUME;
+            }
+
             Direction targetDirection = hit.getDirection();
             if (!HORIZONTAL_DIR.contains(targetDirection)) {
                 targetDirection = Direction.NORTH;
@@ -115,6 +127,10 @@ public class SpawnChunkBlock extends Block {
                             + " (Theme: " + effectiveBiomeTheme + ")");
                 }
             }
+
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                    "§c[ChunkByChunk] §eNo empty adjacent chunks to expand into. All neighboring chunks are already generated, or the spawn limit has been reached."));
+            return InteractionResult.CONSUME;
         }
 
         if (!ownChunkEmpty) {

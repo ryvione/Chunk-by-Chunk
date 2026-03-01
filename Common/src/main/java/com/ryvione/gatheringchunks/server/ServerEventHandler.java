@@ -23,6 +23,7 @@ import com.ryvione.gatheringchunks.common.util.ChunkUtil;
 import com.ryvione.gatheringchunks.common.util.ConfigUtil;
 import com.ryvione.gatheringchunks.common.util.SpiralIterator;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
+import com.ryvione.gatheringchunks.config.ChunkSpawnerMode;
 import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.common.mixinterface.IHolderReference;
 import com.ryvione.gatheringchunks.common.mixinterface.IMultiNoiseBiomeSource;
@@ -149,6 +150,14 @@ public final class ServerEventHandler {
                         x.initialChunks = ChunkByChunkConfig.get().getGeneration().getInitialChunks();
                     });
         }
+
+        ChunkSpawnerMode spawnerMode = ChunkByChunkConfig.get().getGeneration().getChunkSpawnerMode();
+        boolean allowEdge = spawnerMode == ChunkSpawnerMode.Edge || spawnerMode == ChunkSpawnerMode.Both;
+        boolean allowVoid = spawnerMode == ChunkSpawnerMode.Void || spawnerMode == ChunkSpawnerMode.Both;
+        SkyDimensions.getSkyDimensions().values().forEach(x -> {
+            x.allowChunkSpawner = allowEdge;
+            x.allowUnstableChunkSpawner = allowVoid;
+        });
     }
 
     public static void applyChunkByChunkWorldGeneration(MinecraftServer server) {
@@ -430,7 +439,7 @@ public final class ServerEventHandler {
             RegistryAccess registryAccess) {
         final long startTime = System.currentTimeMillis();
         final int MAX_SEARCH_TIME_MS = 20000;
-        final int MAX_CHUNKS_TO_CHECK = 100;
+        final int MAX_CHUNKS_TO_CHECK = 500;
         final int BATCH_SIZE = 20;
         final int BATCH_TIMEOUT_MS = 2000;
 
@@ -555,8 +564,23 @@ public final class ServerEventHandler {
             spawnPos = foundSpawn.get();
             LOGGER.info("[SpawnFinder] SUCCESS: Found spawn in {}ms after {} chunks", totalTime, checkedCount.get());
         } else {
-            LOGGER.warn("[SpawnFinder] FALLBACK: No ideal spawn found after {} chunks ({}ms) - using default",
+            LOGGER.warn("[SpawnFinder] FALLBACK: No ideal spawn found after {} chunks ({}ms) - finding safe Y on default chunk",
                     checkedCount.get(), totalTime);
+            ChunkPos fallbackChunkPos = new ChunkPos(spawnPos);
+            LevelChunk fallbackChunk = overworldLevel.getChunkSource().getChunkNow(fallbackChunkPos.x, fallbackChunkPos.z);
+            if (fallbackChunk != null) {
+                int safeY = ChunkUtil.getSafeSpawnHeight(fallbackChunk, spawnPos.getX(), spawnPos.getZ());
+                BlockPos.MutableBlockPos check = new BlockPos.MutableBlockPos(spawnPos.getX(), safeY - 1, spawnPos.getZ());
+                while (safeY > fallbackChunk.getMinBuildHeight() + 1) {
+                    net.minecraft.world.level.block.state.BlockState below = fallbackChunk.getBlockState(check.setY(safeY - 1));
+                    if (!below.getFluidState().isEmpty()) {
+                        safeY += 10;
+                        break;
+                    }
+                    break;
+                }
+                spawnPos = new BlockPos(spawnPos.getX(), safeY, spawnPos.getZ());
+            }
         }
 
         ServerLevelData levelData = (ServerLevelData) overworldLevel.getLevelData();
@@ -571,7 +595,7 @@ public final class ServerEventHandler {
             return false;
 
         int waterCount = ChunkUtil.countBlocks(chunk, Blocks.WATER);
-        if (waterCount == 0)
+        if (waterCount > 200)
             return false;
 
         int leavesCount = ChunkUtil.countBlocks(chunk, leavesTag);

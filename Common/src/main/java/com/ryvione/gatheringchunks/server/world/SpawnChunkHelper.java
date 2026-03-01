@@ -46,10 +46,30 @@ public final class SpawnChunkHelper {
         int minY = level.getMinBuildHeight();
 
         int[][] samples = {{8, 8}, {2, 2}, {13, 13}, {2, 13}, {13, 2}};
+        int solidCount = 0;
         for (int[] sample : samples) {
-            pos.set(chunkPos.getMinBlockX() + sample[0], minY + 1, chunkPos.getMinBlockZ() + sample[1]);
-            if (!level.getBlockState(pos).isAir()) {
-                return false;
+            for (int dy = 0; dy <= 4; dy++) {
+                pos.set(chunkPos.getMinBlockX() + sample[0], minY + dy, chunkPos.getMinBlockZ() + sample[1]);
+                if (!level.getBlockState(pos).isAir()) {
+                    solidCount++;
+                    break;
+                }
+            }
+        }
+
+        if (solidCount >= 2) {
+            return false;
+        }
+
+        net.minecraft.world.level.chunk.ChunkAccess chunk = level.getChunkSource().getChunkNow(chunkPos.x, chunkPos.z);
+        if (chunk != null) {
+            for (int[] sample : samples) {
+                int surfaceY = chunk.getHeight(
+                        net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                        sample[0], sample[1]);
+                if (surfaceY > minY + 2) {
+                    return false;
+                }
             }
         }
 

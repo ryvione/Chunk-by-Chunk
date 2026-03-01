@@ -13,6 +13,7 @@
     "EntityChangeDimensionMixin",
     "FluidTickMixin",
     "HolderReferenceAccessor",
+    "MobSpawnVoidChunkMixin",
     "MultiNoiseBiomeSourceAccessor",
     "NoiseBasedChunkGeneratorMixin",
     "OverworldBiomeBuilderAccessor",

@@ -63,3 +63,7 @@ desktop.ini
 *.class
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
+
+# Testing & Build stuff
+build.sh 
+testing/*

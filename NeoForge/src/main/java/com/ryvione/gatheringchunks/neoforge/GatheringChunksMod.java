@@ -13,6 +13,7 @@ import com.ryvione.gatheringchunks.client.screens.*;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
 import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
+import com.ryvione.gatheringchunks.client.ClientConfigStorage;
 import com.ryvione.gatheringchunks.config.system.ConfigSystem;
 import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
 import com.mojang.serialization.MapCodec;
@@ -23,8 +24,10 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
@@ -85,6 +88,12 @@ public class GatheringChunksMod {
     @EventBusSubscriber(modid = GatheringChunksConstants.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ClientModEvents {
         @SubscribeEvent
+        public static void onClientSetup(FMLClientSetupEvent event) {
+            ClientConfigStorage.init(FMLPaths.GAMEDIR.get());
+            LOGGER.info("[GatheringChunksMod] ClientConfigStorage initialized");
+        }
+
+        @SubscribeEvent
         public static void registerScreens(RegisterMenuScreensEvent event) {
             LOGGER.info("Client Initializing");
             event.register(ModRegistry.BEDROCK_CHEST_MENU.get(), BedrockChestScreen::new);
@@ -92,6 +101,19 @@ public class GatheringChunksMod {
             event.register(ModRegistry.WORLD_SCANNER_MENU.get(), WorldScannerScreen::new);
             event.register(ModRegistry.WORLD_MENDER_MENU.get(), WorldMenderScreen::new);
             event.register(ModRegistry.CHUNK_ENGINE_MENU.get(), ChunkEngineScreen::new);
+        }
+    }
+
+    @EventBusSubscriber(modid = GatheringChunksConstants.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+    public static class ClientGameEvents {
+        @SubscribeEvent
+        public static void onClientJoin(ClientPlayerNetworkEvent.LoggingIn event) {
+            String address = event.getController() != null && event.getController().getConnection() != null
+                    && event.getController().getConnection().getRemoteAddress() != null
+                    ? event.getController().getConnection().getRemoteAddress().toString()
+                    : "singleplayer";
+            ClientConfigStorage.setCurrentServer(ClientConfigStorage.getServerIdFromConnection(address));
+            LOGGER.info("[GatheringChunksMod] Joined server, set config scope: {}", address);
         }
     }
 }

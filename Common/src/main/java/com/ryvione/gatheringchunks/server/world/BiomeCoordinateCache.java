@@ -47,8 +47,8 @@ public class BiomeCoordinateCache extends SavedData {
     private static final int MAX_CACHED_CHUNKS_PER_BIOME = 500;
     private static final int PROGRESSIVE_SCAN_RANGE = 2000;
     private static final long TARGET_TICK_TIME_MS = 30;
-    private static final int SCAN_INTERVAL_TICKS = 1;
-    private static final int RINGS_PER_SCAN = 8;
+    private static final int SCAN_INTERVAL_TICKS = 20;
+    private static final int RINGS_PER_SCAN = 4;
 
     public static BiomeCoordinateCache get(MinecraftServer server) {
         return server.getLevel(Level.OVERWORLD).getChunkSource().getDataStorage().computeIfAbsent(
@@ -98,6 +98,15 @@ public class BiomeCoordinateCache extends SavedData {
 
             scanProgress.put(dimensionKey, dimensionData.getInt("scanProgress"));
             initialScanComplete.put(dimensionKey, dimensionData.getBoolean("initialScanComplete"));
+
+            if (dimensionData.contains("scannedChunks")) {
+                ListTag scannedTag = dimensionData.getList("scannedChunks", net.minecraft.nbt.LongTag.TAG_LONG);
+                Set<Long> scanned = ConcurrentHashMap.newKeySet();
+                for (int i = 0; i < scannedTag.size(); i++) {
+                    scanned.add(((net.minecraft.nbt.LongTag) scannedTag.get(i)).getAsLong());
+                }
+                scannedChunks.put(dimensionKey, scanned);
+            }
         }
     }
 
@@ -105,11 +114,16 @@ public class BiomeCoordinateCache extends SavedData {
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
         CompoundTag dimensionsTag = new CompoundTag();
 
-        for (Map.Entry<String, Map<String, List<ChunkPos>>> dimensionEntry : biomeCache.entrySet()) {
+        Set<String> allDimKeys = new java.util.HashSet<>();
+        allDimKeys.addAll(biomeCache.keySet());
+        allDimKeys.addAll(scanProgress.keySet());
+
+        for (String dimensionKey : allDimKeys) {
             CompoundTag dimensionData = new CompoundTag();
 
             CompoundTag biomesTag = new CompoundTag();
-            for (Map.Entry<String, List<ChunkPos>> biomeEntry : dimensionEntry.getValue().entrySet()) {
+            Map<String, List<ChunkPos>> biomesForDim = biomeCache.getOrDefault(dimensionKey, Collections.emptyMap());
+            for (Map.Entry<String, List<ChunkPos>> biomeEntry : biomesForDim.entrySet()) {
                 ListTag chunksTag = new ListTag();
                 for (ChunkPos pos : biomeEntry.getValue()) {
                     chunksTag.add(net.minecraft.nbt.LongTag.valueOf(pos.toLong()));
@@ -118,10 +132,17 @@ public class BiomeCoordinateCache extends SavedData {
             }
             dimensionData.put("biomes", biomesTag);
 
-            dimensionData.putInt("scanProgress", scanProgress.getOrDefault(dimensionEntry.getKey(), 0));
-            dimensionData.putBoolean("initialScanComplete", initialScanComplete.getOrDefault(dimensionEntry.getKey(), false));
+            dimensionData.putInt("scanProgress", scanProgress.getOrDefault(dimensionKey, 0));
+            dimensionData.putBoolean("initialScanComplete", initialScanComplete.getOrDefault(dimensionKey, false));
 
-            dimensionsTag.put(dimensionEntry.getKey(), dimensionData);
+            Set<Long> scanned = scannedChunks.getOrDefault(dimensionKey, Collections.emptySet());
+            ListTag scannedTag = new ListTag();
+            for (long chunkLong : scanned) {
+                scannedTag.add(net.minecraft.nbt.LongTag.valueOf(chunkLong));
+            }
+            dimensionData.put("scannedChunks", scannedTag);
+
+            dimensionsTag.put(dimensionKey, dimensionData);
         }
 
         tag.put("dimensions", dimensionsTag);
@@ -233,10 +254,17 @@ public class BiomeCoordinateCache extends SavedData {
     }
 
     private void performProgressiveScan(ServerLevel level, String dimensionKey) {
+        Map<String, List<ChunkPos>> dimCache = biomeCache.getOrDefault(dimensionKey, Collections.emptyMap());
+        int totalCached = dimCache.values().stream().mapToInt(List::size).sum();
+        if (totalCached >= MAX_CACHED_CHUNKS_PER_BIOME * dimCache.size() && !dimCache.isEmpty()) {
+            return;
+        }
+
         Random random = new Random(System.currentTimeMillis() ^ level.getGameTime());
         int chunksScanned = 0;
+        int maxScanThisCall = Math.min(chunksPerTick, 16);
 
-        for (int i = 0; i < chunksPerTick; i++) {
+        for (int i = 0; i < maxScanThisCall; i++) {
             int x = random.nextInt(-PROGRESSIVE_SCAN_RANGE, PROGRESSIVE_SCAN_RANGE);
             int z = random.nextInt(-PROGRESSIVE_SCAN_RANGE, PROGRESSIVE_SCAN_RANGE);
             ChunkPos chunkPos = new ChunkPos(x, z);
@@ -245,6 +273,18 @@ public class BiomeCoordinateCache extends SavedData {
                 scanAndCacheChunk(level, dimensionKey, chunkPos);
                 chunksScanned++;
             }
+        }
+
+        Set<Long> scanned = scannedChunks.getOrDefault(dimensionKey, Collections.emptySet());
+        if (scanned.size() > 100000) {
+            Set<Long> trimmed = ConcurrentHashMap.newKeySet();
+            int keep = 50000;
+            int skip = scanned.size() - keep;
+            int i = 0;
+            for (long v : scanned) {
+                if (i++ >= skip) trimmed.add(v);
+            }
+            scannedChunks.put(dimensionKey, trimmed);
         }
 
         if (chunksScanned > 0) {

@@ -67,6 +67,9 @@ public class ChunkSpawnController extends SavedData {
     private final List<PendingSearch> pendingSearches = Collections.synchronizedList(new ArrayList<>());
     private final Map<String, Set<ChunkPos>> knownGoodSourceChunks = new ConcurrentHashMap<>();
 
+    private static final int MAX_TERRAIN_PROFILES = 2000;
+    private long terrainProfileCleanupCounter = 0;
+
     private final Map<String, ChunkPos> originChunks = new ConcurrentHashMap<>();
 
     private static class PendingSearch {
@@ -220,6 +223,20 @@ public class ChunkSpawnController extends SavedData {
     }
 
     public void tick() {
+        terrainProfileCleanupCounter++;
+        if (terrainProfileCleanupCounter % 6000 == 0 && chunkTerrainProfiles.size() > MAX_TERRAIN_PROFILES) {
+            int toRemove = chunkTerrainProfiles.size() - MAX_TERRAIN_PROFILES / 2;
+            Iterator<ChunkPos> profileIt = chunkTerrainProfiles.keySet().iterator();
+            int removed = 0;
+            while (profileIt.hasNext() && removed < toRemove) {
+                profileIt.next();
+                profileIt.remove();
+                removed++;
+            }
+            GatheringChunksConstants.LOGGER.debug("[ChunkSpawnController] Trimmed terrain profile cache from {} to {} entries",
+                    chunkTerrainProfiles.size() + removed, chunkTerrainProfiles.size());
+        }
+
         Iterator<PendingSearch> it = pendingSearches.iterator();
         int totalAttemptsThisTick = 0;
         int maxAttemptsPerTick = 8;
@@ -1251,32 +1268,28 @@ public class ChunkSpawnController extends SavedData {
 
     private static void triggerLightingUpdate(ServerLevel level, ChunkPos chunkPos) {
         try {
-            net.minecraft.world.level.lighting.LevelLightEngine lightEngine = level.getLightEngine();
+            level.getLightEngine().checkBlock(chunkPos.getMiddleBlockPosition(level.getMaxBuildHeight() / 2));
+
             int minX = chunkPos.getMinBlockX();
-            int maxX = chunkPos.getMaxBlockX();
             int minZ = chunkPos.getMinBlockZ();
+            int maxX = chunkPos.getMaxBlockX();
             int maxZ = chunkPos.getMaxBlockZ();
-            for (int x = minX; x <= maxX; x++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    for (int y = level.getMinBuildHeight(); y < level.getMaxBuildHeight(); y++) {
-                        BlockPos pos = new BlockPos(x, y, z);
-                        net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
-                        if (!state.isAir()) {
-                            level.getChunkSource().blockChanged(pos);
-                        }
-                    }
-                }
+
+            for (int y = level.getMinBuildHeight(); y < level.getMaxBuildHeight(); y += 16) {
+                level.getLightEngine().checkBlock(new BlockPos(minX, y, minZ));
+                level.getLightEngine().checkBlock(new BlockPos(maxX, y, minZ));
+                level.getLightEngine().checkBlock(new BlockPos(minX, y, maxZ));
+                level.getLightEngine().checkBlock(new BlockPos(maxX, y, maxZ));
             }
+
             int[][] borderOffsets = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
             for (int[] off : borderOffsets) {
                 ChunkPos neighbor = new ChunkPos(chunkPos.x + off[0], chunkPos.z + off[1]);
                 if (level.hasChunk(neighbor.x, neighbor.z)) {
-                    for (int y = level.getMinBuildHeight(); y < level.getMaxBuildHeight(); y++) {
-                        BlockPos edgePos = new BlockPos(
-                            off[0] == 1 ? chunkPos.getMaxBlockX() : (off[0] == -1 ? chunkPos.getMinBlockX() : chunkPos.getMiddleBlockX()),
-                            y,
-                            off[1] == 1 ? chunkPos.getMaxBlockZ() : (off[1] == -1 ? chunkPos.getMinBlockZ() : chunkPos.getMiddleBlockZ()));
-                        level.getChunkSource().blockChanged(edgePos);
+                    int edgeX = off[0] == 1 ? chunkPos.getMaxBlockX() : (off[0] == -1 ? chunkPos.getMinBlockX() : chunkPos.getMiddleBlockX());
+                    int edgeZ = off[1] == 1 ? chunkPos.getMaxBlockZ() : (off[1] == -1 ? chunkPos.getMinBlockZ() : chunkPos.getMiddleBlockZ());
+                    for (int y = level.getMinBuildHeight(); y < level.getMaxBuildHeight(); y += 16) {
+                        level.getLightEngine().checkBlock(new BlockPos(edgeX, y, edgeZ));
                     }
                 }
             }

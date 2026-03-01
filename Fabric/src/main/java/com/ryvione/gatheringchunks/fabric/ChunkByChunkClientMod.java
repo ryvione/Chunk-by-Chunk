@@ -17,7 +17,9 @@ import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
 import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import com.ryvione.gatheringchunks.common.update.UpdateChecker;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
 import org.apache.logging.log4j.LogManager;
@@ -29,11 +31,22 @@ public class ChunkByChunkClientMod implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         LOGGER.info("Client Initializing");
+
+        ClientConfigStorage.init(FabricLoader.getInstance().getGameDir());
+
         MenuScreens.register(CommonRegistry.BEDROCK_CHEST_MENU, BedrockChestScreen::new);
         MenuScreens.register(CommonRegistry.WORLD_FORGE_MENU, WorldForgeScreen::new);
         MenuScreens.register(CommonRegistry.WORLD_SCANNER_MENU, WorldScannerScreen::new);
         MenuScreens.register(CommonRegistry.WORLD_MENDER_MENU, WorldMenderScreen::new);
         MenuScreens.register(CommonRegistry.CHUNK_ENGINE_MENU, ChunkEngineScreen::new);
+
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            String serverId = handler.getConnection().getRemoteAddress() != null
+                    ? handler.getConnection().getRemoteAddress().toString()
+                    : "singleplayer";
+            ClientConfigStorage.setCurrentServer(ClientConfigStorage.getServerIdFromConnection(serverId));
+            LOGGER.info("[ClientMod] Joined server, set config scope: {}", serverId);
+        });
 
         ClientPlayNetworking.registerGlobalReceiver(S2COpenConfigPacket.TYPE,
                 (payload, context) -> context.client().execute(() -> {
