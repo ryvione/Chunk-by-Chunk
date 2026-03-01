@@ -124,7 +124,6 @@ public class ChunkByChunkMod implements ModInitializer {
             if (!(entity instanceof ServerPlayer player)) return;
             if (!world.dimension().equals(Level.OVERWORLD) && !world.dimension().equals(Level.NETHER)) return;
             if (!(world.getChunkSource().getGenerator() instanceof SkyChunkGenerator)) return;
-            // Skip redirect for first-join players — scheduleSpawnTeleport handles them
             if (!INITIAL_SPAWNED_PLAYERS.contains(player.getUUID())) return;
             ServerEventHandler.onPlayerArrived(player, (ServerLevel) world);
         });
