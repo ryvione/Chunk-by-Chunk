@@ -51,9 +51,10 @@ public class ChunkSpawnController extends SavedData {
     private final Deque<SpawnRequest> requests = new ConcurrentLinkedDeque<>();
     @Nullable
     private SpawnRequest currentSpawnRequest = null;
-    @Nullable
-    private SpawnPhase phase;
-    private boolean forcedTargetChunk;
+    private SpawnPhase phase = SpawnPhase.COPY_BIOMES;
+    private boolean forcedTargetChunk = false;
+    private int phaseTimer = 0;
+    private static final int PHASE_TIMEOUT_TICKS = 200;
     private int currentLayer;
     @Nullable
     private transient ServerLevel sourceLevel;
@@ -311,7 +312,20 @@ public class ChunkSpawnController extends SavedData {
         }
 
         if (currentSpawnRequest != null) {
-            if (!sourceChunkFuture.isDone()) {
+            phaseTimer++;
+            if (phaseTimer > PHASE_TIMEOUT_TICKS) {
+                GatheringChunksConstants.LOGGER.warn("[ChunkSpawnController] Phase {} timed out after {} ticks for chunk {}. Force completing or skipping.", 
+                        phase, PHASE_TIMEOUT_TICKS, currentSpawnRequest.targetChunkPos);
+                if (phase == SpawnPhase.SPAWN_ENTITIES || phase == SpawnPhase.SYNCH_CHUNKS || phase == SpawnPhase.UPDATE_BARRIERS) {
+                    completeSpawnRequest();
+                } else {
+                    // Critical failure, drop request
+                    currentSpawnRequest = null;
+                }
+                return;
+            }
+
+            if (!sourceChunkFuture.isDone() && phase != SpawnPhase.SPAWN_ENTITIES) {
                 return;
             }
             switch (phase) {
@@ -369,10 +383,11 @@ public class ChunkSpawnController extends SavedData {
                 case SYNCH_CHUNKS -> {
                     synchChunks();
                     phase = SpawnPhase.SPAWN_ENTITIES;
+                    phaseTimer = 0;
                     setDirty();
                 }
                 case SPAWN_ENTITIES -> {
-                    if (sourceLevel.areEntitiesLoaded(currentSpawnRequest.sourceChunkPos.toLong())) {
+                    if (sourceLevel.areEntitiesLoaded(currentSpawnRequest.sourceChunkPos.toLong()) || phaseTimer > 100) {
                         spawnChunkEntities();
                         completeSpawnRequest();
                         setDirty();
@@ -399,6 +414,7 @@ public class ChunkSpawnController extends SavedData {
             }
             GatheringChunksConstants.LOGGER
                     .info("Spawning chunk " + currentSpawnRequest.targetChunkPos + " in " + targetLevel.dimension());
+            phaseTimer = 0;
             setDirty();
         }
     }

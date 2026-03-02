@@ -41,14 +41,16 @@ public class BiomeCoordinateCache extends SavedData {
     private long lastTickTime = System.currentTimeMillis();
     private final Deque<Long> tickTimes = new ArrayDeque<>();
     private long tickCounter = 0;
+    private int currentDimIndex = 0;
     private static final int TICK_HISTORY_SIZE = 100;
 
-    private static final int INITIAL_SCAN_RADIUS = 150;
-    private static final int MAX_CACHED_CHUNKS_PER_BIOME = 500;
-    private static final int PROGRESSIVE_SCAN_RANGE = 2000;
-    private static final long TARGET_TICK_TIME_MS = 30;
-    private static final int SCAN_INTERVAL_TICKS = 20;
-    private static final int RINGS_PER_SCAN = 4;
+    private static final int INITIAL_SCAN_RADIUS = 120;
+    private static final int MAX_CACHED_CHUNKS_PER_BIOME = 400;
+    private static final int PROGRESSIVE_SCAN_RANGE = 1500;
+    private static final long TARGET_TICK_TIME_MS = 25;
+    private static final int SCAN_INTERVAL_TICKS = 40;
+    private static final int RINGS_PER_SCAN = 3;
+    private static final int MAX_SCANNED_CHUNKS_PER_DIM = 20000;
 
     public static BiomeCoordinateCache get(MinecraftServer server) {
         return server.getLevel(Level.OVERWORLD).getChunkSource().getDataStorage().computeIfAbsent(
@@ -100,10 +102,10 @@ public class BiomeCoordinateCache extends SavedData {
             initialScanComplete.put(dimensionKey, dimensionData.getBoolean("initialScanComplete"));
 
             if (dimensionData.contains("scannedChunks")) {
-                ListTag scannedTag = dimensionData.getList("scannedChunks", net.minecraft.nbt.LongTag.TAG_LONG);
+                long[] scannedArray = dimensionData.getLongArray("scannedChunks");
                 Set<Long> scanned = ConcurrentHashMap.newKeySet();
-                for (int i = 0; i < scannedTag.size(); i++) {
-                    scanned.add(((net.minecraft.nbt.LongTag) scannedTag.get(i)).getAsLong());
+                for (long l : scannedArray) {
+                    scanned.add(l);
                 }
                 scannedChunks.put(dimensionKey, scanned);
             }
@@ -136,11 +138,12 @@ public class BiomeCoordinateCache extends SavedData {
             dimensionData.putBoolean("initialScanComplete", initialScanComplete.getOrDefault(dimensionKey, false));
 
             Set<Long> scanned = scannedChunks.getOrDefault(dimensionKey, Collections.emptySet());
-            ListTag scannedTag = new ListTag();
+            long[] scannedArray = new long[scanned.size()];
+            int idx = 0;
             for (long chunkLong : scanned) {
-                scannedTag.add(net.minecraft.nbt.LongTag.valueOf(chunkLong));
+                scannedArray[idx++] = chunkLong;
             }
-            dimensionData.put("scannedChunks", scannedTag);
+            dimensionData.putLongArray("scannedChunks", scannedArray);
 
             dimensionsTag.put(dimensionKey, dimensionData);
         }
@@ -158,34 +161,44 @@ public class BiomeCoordinateCache extends SavedData {
 
         adjustChunksPerTick();
 
+        List<Pair<String, ServerLevel>> levelsToScan = new ArrayList<>();
         Map<String, ServerLevel> themeDimLevels = new HashMap<>();
+        
         for (ServerLevel level : server.getAllLevels()) {
             if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator skyGen) {
+                levelsToScan.add(new Pair<>(level.dimension().location().toString(), level));
                 for (Map.Entry<String, ResourceKey<Level>> entry : skyGen.getBiomeDimensions().entrySet()) {
                     ServerLevel themeLevel = server.getLevel(entry.getValue());
                     if (themeLevel != null) {
                         themeDimLevels.put(themeLevel.dimension().location().toString(), themeLevel);
                     }
                 }
-                String dimensionKey = level.dimension().location().toString();
-                if (!initialScanComplete.getOrDefault(dimensionKey, false)) {
-                    performInitialScan(level, dimensionKey);
-                } else {
-                    performProgressiveScan(level, dimensionKey);
-                }
             }
         }
 
         for (Map.Entry<String, ServerLevel> entry : themeDimLevels.entrySet()) {
-            String dimKey = entry.getKey();
-            ServerLevel themeLevel = entry.getValue();
+            levelsToScan.add(new Pair<>(entry.getKey(), entry.getValue()));
+        }
+
+        if (levelsToScan.isEmpty()) return;
+
+        int levelsPerTick = 2; 
+        for (int i = 0; i < levelsPerTick; i++) {
+            currentDimIndex = currentDimIndex % levelsToScan.size();
+            Pair<String, ServerLevel> target = levelsToScan.get(currentDimIndex);
+            String dimKey = target.first();
+            ServerLevel level = target.second();
+
             if (!initialScanComplete.getOrDefault(dimKey, false)) {
-                performInitialScan(themeLevel, dimKey);
+                performInitialScan(level, dimKey);
             } else {
-                performProgressiveScan(themeLevel, dimKey);
+                performProgressiveScan(level, dimKey);
             }
+            currentDimIndex++;
         }
     }
+
+    private static record Pair<A, B>(A first, B second) {}
 
     private void adjustChunksPerTick() {
         long currentTime = System.currentTimeMillis();
@@ -276,9 +289,9 @@ public class BiomeCoordinateCache extends SavedData {
         }
 
         Set<Long> scanned = scannedChunks.getOrDefault(dimensionKey, Collections.emptySet());
-        if (scanned.size() > 100000) {
+        if (scanned.size() > MAX_SCANNED_CHUNKS_PER_DIM) {
             Set<Long> trimmed = ConcurrentHashMap.newKeySet();
-            int keep = 50000;
+            int keep = MAX_SCANNED_CHUNKS_PER_DIM / 2;
             int skip = scanned.size() - keep;
             int i = 0;
             for (long v : scanned) {

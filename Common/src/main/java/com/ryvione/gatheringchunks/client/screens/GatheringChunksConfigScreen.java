@@ -1,16 +1,8 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Gathering Chunks (Ryvione's Fork).
- * Original: https://github.com/immortius/chunkbychunk
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
 package com.ryvione.gatheringchunks.client.screens;
 
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import com.ryvione.gatheringchunks.config.*;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
@@ -436,7 +428,6 @@ public class GatheringChunksConfigScreen extends Screen {
                         (button, value) -> config.setAutoSpawnTrees(value)));
         currentY += SPACING;
 
-
         this.addRenderableWidget(CycleButton.onOffBuilder(config.isPreventFluidFlowIntoVoid())
                 .withTooltip(value -> Tooltip.create(Component.literal("Prevent fluids from flowing into empty chunks")))
                 .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
@@ -566,7 +557,7 @@ public class GatheringChunksConfigScreen extends Screen {
     }
 
     private int addSectionLabel(int centerX, int y, String text, int color) {
-        StringWidget label = new StringWidget(centerX - BUTTON_WIDTH / 2, y, BUTTON_WIDTH, 15, 
+        StringWidget label = new StringWidget(centerX - BUTTON_WIDTH / 2, y, BUTTON_WIDTH, 15,
             Component.literal(text).withStyle(style -> style.withColor(color)), this.font);
         label.alignCenter();
         this.addRenderableWidget(label);
@@ -661,10 +652,21 @@ public class GatheringChunksConfigScreen extends Screen {
 
     @Override
     public void onClose() {
-        com.ryvione.gatheringchunks.common.util.ConfigUtil.saveDefaultConfig();
-        if (this.minecraft != null) {
-            this.minecraft.setScreen(parentScreen);
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.getCurrentServer() != null) {
+            try {
+                com.google.gson.Gson gson = new com.google.gson.GsonBuilder().create();
+                String json = gson.toJson(ChunkByChunkConfig.get());
+                com.ryvione.gatheringchunks.interop.Services.PLATFORM.sendConfigSavePacket(
+                    new com.ryvione.gatheringchunks.common.network.C2SSaveConfigPacket(json));
+            } catch (Exception e) {
+                com.ryvione.gatheringchunks.common.GatheringChunksConstants.LOGGER
+                    .warn("[ConfigScreen] Failed to send config to server: {}", e.getMessage());
+            }
+        } else {
+            com.ryvione.gatheringchunks.common.util.ConfigUtil.saveDefaultConfig();
         }
+        if (mc != null) mc.setScreen(parentScreen);
     }
 
     public static class InitialBiomeSelectorScreen extends Screen {
@@ -940,10 +942,21 @@ public class GatheringChunksConfigScreen extends Screen {
 
         @Override
         public void onClose() {
-            com.ryvione.gatheringchunks.common.util.ConfigUtil.saveDefaultConfig();
-            if (this.minecraft != null) {
-                this.minecraft.setScreen(parentScreen);
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.getCurrentServer() != null) {
+                try {
+                    com.google.gson.Gson gson = new com.google.gson.GsonBuilder().create();
+                    String json = gson.toJson(ChunkByChunkConfig.get());
+                    com.ryvione.gatheringchunks.interop.Services.PLATFORM.sendConfigSavePacket(
+                        new com.ryvione.gatheringchunks.common.network.C2SSaveConfigPacket(json));
+                } catch (Exception e) {
+                    com.ryvione.gatheringchunks.common.GatheringChunksConstants.LOGGER
+                        .warn("[ConfigScreen] Failed to send config to server: {}", e.getMessage());
+                }
+            } else {
+                com.ryvione.gatheringchunks.common.util.ConfigUtil.saveDefaultConfig();
             }
+            if (mc != null) mc.setScreen(parentScreen);
         }
     }
 }

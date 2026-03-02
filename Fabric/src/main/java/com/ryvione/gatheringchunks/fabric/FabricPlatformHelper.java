@@ -1,13 +1,3 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Gathering Chunks (Ryvione's Fork).
- * Original: https://github.com/immortius/chunkbychunk
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
-
 package com.ryvione.gatheringchunks.fabric;
 
 import com.ryvione.gatheringchunks.common.CommonRegistry;
@@ -22,10 +12,12 @@ import com.ryvione.gatheringchunks.common.menus.WorldMenderMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
 import com.ryvione.gatheringchunks.common.blockEntities.ChunkEngineBlockEntity;
 import com.ryvione.gatheringchunks.common.menus.ChunkEngineMenu;
+import com.ryvione.gatheringchunks.common.network.C2SSaveConfigPacket;
 import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
 import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import com.ryvione.gatheringchunks.interop.CBCPlatformHelper;
 import com.ryvione.gatheringchunks.mixins.BucketFluidAccessor;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.sounds.SoundEvent;
@@ -223,5 +215,10 @@ public final class FabricPlatformHelper implements CBCPlatformHelper {
     @Override
     public void sendConfigSyncPacket(ServerPlayer player, S2CSyncConfigPacket packet) {
         ServerPlayNetworking.send(player, packet);
+    }
+
+    @Override
+    public void sendConfigSavePacket(C2SSaveConfigPacket packet) {
+        ClientPlayNetworking.send(packet);
     }
 }

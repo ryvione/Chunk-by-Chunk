@@ -1,16 +1,8 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Gathering Chunks (Ryvione's Fork).
- * Original: https://github.com/immortius/chunkbychunk
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
 package com.ryvione.gatheringchunks.neoforge;
 
 import com.ryvione.gatheringchunks.client.screens.*;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
+import com.ryvione.gatheringchunks.common.network.C2SSaveConfigPacket;
 import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
 import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import com.ryvione.gatheringchunks.client.ClientConfigStorage;
@@ -82,6 +74,10 @@ public class GatheringChunksMod {
                 S2CSyncConfigPacket.TYPE,
                 S2CSyncConfigPacket.CODEC,
                 ClientPacketHandler::handleSyncConfig);
+        registrar.playToServer(
+                C2SSaveConfigPacket.TYPE,
+                C2SSaveConfigPacket.CODEC,
+                ServerPacketHandler::handleSaveConfig);
         LOGGER.info("[GatheringChunksMod] Registered network payloads");
     }
 
@@ -108,10 +104,13 @@ public class GatheringChunksMod {
     public static class ClientGameEvents {
         @SubscribeEvent
         public static void onClientJoin(ClientPlayerNetworkEvent.LoggingIn event) {
-            String address = event.getController() != null && event.getController().getConnection() != null
-                    && event.getController().getConnection().getRemoteAddress() != null
-                    ? event.getController().getConnection().getRemoteAddress().toString()
-                    : "singleplayer";
+            String address = "singleplayer";
+            try {
+                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+                if (mc.getCurrentServer() != null) {
+                    address = mc.getCurrentServer().ip;
+                }
+            } catch (Exception ignored) {}
             ClientConfigStorage.setCurrentServer(ClientConfigStorage.getServerIdFromConnection(address));
             LOGGER.info("[GatheringChunksMod] Joined server, set config scope: {}", address);
         }

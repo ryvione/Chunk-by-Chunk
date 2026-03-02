@@ -452,7 +452,8 @@ public final class ServerEventHandler {
         TagKey<Block> leavesTag = BlockTags.LEAVES;
         Set<Block> copper = ImmutableSet.of(Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE, Blocks.RAW_COPPER_BLOCK);
         BlockPos spawnPos = overworldLevel.getSharedSpawnPos();
-        boolean disableVillage = ChunkByChunkConfig.get().getDifficulty().getHardMode().isDisableVillages();
+        boolean disableVillage = ChunkByChunkConfig.get().getDifficulty().getHardMode().isEnabled() && 
+                                 ChunkByChunkConfig.get().getDifficulty().getHardMode().isDisableVillages();
 
         if (!disableVillage) {
             if (ChunkByChunkConfig.get().getDifficulty().isAlwaysSpawnVillage()) {
@@ -474,6 +475,10 @@ public final class ServerEventHandler {
 
         LOGGER.info("[SpawnFinder] Starting spawn search from chunk [{}, {}] - Max time: {}ms, Max chunks: {}",
                 initialChunkPos.x, initialChunkPos.z, MAX_SEARCH_TIME_MS, MAX_CHUNKS_TO_CHECK);
+
+        java.util.List<String> allowedBiomesOuter = ChunkByChunkConfig.get().getGeneration().getInitialChunkBiomes();
+        boolean biomeFilterActiveOuter = allowedBiomesOuter != null && !allowedBiomesOuter.isEmpty();
+        ServerLevel biomeLevelOuter = biomeFilterActiveOuter ? findBiomeGenLevel(overworldLevel.getServer(), allowedBiomesOuter) : null;
 
         try {
             SpiralIterator iterator = new SpiralIterator(initialChunkPos.x, initialChunkPos.z);
@@ -501,11 +506,15 @@ public final class ServerEventHandler {
                     }
 
                     try {
-                        java.util.List<String> allowedBiomes = ChunkByChunkConfig.get().getGeneration().getInitialChunkBiomes();
-                        boolean biomeFilterActive = allowedBiomes != null && !allowedBiomes.isEmpty();
+                        boolean isInitiallyRequestedSpawn = pos.equals(initialChunkPos);
+                        boolean bypassFilter = isInitiallyRequestedSpawn && 
+                                               !disableVillage && 
+                                               ChunkByChunkConfig.get().getDifficulty().isAlwaysSpawnVillage();
 
-                        if (biomeFilterActive) {
-                            ServerLevel biomeLevel = findBiomeGenLevel(overworldLevel.getServer(), allowedBiomes);
+                        boolean biomeFilterActive = biomeFilterActiveOuter;
+
+                        if (biomeFilterActive && !bypassFilter) {
+                            ServerLevel biomeLevel = biomeLevelOuter;
                             if (biomeLevel == null) {
                                 LevelChunk chunk = generationLevel.getChunk(pos.x, pos.z);
                                 if (isGoodSpawnChunk(chunk, logsTag, leavesTag, copper)) {
@@ -520,6 +529,12 @@ public final class ServerEventHandler {
                                 }
                             } else {
                                 if (isAllowedInitialChunkBiome(biomeLevel, pos)) {
+                                    LevelChunk biomeChunk = biomeLevel.getChunk(pos.x, pos.z);
+                                    int waterCount = ChunkUtil.countBlocks(biomeChunk, Blocks.WATER);
+                                    if (waterCount > 200) {
+                                        LOGGER.debug("[SpawnFinder] Skipping water chunk at {} (waterCount={})", pos, waterCount);
+                                        continue;
+                                    }
                                     int surfaceY = biomeLevel.getHeight(
                                             net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,
                                             pos.getMiddleBlockX(), pos.getMiddleBlockZ()) + 1;
@@ -528,9 +543,14 @@ public final class ServerEventHandler {
                                     LOGGER.info("[SpawnFinder] Found biome-filtered spawn ({}) at {} after {} checks ({}ms)",
                                             biomeLevel.dimension().location(), pos, checkedCount.get(), System.currentTimeMillis() - startTime);
                                     break outerLoop;
+                                } else if (isInitiallyRequestedSpawn) {
+                                    LOGGER.info("[SpawnFinder] Village at {} does not match biome filter - searching for nearest matching biome", pos);
                                 }
                             }
                         } else {
+                            if (bypassFilter) {
+                                LOGGER.info("[SpawnFinder] Using village spawn at {} (bypassing biome filter)", pos);
+                            }
                             LevelChunk chunk = generationLevel.getChunk(pos.x, pos.z);
                             if (isGoodSpawnChunk(chunk, logsTag, leavesTag, copper)) {
                                 BlockPos goodSpawn = new BlockPos(
@@ -693,14 +713,17 @@ public final class ServerEventHandler {
         Optional<HolderSet.Named<Structure>> structuresTag = structures.getTag(StructureTags.VILLAGE);
         if (structuresTag.isPresent()) {
             HolderSet<Structure> holders = structuresTag.get();
+            LOGGER.info("[SpawnFinder] Searching for nearest village structure...");
             Pair<BlockPos, Holder<Structure>> nearest = generationLevel.getChunkSource().getGenerator()
-                    .findNearestMapStructure(generationLevel, holders, spawnPos, 100, false);
+                    .findNearestMapStructure(generationLevel, holders, spawnPos, 256, false);
             if (nearest != null) {
                 spawnPos = nearest.getFirst();
-                GatheringChunksConstants.LOGGER.info("Spawn shifted to nearest village");
+                LOGGER.info("[SpawnFinder] SUCCESS: Found village at {}", spawnPos);
+            } else {
+                LOGGER.warn("[SpawnFinder] FAILED: No village found within 256 chunks of {}", spawnPos);
             }
         } else {
-            GatheringChunksConstants.LOGGER.warn("Could not find village spawn");
+            LOGGER.warn("[SpawnFinder] FAILED: Village structure tag not found in registry");
         }
         return spawnPos;
     }
@@ -715,9 +738,24 @@ public final class ServerEventHandler {
         ChunkPos centerChunkPos = new ChunkPos(scaledSpawn);
 
         String effectiveTheme = (biomeTheme != null && !biomeTheme.isEmpty()) ? biomeTheme : "";
+        ResourceKey<Level> sourceLevelKey = null;
 
-        LOGGER.info("[InitialSpawn] Queuing {} chunks for async spawn at [{}, {}] (theme='{}')",
-                initialChunks, centerChunkPos.x, centerChunkPos.z, effectiveTheme);
+        if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator skyGenerator) {
+            if (!effectiveTheme.isEmpty()) {
+                sourceLevelKey = skyGenerator.getBiomeDimension(effectiveTheme);
+            }
+            if (sourceLevelKey == null) {
+                sourceLevelKey = skyGenerator.getGenerationLevel();
+            }
+        }
+
+        if (sourceLevelKey == null) {
+            LOGGER.error("[InitialSpawn] Could not resolve source level for {} (theme='{}')", level.dimension().location(), effectiveTheme);
+            return;
+        }
+
+        LOGGER.info("[InitialSpawn] Spawning {} initial chunks at [{}, {}] (theme='{}', source='{}')",
+                initialChunks, centerChunkPos.x, centerChunkPos.z, effectiveTheme, sourceLevelKey.location());
         long startTime = System.currentTimeMillis();
 
         List<ChunkPos> queuedChunks = new ArrayList<>();
@@ -728,16 +766,15 @@ public final class ServerEventHandler {
                 ChunkPos targetPos = new ChunkPos(centerChunkPos.x + offset[0], centerChunkPos.z + offset[1]);
                 boolean isInitial = (offset[0] == 0 && offset[1] == 0);
 
-                if (chunkSpawnController.request(level, effectiveTheme, false, targetPos.getMiddleBlockPosition(0),
-                        false, false, isInitial)) {
+                if (chunkSpawnController.request(targetPos, level.dimension(), targetPos, sourceLevelKey, true, false, isInitial)) {
                     queuedChunks.add(targetPos);
-                    LOGGER.info("[InitialSpawn] Queued chunk {} (async, theme='{}')", targetPos, effectiveTheme);
+                    LOGGER.info("[InitialSpawn] Spawned chunk {} (immediate, theme='{}')", targetPos, effectiveTheme);
 
                     if (spawnChest && isInitial) {
                         SpawnChunkHelper.createNextSpawner(level, targetPos);
                     }
                 } else {
-                    LOGGER.warn("[InitialSpawn] Failed to queue chunk {}", targetPos);
+                    LOGGER.warn("[InitialSpawn] Failed to spawn chunk {}", targetPos);
                 }
             }
         } else {
@@ -746,27 +783,26 @@ public final class ServerEventHandler {
                 ChunkPos targetPos = new ChunkPos(spiralIterator.getX(), spiralIterator.getY());
                 boolean isInitial = (i == 0);
 
-                if (chunkSpawnController.request(level, effectiveTheme, false, targetPos.getMiddleBlockPosition(0),
-                        false, false, isInitial)) {
+                if (chunkSpawnController.request(targetPos, level.dimension(), targetPos, sourceLevelKey, true, false, isInitial)) {
                     queuedChunks.add(targetPos);
-                    LOGGER.info("[InitialSpawn] Queued chunk {} (async, theme='{}')", targetPos, effectiveTheme);
+                    LOGGER.info("[InitialSpawn] Spawned chunk {} (immediate, theme='{}')", targetPos, effectiveTheme);
 
                     if (spawnChest && isInitial) {
                         SpawnChunkHelper.createNextSpawner(level, targetPos);
                     }
                 } else {
-                    LOGGER.warn("[InitialSpawn] Failed to queue chunk {}", targetPos);
+                    LOGGER.warn("[InitialSpawn] Failed to spawn chunk {}", targetPos);
                 }
 
                 spiralIterator.next();
             }
         }
 
-        long queueTime = System.currentTimeMillis() - startTime;
-        LOGGER.info("[InitialSpawn] Queued {} chunks in {}ms - spawning will complete asynchronously",
-                queuedChunks.size(), queueTime);
+        long spawnTime = System.currentTimeMillis() - startTime;
+        LOGGER.info("[InitialSpawn] Successfully spawned {} initial chunks in {}ms",
+                queuedChunks.size(), spawnTime);
 
-        LOGGER.info("[InitialSpawn] Server can now continue - chunks spawning in background");
+        LOGGER.info("[InitialSpawn] Initial chunks ready - server continuing");
     }
 
     private static void spawnChunkWithTimeout(ChunkSpawnController controller, ServerLevel level,
@@ -883,21 +919,44 @@ public final class ServerEventHandler {
 
         ChunkPos nearest = findNearestSpawnedChunk(targetLevel, playerChunk, 64);
         if (nearest == null) {
-            BlockPos spawn = targetLevel.getSharedSpawnPos();
-            nearest = new ChunkPos(spawn);
-            LOGGER.info("[PortalFix] No nearby spawned chunk found, using spawn chunk [{},{}]", nearest.x, nearest.z);
+            LOGGER.info("[PortalFix] No nearby spawned chunk found yet for {} - scheduling retry teleport", player.getName().getString());
+            final java.util.UUID playerId = player.getUUID();
+            player.server.tell(new net.minecraft.server.TickTask(player.server.getTickCount() + 40, () -> {
+                ServerPlayer p = player.server.getPlayerList().getPlayer(playerId);
+                if (p == null) return;
+                ChunkPos retryNearest = findNearestSpawnedChunk(targetLevel, new ChunkPos(targetLevel.getSharedSpawnPos()), 64);
+                if (retryNearest == null) {
+                    player.server.tell(new net.minecraft.server.TickTask(player.server.getTickCount() + 60, () -> {
+                        ServerPlayer p2 = player.server.getPlayerList().getPlayer(playerId);
+                        if (p2 == null) return;
+                        ChunkPos finalNearest = findNearestSpawnedChunk(targetLevel, new ChunkPos(targetLevel.getSharedSpawnPos()), 64);
+                        if (finalNearest != null) {
+                            teleportToChunk(p2, targetLevel, finalNearest);
+                        } else {
+                            LOGGER.warn("[PortalFix] Still no spawned chunk for {} after retries - leaving at current position", p2.getName().getString());
+                        }
+                    }));
+                } else {
+                    teleportToChunk(p, targetLevel, retryNearest);
+                }
+            }));
+            return;
         } else {
             LOGGER.info("[PortalFix] Found nearest spawned chunk [{},{}]", nearest.x, nearest.z);
         }
 
-        LevelChunk targetChunk = targetLevel.getChunk(nearest.x, nearest.z);
-        int safeY = ChunkUtil.getSafeSpawnHeight(targetChunk, nearest.getMiddleBlockX(), nearest.getMiddleBlockZ());
+        teleportToChunk(player, targetLevel, nearest);
+    }
+
+    private static void teleportToChunk(ServerPlayer player, ServerLevel targetLevel, ChunkPos chunkPos) {
+        LevelChunk targetChunk = targetLevel.getChunk(chunkPos.x, chunkPos.z);
+        int safeY = ChunkUtil.getSafeSpawnHeight(targetChunk, chunkPos.getMiddleBlockX(), chunkPos.getMiddleBlockZ());
 
         player.teleportTo(
                 targetLevel,
-                nearest.getMiddleBlockX() + 0.5,
+                chunkPos.getMiddleBlockX() + 0.5,
                 safeY,
-                nearest.getMiddleBlockZ() + 0.5,
+                chunkPos.getMiddleBlockZ() + 0.5,
                 player.getYRot(),
                 player.getXRot()
         );

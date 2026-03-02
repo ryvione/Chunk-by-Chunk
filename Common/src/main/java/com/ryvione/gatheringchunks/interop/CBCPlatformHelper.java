@@ -1,13 +1,3 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Gathering Chunks (Ryvione's Fork).
- * Original: https://github.com/immortius/chunkbychunk
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
-
 package com.ryvione.gatheringchunks.interop;
 
 import com.ryvione.gatheringchunks.common.blockEntities.BedrockChestBlockEntity;
@@ -21,6 +11,7 @@ import com.ryvione.gatheringchunks.common.menus.WorldForgeMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldMenderMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldScannerMenu;
 import com.ryvione.gatheringchunks.common.menus.ChunkEngineMenu;
+import com.ryvione.gatheringchunks.common.network.C2SSaveConfigPacket;
 import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
 import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import net.minecraft.core.MappedRegistry;
@@ -38,74 +29,40 @@ import java.util.List;
 
 public interface CBCPlatformHelper {
     SpawnChunkBlock spawnChunkBlock();
-
     Block unstableSpawnChunkBlock();
-
     Block bedrockChestBlock();
-
     Block worldCoreBlock();
-
     Block worldForgeBlock();
-
     Block worldScannerBlock();
-
     Block worldMenderBlock();
-
     Block chunkEngineBlock();
-
     Item spawnChunkBlockItem();
-
     Item unstableChunkSpawnBlockItem();
-
     Item bedrockChestItem();
-
     Item worldCoreBlockItem();
-
     Item worldForgeBlockItem();
-
     Item worldScannerBlockItem();
-
     Item worldMenderBlockItem();
-
     Item chunkEngineBlockItem();
-
     Item worldFragmentItem();
-
     Item worldShardItem();
-
     Item worldCrystalItem();
-
     List<ItemStack> biomeThemeBlockItems();
-
     BlockEntityType<BedrockChestBlockEntity> bedrockChestEntity();
-
     BlockEntityType<WorldForgeBlockEntity> worldForgeEntity();
-
     BlockEntityType<WorldScannerBlockEntity> worldScannerEntity();
-
     BlockEntityType<WorldMenderBlockEntity> worldMenderEntity();
-
     BlockEntityType<ChunkEngineBlockEntity> chunkEngineEntity();
-
     SoundEvent spawnChunkSoundEffect();
-
     MenuType<BedrockChestMenu> bedrockChestMenu();
-
     MenuType<WorldForgeMenu> worldForgeMenu();
-
     MenuType<WorldScannerMenu> worldScannerMenu();
-
     MenuType<WorldMenderMenu> worldMenderMenu();
-
     MenuType<ChunkEngineMenu> chunkEngineMenu();
-
     Fluid getFluidContent(BucketItem bucketItem);
-
     <T> void unfreezeRegistry(MappedRegistry<T> registry);
-
     void openConfigScreen(ServerPlayer player);
-
     void sendConfigOpenPacket(ServerPlayer player, S2COpenConfigPacket packet);
-
     void sendConfigSyncPacket(ServerPlayer player, S2CSyncConfigPacket packet);
+    void sendConfigSavePacket(C2SSaveConfigPacket packet);
 }

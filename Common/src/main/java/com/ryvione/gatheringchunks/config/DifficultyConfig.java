@@ -98,7 +98,7 @@ public class DifficultyConfig {
     }
 
     public boolean isAlwaysSpawnVillage() {
-        if (hardMode.isDisableVillages()) {
+        if (hardMode.isEnabled() && hardMode.isDisableVillages()) {
             return false;
         }
         return alwaysSpawnVillage;

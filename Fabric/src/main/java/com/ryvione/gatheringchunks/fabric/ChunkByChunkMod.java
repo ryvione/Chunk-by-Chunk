@@ -1,20 +1,15 @@
-/*
- * Original work Copyright (c) immortius
- * Modified work Copyright (c) 2026 Ryvione
- *
- * This file is part of Gathering Chunks (Ryvione's Fork).
- * Original: https://github.com/immortius/chunkbychunk
- *
- * Licensed under the MIT License. See LICENSE file in the project root for details.
- */
 package com.ryvione.gatheringchunks.fabric;
 
 import com.ryvione.gatheringchunks.common.CommonEventHandler;
 import com.ryvione.gatheringchunks.common.CommonRegistry;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import com.ryvione.gatheringchunks.common.util.ConfigUtil;
+import com.ryvione.gatheringchunks.common.network.C2SSaveConfigPacket;
+import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
+import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.config.system.ConfigSystem;
+import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.server.ChunkBoundaryEnforcer;
 import com.ryvione.gatheringchunks.server.MobLootHandler;
 import com.ryvione.gatheringchunks.server.ServerEventHandler;
@@ -22,35 +17,34 @@ import com.ryvione.gatheringchunks.server.commands.ChestsCommand;
 import com.ryvione.gatheringchunks.server.commands.GatheringChunksCommand;
 import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
 import com.ryvione.gatheringchunks.server.world.SpawnChunkHelper;
-import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
-import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
-import com.ryvione.gatheringchunks.interop.Services;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.InteractionResult;
-import com.ryvione.gatheringchunks.common.util.ChunkUtil;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.chunk.LevelChunk;
+import com.ryvione.gatheringchunks.common.util.ChunkUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -68,14 +62,54 @@ public class ChunkByChunkMod implements ModInitializer {
     public void onInitialize() {
         PayloadTypeRegistry.playS2C().register(S2COpenConfigPacket.TYPE, S2COpenConfigPacket.CODEC);
         PayloadTypeRegistry.playS2C().register(S2CSyncConfigPacket.TYPE, S2CSyncConfigPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(C2SSaveConfigPacket.TYPE, C2SSaveConfigPacket.CODEC);
 
         LOGGER.info("Fabric mod initializing");
 
         Path gameDir = FabricLoader.getInstance().getGameDir();
         ConfigSystem.initCentralConfigDir(gameDir);
-        LOGGER.info("[ChunkByChunkMod] Centralized config directory initialized");
+        ConfigUtil.loadDefaultConfig();
+        LOGGER.info("[ChunkByChunkMod] Centralized config directory initialized and loaded");
 
         CommonRegistry.registerAll();
+
+        ServerPlayNetworking.registerGlobalReceiver(C2SSaveConfigPacket.TYPE, (packet, context) -> {
+            context.server().execute(() -> {
+                ServerPlayer player = context.player();
+                if (!player.hasPermissions(2)) {
+                    player.sendSystemMessage(Component.literal("§c[Gathering Chunks] No permission to modify server config."));
+                    return;
+                }
+                try {
+                    com.google.gson.Gson gson = new com.google.gson.GsonBuilder().create();
+                    ChunkByChunkConfig incoming = gson.fromJson(packet.configJson(), ChunkByChunkConfig.class);
+                    if (incoming == null) return;
+
+                    applyConfig(incoming);
+
+                    ConfigSystem configSystem = new ConfigSystem();
+                    java.nio.file.Path configPath = ConfigSystem.getCentralConfigPath(GatheringChunksConstants.CONFIG_FILE);
+                    configSystem.write(configPath, ChunkByChunkConfig.get());
+
+                    java.nio.file.Path worldConfigPath = context.server()
+                            .getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT)
+                            .resolve("serverconfig")
+                            .resolve(GatheringChunksConstants.CONFIG_FILE);
+                    configSystem.write(worldConfigPath, ChunkByChunkConfig.get());
+
+                    String syncJson = gson.toJson(ChunkByChunkConfig.get().getGatheringChunksConfig());
+                    S2CSyncConfigPacket syncPacket = new S2CSyncConfigPacket(syncJson);
+                    for (ServerPlayer p : context.server().getPlayerList().getPlayers()) {
+                        Services.PLATFORM.sendConfigSyncPacket(p, syncPacket);
+                    }
+
+                    GatheringChunksConstants.LOGGER.info("[Fabric] Config saved by {}", player.getName().getString());
+                    player.sendSystemMessage(Component.literal("§a[Gathering Chunks] Config saved to server."));
+                } catch (Exception e) {
+                    GatheringChunksConstants.LOGGER.error("[Fabric] Failed to apply config from client", e);
+                }
+            });
+        });
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             INITIAL_SPAWNED_PLAYERS.clear();
@@ -175,8 +209,7 @@ public class ChunkByChunkMod implements ModInitializer {
             try {
                 com.google.gson.Gson gson = new com.google.gson.GsonBuilder().create();
                 String configJson = gson.toJson(ChunkByChunkConfig.get().getGatheringChunksConfig());
-                com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket packet =
-                        new com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket(configJson);
+                S2CSyncConfigPacket packet = new S2CSyncConfigPacket(configJson);
                 Services.PLATFORM.sendConfigSyncPacket(player, packet);
                 LOGGER.debug("[ChunkByChunkMod] Synced config to player {} on join", player.getName().getString());
             } catch (Exception e) {
@@ -193,8 +226,43 @@ public class ChunkByChunkMod implements ModInitializer {
                 if (isFirstJoin) {
                     INITIAL_SPAWNED_PLAYERS.add(player.getUUID());
 
-                    final int MAX_WAIT_TICKS = 600; 
-                    scheduleSpawnTeleport(server, player.getUUID(), server.getTickCount(), MAX_WAIT_TICKS);
+                    final UUID firstJoinUUID = player.getUUID();
+                    final int MAX_WAIT_TICKS = 600;
+
+                    server.tell(new net.minecraft.server.TickTask(server.getTickCount() + 1, () -> {
+                        ServerPlayer p = server.getPlayerList().getPlayer(firstJoinUUID);
+                        if (p == null) return;
+
+                        ServerLevel lvl = p.serverLevel();
+                        if (!lvl.dimension().equals(Level.OVERWORLD)) return;
+                        if (!(lvl.getChunkSource().getGenerator() instanceof SkyChunkGenerator)) return;
+
+                        BlockPos currentSpawn = lvl.getSharedSpawnPos();
+                        ChunkPos spawnChunk = new ChunkPos(currentSpawn);
+                        boolean chunkReady = !SpawnChunkHelper.isEmptyChunk(lvl, spawnChunk);
+
+                        if (chunkReady) {
+                            LOGGER.info("[FirstJoin] Spawn chunk [{},{}] already ready - teleporting to surface", spawnChunk.x, spawnChunk.z);
+                            LevelChunk spawnLevelChunk = lvl.getChunkAt(spawnChunk.getMiddleBlockPosition(0));
+                            int safeY = (spawnLevelChunk != null)
+                                    ? Math.max(ChunkUtil.getSafeSpawnHeight(spawnLevelChunk, spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ()),
+                                               lvl.getMinBuildHeight() + 10)
+                                    : lvl.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,
+                                               spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ()) + 1;
+                            p.teleportTo(lvl,
+                                    spawnChunk.getMiddleBlockX() + 0.5, safeY,
+                                    spawnChunk.getMiddleBlockZ() + 0.5,
+                                    p.getYRot(), p.getXRot());
+                        } else {
+                            int holdY = lvl.getMaxBuildHeight() - 1;
+                            LOGGER.info("[FirstJoin] Spawn chunk not ready - parking player at Y={} above [{},{}]", holdY, spawnChunk.x, spawnChunk.z);
+                            p.teleportTo(lvl,
+                                    spawnChunk.getMiddleBlockX() + 0.5, holdY,
+                                    spawnChunk.getMiddleBlockZ() + 0.5,
+                                    p.getYRot(), p.getXRot());
+                            scheduleSpawnTeleport(server, firstJoinUUID, server.getTickCount(), MAX_WAIT_TICKS);
+                        }
+                    }));
                 }
             }
         });
@@ -222,13 +290,59 @@ public class ChunkByChunkMod implements ModInitializer {
                 });
     }
 
+    private static void applyConfig(ChunkByChunkConfig incoming) {
+        ChunkByChunkConfig current = ChunkByChunkConfig.get();
+
+        current.getGeneration().setEnabled(incoming.getGeneration().isEnabled());
+        current.getGeneration().setSealWorld(incoming.getGeneration().sealWorld());
+        current.getGeneration().setSynchNether(incoming.getGeneration().isSynchNether());
+        current.getGeneration().setUseBedrockChest(incoming.getGeneration().useBedrockChest());
+        current.getGeneration().setChestContents(incoming.getGeneration().getChestContents());
+        current.getGeneration().setChestQuantity(incoming.getGeneration().getChestQuantity());
+        current.getGeneration().setChestsPerChunk(incoming.getGeneration().getChestsPerChunk());
+        current.getGeneration().setChunkSpawnerMode(incoming.getGeneration().getChunkSpawnerMode());
+        current.getGeneration().setMinChestSpawnDepth(incoming.getGeneration().getMinChestSpawnDepth());
+        current.getGeneration().setMaxChestSpawnDepth(incoming.getGeneration().getMaxChestSpawnDepth());
+        current.getGeneration().setInitialChunks(incoming.getGeneration().getInitialChunks());
+        current.getGeneration().setChunkLayerSpawnRate(incoming.getGeneration().getChunkLayerSpawnRate());
+        current.getGeneration().setInitialChunkBiomes(incoming.getGeneration().getInitialChunkBiomes());
+
+        current.getDifficulty().getHardMode().setEnabled(incoming.getDifficulty().getHardMode().isEnabled());
+        current.getDifficulty().getHardMode().setEnforceChunkBoundaries(incoming.getDifficulty().getHardMode().isEnforceChunkBoundaries());
+        current.getDifficulty().getHardMode().setDisableVillages(incoming.getDifficulty().getHardMode().isDisableVillages());
+        current.getDifficulty().getHardMode().setSpawnInitialEngine(incoming.getDifficulty().getHardMode().isSpawnInitialEngine());
+        current.getDifficulty().getHardMode().setInitialEngineFuel(incoming.getDifficulty().getHardMode().isInitialEngineFuel());
+        current.getDifficulty().getHardMode().setDisableChestsCommand(incoming.getDifficulty().getHardMode().isDisableChestsCommand());
+        current.getDifficulty().setEngineRequiresFuel(incoming.getDifficulty().isEngineRequiresFuel());
+        current.getDifficulty().setExperimentalChunkLimit(incoming.getDifficulty().isExperimentalChunkLimit());
+        current.getDifficulty().setEnableProgressionHelper(incoming.getDifficulty().isEnableProgressionHelper());
+        current.getDifficulty().setStartRestriction(incoming.getDifficulty().getStartRestriction());
+        current.getDifficulty().setStartingBiome(incoming.getDifficulty().getStartingBiome());
+        current.getDifficulty().setAlwaysSpawnVillage(incoming.getDifficulty().isAlwaysSpawnVillage());
+        current.getDifficulty().setSpawnNewChunkChest(incoming.getDifficulty().spawnNewChunkChest());
+        current.getDifficulty().setSpawnChunkStrip(incoming.getDifficulty().isSpawnChunkStrip());
+        current.getDifficulty().setSpawnChestInInitialChunkOnly(incoming.getDifficulty().spawnChestInInitialChunkOnly());
+
+        current.getGameplayConfig().setBlockPlacementAllowedOutsideSpawnedChunks(incoming.getGameplayConfig().isBlockPlacementAllowedOutsideSpawnedChunks());
+        current.getGameplayConfig().setChunkSpawnLeafDecayDisabled(incoming.getGameplayConfig().isChunkSpawnLeafDecayDisabled());
+        current.getGameplayConfig().setEnableChunkBarriers(incoming.getGameplayConfig().isEnableChunkBarriers());
+        current.getGameplayConfig().setUnstableChunkChance(incoming.getGameplayConfig().getUnstableChunkChance());
+
+        current.getGatheringChunksConfig().setMobsDropFragments(incoming.getGatheringChunksConfig().isMobsDropFragments());
+        current.getGatheringChunksConfig().setFragmentDropChance(incoming.getGatheringChunksConfig().getFragmentDropChance());
+        current.getGatheringChunksConfig().setMinFragmentDrop(incoming.getGatheringChunksConfig().getMinFragmentDrop());
+        current.getGatheringChunksConfig().setMaxFragmentDrop(incoming.getGatheringChunksConfig().getMaxFragmentDrop());
+        current.getGatheringChunksConfig().setAutoSpawnTrees(incoming.getGatheringChunksConfig().isAutoSpawnTrees());
+        current.getGatheringChunksConfig().setPreventFluidFlowIntoVoid(incoming.getGatheringChunksConfig().isPreventFluidFlowIntoVoid());
+    }
+
     private static void scheduleSpawnTeleport(net.minecraft.server.MinecraftServer server, UUID playerUUID,
             int startTick, int maxWaitTicks) {
         server.tell(new net.minecraft.server.TickTask(server.getTickCount() + 5, () -> {
             if (!server.isRunning()) return;
 
             ServerPlayer p = server.getPlayerList().getPlayer(playerUUID);
-            if (p == null) return; 
+            if (p == null) return;
 
             ServerLevel lvl = p.serverLevel();
             if (!lvl.dimension().equals(Level.OVERWORLD)) return;
@@ -237,7 +351,7 @@ public class ChunkByChunkMod implements ModInitializer {
             BlockPos spawnPos = lvl.getSharedSpawnPos();
             ChunkPos spawnChunk = new ChunkPos(spawnPos);
 
-            boolean chunkReady = !com.ryvione.gatheringchunks.server.world.SpawnChunkHelper.isEmptyChunk(lvl, spawnChunk);
+            boolean chunkReady = !SpawnChunkHelper.isEmptyChunk(lvl, spawnChunk);
 
             int ticksWaited = server.getTickCount() - startTick;
 
@@ -260,7 +374,7 @@ public class ChunkByChunkMod implements ModInitializer {
             int safeY;
             LevelChunk spawnLevelChunk = lvl.getChunkAt(spawnChunk.getMiddleBlockPosition(0));
             if (spawnLevelChunk != null) {
-                int candidateY = com.ryvione.gatheringchunks.common.util.ChunkUtil.getSafeSpawnHeight(
+                int candidateY = ChunkUtil.getSafeSpawnHeight(
                         spawnLevelChunk, spawnChunk.getMiddleBlockX(), spawnChunk.getMiddleBlockZ());
                 if (candidateY > lvl.getMinBuildHeight() + 10) {
                     safeY = candidateY;

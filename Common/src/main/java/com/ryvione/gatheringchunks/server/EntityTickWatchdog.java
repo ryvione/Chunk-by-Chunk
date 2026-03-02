@@ -32,16 +32,25 @@ public final class EntityTickWatchdog {
     private EntityTickWatchdog() {
     }
 
+    private static int currentLevelIndex = 0;
+
     public static void tick(MinecraftServer server) {
-        if (server.getTickCount() % CHECK_INTERVAL_TICKS != 0) {
+        if (server.getTickCount() % 20 != 0) {
             return;
         }
+        
+        List<ServerLevel> skyLevels = new ArrayList<>();
         for (ServerLevel level : server.getAllLevels()) {
-            if (!(level.getChunkSource().getGenerator() instanceof SkyChunkGenerator)) {
-                continue;
+            if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator) {
+                skyLevels.add(level);
             }
-            tickLevel(level);
         }
+        
+        if (skyLevels.isEmpty()) return;
+        
+        currentLevelIndex = currentLevelIndex % skyLevels.size();
+        tickLevel(skyLevels.get(currentLevelIndex));
+        currentLevelIndex++;
     }
 
     private static void tickLevel(ServerLevel level) {
