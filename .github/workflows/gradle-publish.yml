@@ -1,12 +1,4 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-# This workflow will build a package using Gradle and then publish it to GitHub packages when a release is created
-# For more information see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#Publishing-using-gradle
-
 name: Build Mod & Publish
-
 on:
   workflow_dispatch:
     branches:
@@ -28,19 +20,12 @@ on:
           - fabric
           - neoforge
           - both
-      publish:
-        description: 'Publish to GitHub Packages'
-        required: true
-        type: boolean
-        default: false
 
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
-
     steps:
     - uses: actions/checkout@v4
 
@@ -55,43 +40,38 @@ jobs:
 
     - name: Build Fabric
       if: ${{ inputs.loader == 'fabric' || inputs.loader == 'both' }}
-      run: ./gradlew fabric:jar fabric:remapJar
+      run: ./gradlew :Fabric:jar :Fabric:remapJar
 
     - name: Build NeoForge
       if: ${{ inputs.loader == 'neoforge' || inputs.loader == 'both' }}
-      run: ./gradlew neoforge:jar
+      run: ./gradlew :NeoForge:jar
 
-    - name: Publish to GitHub Packages
-      if: ${{ inputs.publish == true }}
-      run: ./gradlew publish
-      env:
-        USERNAME: ${{ github.actor }}
-        TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Create Release and Upload Fabric Jars
+    - name: Upload Fabric to GitHub Release
       if: ${{ inputs.loader == 'fabric' || inputs.loader == 'both' }}
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ inputs.version }}
+        name: ${{ inputs.version }}
         body: ${{ inputs.release_notes }}
         files: |
-          fabric/build/libs/*.jar
-          !fabric/build/libs/*-dev.jar
-          !fabric/build/libs/*-sources.jar
-          !fabric/build/libs/*-javadoc.jar
+          Fabric/build/libs/*.jar
+          !Fabric/build/libs/*-dev.jar
+          !Fabric/build/libs/*-sources.jar
+          !Fabric/build/libs/*-javadoc.jar
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Create Release and Upload NeoForge Jars
+    - name: Upload NeoForge to GitHub Release
       if: ${{ inputs.loader == 'neoforge' || inputs.loader == 'both' }}
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ inputs.version }}
+        name: ${{ inputs.version }}
         body: ${{ inputs.release_notes }}
         files: |
-          neoforge/build/libs/*.jar
-          !neoforge/build/libs/*-dev.jar
-          !neoforge/build/libs/*-sources.jar
-          !neoforge/build/libs/*-javadoc.jar
+          NeoForge/build/libs/*.jar
+          !NeoForge/build/libs/*-dev.jar
+          !NeoForge/build/libs/*-sources.jar
+          !NeoForge/build/libs/*-javadoc.jar
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
