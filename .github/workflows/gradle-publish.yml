@@ -53,7 +53,7 @@ jobs:
 
     - name: Build NeoForge
       if: ${{ inputs.loader == 'neoforge' || inputs.loader == 'both' }}
-      run: ./gradlew :NeoForge:jar :NeoForge:remapJar
+      run: ./gradlew :NeoForge:jar
 
     - name: Upload Fabric to GitHub Release
       if: ${{ inputs.publish_github && (inputs.loader == 'fabric' || inputs.loader == 'both') }}
