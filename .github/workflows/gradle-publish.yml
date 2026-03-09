@@ -5,7 +5,11 @@ on:
       - GatheringChunks-1.21.1
     inputs:
       version:
-        description: 'Version (Tag)'
+        description: 'Version Tag (e.g. v1.2.0)'
+        required: true
+        type: string
+      title:
+        description: 'Release Title (e.g. My Mod v1.2.0)'
         required: true
         type: string
       release_notes:
@@ -20,6 +24,11 @@ on:
           - fabric
           - neoforge
           - both
+      publish_github:
+        description: 'Publish to GitHub Releases'
+        required: true
+        type: boolean
+        default: true
 
 jobs:
   build-and-release:
@@ -44,14 +53,14 @@ jobs:
 
     - name: Build NeoForge
       if: ${{ inputs.loader == 'neoforge' || inputs.loader == 'both' }}
-      run: ./gradlew :NeoForge:jar
+      run: ./gradlew :NeoForge:jar :NeoForge:remapJar
 
     - name: Upload Fabric to GitHub Release
-      if: ${{ inputs.loader == 'fabric' || inputs.loader == 'both' }}
+      if: ${{ inputs.publish_github && (inputs.loader == 'fabric' || inputs.loader == 'both') }}
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ inputs.version }}
-        name: ${{ inputs.version }}
+        name: ${{ inputs.title }}
         body: ${{ inputs.release_notes }}
         files: |
           Fabric/build/libs/*.jar
@@ -62,11 +71,11 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload NeoForge to GitHub Release
-      if: ${{ inputs.loader == 'neoforge' || inputs.loader == 'both' }}
+      if: ${{ inputs.publish_github && (inputs.loader == 'neoforge' || inputs.loader == 'both') }}
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ inputs.version }}
-        name: ${{ inputs.version }}
+        name: ${{ inputs.title }}
         body: ${{ inputs.release_notes }}
         files: |
           NeoForge/build/libs/*.jar
