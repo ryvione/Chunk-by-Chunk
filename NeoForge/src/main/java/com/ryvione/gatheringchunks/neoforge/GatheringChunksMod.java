@@ -1,11 +1,9 @@
 package com.ryvione.gatheringchunks.neoforge;
 
-import com.ryvione.gatheringchunks.client.screens.*;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import com.ryvione.gatheringchunks.common.network.C2SSaveConfigPacket;
 import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
 import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
-import com.ryvione.gatheringchunks.client.ClientConfigStorage;
 import com.ryvione.gatheringchunks.config.system.ConfigSystem;
 import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
 import com.mojang.serialization.MapCodec;
@@ -66,14 +64,14 @@ public class GatheringChunksMod {
 
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar(GatheringChunksConstants.MOD_ID).versioned("1.0");
-        registrar.playToClient(
-                S2COpenConfigPacket.TYPE,
-                S2COpenConfigPacket.CODEC,
-                ClientPacketHandler::handleOpenConfig);
-        registrar.playToClient(
-                S2CSyncConfigPacket.TYPE,
-                S2CSyncConfigPacket.CODEC,
-                ClientPacketHandler::handleSyncConfig);
+        
+        if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient()) {
+            ClientPayloadRegistration.register(registrar);
+        } else {
+            registrar.playToClient(S2COpenConfigPacket.TYPE, S2COpenConfigPacket.CODEC, (p, c) -> {});
+            registrar.playToClient(S2CSyncConfigPacket.TYPE, S2CSyncConfigPacket.CODEC, (p, c) -> {});
+        }
+
         registrar.playToServer(
                 C2SSaveConfigPacket.TYPE,
                 C2SSaveConfigPacket.CODEC,
@@ -85,18 +83,18 @@ public class GatheringChunksMod {
     public static class ClientModEvents {
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
-            ClientConfigStorage.init(FMLPaths.GAMEDIR.get());
+            com.ryvione.gatheringchunks.client.ClientConfigStorage.init(FMLPaths.GAMEDIR.get());
             LOGGER.info("[GatheringChunksMod] ClientConfigStorage initialized");
         }
 
         @SubscribeEvent
         public static void registerScreens(RegisterMenuScreensEvent event) {
             LOGGER.info("Client Initializing");
-            event.register(ModRegistry.BEDROCK_CHEST_MENU.get(), BedrockChestScreen::new);
-            event.register(ModRegistry.WORLD_FORGE_MENU.get(), WorldForgeScreen::new);
-            event.register(ModRegistry.WORLD_SCANNER_MENU.get(), WorldScannerScreen::new);
-            event.register(ModRegistry.WORLD_MENDER_MENU.get(), WorldMenderScreen::new);
-            event.register(ModRegistry.CHUNK_ENGINE_MENU.get(), ChunkEngineScreen::new);
+            event.register(ModRegistry.BEDROCK_CHEST_MENU.get(), com.ryvione.gatheringchunks.client.screens.BedrockChestScreen::new);
+            event.register(ModRegistry.WORLD_FORGE_MENU.get(), com.ryvione.gatheringchunks.client.screens.WorldForgeScreen::new);
+            event.register(ModRegistry.WORLD_SCANNER_MENU.get(), com.ryvione.gatheringchunks.client.screens.WorldScannerScreen::new);
+            event.register(ModRegistry.WORLD_MENDER_MENU.get(), com.ryvione.gatheringchunks.client.screens.WorldMenderScreen::new);
+            event.register(ModRegistry.CHUNK_ENGINE_MENU.get(), com.ryvione.gatheringchunks.client.screens.ChunkEngineScreen::new);
         }
     }
 
@@ -111,7 +109,7 @@ public class GatheringChunksMod {
                     address = mc.getCurrentServer().ip;
                 }
             } catch (Exception ignored) {}
-            ClientConfigStorage.setCurrentServer(ClientConfigStorage.getServerIdFromConnection(address));
+            com.ryvione.gatheringchunks.client.ClientConfigStorage.setCurrentServer(com.ryvione.gatheringchunks.client.ClientConfigStorage.getServerIdFromConnection(address));
             LOGGER.info("[GatheringChunksMod] Joined server, set config scope: {}", address);
         }
     }

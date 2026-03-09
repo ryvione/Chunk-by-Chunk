@@ -319,7 +319,6 @@ public class ChunkSpawnController extends SavedData {
                 if (phase == SpawnPhase.SPAWN_ENTITIES || phase == SpawnPhase.SYNCH_CHUNKS || phase == SpawnPhase.UPDATE_BARRIERS) {
                     completeSpawnRequest();
                 } else {
-                    // Critical failure, drop request
                     currentSpawnRequest = null;
                 }
                 return;
