@@ -47,9 +47,9 @@ public class BiomeCoordinateCache extends SavedData {
     private static final int INITIAL_SCAN_RADIUS = 120;
     private static final int MAX_CACHED_CHUNKS_PER_BIOME = 400;
     private static final int PROGRESSIVE_SCAN_RANGE = 1500;
-    private static final long TARGET_TICK_TIME_MS = 25;
-    private static final int SCAN_INTERVAL_TICKS = 40;
-    private static final int RINGS_PER_SCAN = 3;
+    private static final long TARGET_TICK_TIME_MS = 40;
+    private static final int SCAN_INTERVAL_TICKS = 100;
+    private static final int RINGS_PER_SCAN = 1;
     private static final int MAX_SCANNED_CHUNKS_PER_DIM = 20000;
 
     public static BiomeCoordinateCache get(MinecraftServer server) {
@@ -354,7 +354,7 @@ public class BiomeCoordinateCache extends SavedData {
         });
     }
 
-    private String getBiomeTheme(Holder<Biome> biomeHolder) {
+    public String getBiomeTheme(Holder<Biome> biomeHolder) {
         if (biomeHolder == null) return null;
         var keyOpt = biomeHolder.unwrapKey();
         if (keyOpt.isEmpty()) return null;

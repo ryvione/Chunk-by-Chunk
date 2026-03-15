@@ -47,7 +47,9 @@ public interface CBCPlatformHelper {
     Item worldFragmentItem();
     Item worldShardItem();
     Item worldCrystalItem();
+    Item starterBookItem();
     List<ItemStack> biomeThemeBlockItems();
+
     BlockEntityType<BedrockChestBlockEntity> bedrockChestEntity();
     BlockEntityType<WorldForgeBlockEntity> worldForgeEntity();
     BlockEntityType<WorldScannerBlockEntity> worldScannerEntity();
@@ -65,4 +67,5 @@ public interface CBCPlatformHelper {
     void sendConfigOpenPacket(ServerPlayer player, S2COpenConfigPacket packet);
     void sendConfigSyncPacket(ServerPlayer player, S2CSyncConfigPacket packet);
     void sendConfigSavePacket(C2SSaveConfigPacket packet);
+    void openStarterBook();
 }

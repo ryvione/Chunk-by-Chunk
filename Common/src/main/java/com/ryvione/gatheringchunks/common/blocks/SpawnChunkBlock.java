@@ -7,6 +7,7 @@ import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.server.world.ChunkOverwriteConfirmation;
 import com.ryvione.gatheringchunks.server.world.ChunkSpawnController;
 import com.ryvione.gatheringchunks.server.world.SpawnChunkHelper;
+import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -67,28 +68,14 @@ public class SpawnChunkBlock extends Block {
         ChunkSpawnerMode mode = ChunkByChunkConfig.get().getGeneration().getChunkSpawnerMode();
         ChunkPos ownChunk = new ChunkPos(pos);
         boolean ownChunkEmpty = SpawnChunkHelper.isEmptyChunk(serverLevel, ownChunk);
-
-        if (mode == ChunkSpawnerMode.Void || mode == ChunkSpawnerMode.Both) {
-            if (ownChunkEmpty) {
-                if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, pos, false, false)) {
-                    level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
-                    level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-                    return InteractionResult.SUCCESS;
-                }
-            } else if (mode == ChunkSpawnerMode.Void) {
-                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                        "§c[ChunkByChunk] §eVoid mode is active: place this spawner inside an empty (void) chunk, not on already-generated terrain."));
-                return InteractionResult.CONSUME;
+        
+        if (ownChunkEmpty && serverLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
+            if (generator.isChunkSpawned(ownChunk.toLong())) {
+                ownChunkEmpty = false;
             }
         }
 
         if (mode == ChunkSpawnerMode.Edge || mode == ChunkSpawnerMode.Both) {
-            if (mode == ChunkSpawnerMode.Edge && ownChunkEmpty) {
-                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                        "§c[ChunkByChunk] §eEdge mode is active: place this spawner inside an already-generated chunk, facing the void chunk you want to expand into."));
-                return InteractionResult.CONSUME;
-            }
-
             Direction targetDirection = hit.getDirection();
             if (!HORIZONTAL_DIR.contains(targetDirection)) {
                 targetDirection = Direction.NORTH;
@@ -114,23 +101,34 @@ public class SpawnChunkBlock extends Block {
 
             for (ChunkPos targetChunkPos : adjacentChunks) {
                 if (!serverLevel.hasChunk(targetChunkPos.x, targetChunkPos.z)) continue;
-                if (!SpawnChunkHelper.isEmptyChunk(level, targetChunkPos)) continue;
+                
+                boolean targetEmpty = SpawnChunkHelper.isEmptyChunk(level, targetChunkPos);
+                if (targetEmpty && serverLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
+                    if (generator.isChunkSpawned(targetChunkPos.toLong())) {
+                        targetEmpty = false;
+                    }
+                }
+                
+                if (!targetEmpty) continue;
 
                 BlockPos requestPos = targetChunkPos.getMiddleBlockPosition(pos.getY());
                 if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom,
-                        requestPos, false, false)) {
+                        requestPos, false, false, serverPlayer.getUUID())) {
                     level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
                     level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
                     return InteractionResult.SUCCESS;
-                } else {
-                    GatheringChunksConstants.LOGGER.warn("Chunk spawn request failed for " + targetChunkPos
-                            + " (Theme: " + effectiveBiomeTheme + ")");
                 }
             }
+        }
 
-            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                    "§c[ChunkByChunk] §eNo empty adjacent chunks to expand into. All neighboring chunks are already generated, or the spawn limit has been reached."));
-            return InteractionResult.CONSUME;
+        if (mode == ChunkSpawnerMode.Void || mode == ChunkSpawnerMode.Both) {
+            if (ownChunkEmpty) {
+                if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, pos, false, false, serverPlayer.getUUID())) {
+                    level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
+                    level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                    return InteractionResult.SUCCESS;
+                }
+            }
         }
 
         if (!ownChunkEmpty) {
@@ -146,13 +144,13 @@ public class SpawnChunkBlock extends Block {
                         "§6[ChunkByChunk] §eOverwriting chunk at [" + ownChunk.x + ", " + ownChunk.z + "]"));
 
                 if (chunkSpawnController.request(serverLevel, effectiveBiomeTheme, effectiveRandom, pos,
-                        false, true)) {
+                        false, true, serverPlayer.getUUID())) {
                     level.playSound(null, pos, Services.PLATFORM.spawnChunkSoundEffect(), SoundSource.BLOCKS, 1.0f, 1.0f);
                     level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
                     return InteractionResult.SUCCESS;
                 } else {
                     serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                            "§c[ChunkByChunk] §eOverwrite request failed (spawn limit reached?)."));
+                            "§c[ChunkByChunk] §eOverwrite request failed."));
                     return InteractionResult.CONSUME;
                 }
             } else {
@@ -167,8 +165,11 @@ public class SpawnChunkBlock extends Block {
             }
         }
 
-        return InteractionResult.PASS;
+        serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                "§c[ChunkByChunk] §eNo empty adjacent chunks to expand into. All neighboring chunks are already generated."));
+        return InteractionResult.CONSUME;
     }
+
 
     private String findAdjacentBiomeTheme(ServerLevel level, ChunkPos currentChunk) {
         for (Direction dir : HORIZONTAL_DIR) {

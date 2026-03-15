@@ -27,7 +27,7 @@ import java.util.List;
 public final class EntityTickWatchdog {
     private static final int CHECK_INTERVAL_TICKS = 100;
     private static final int AQUATIC_OUT_OF_WATER_TICKS = 200;
-    private static final int ITEM_STUCK_TICKS = 600;
+    private static final int ITEM_STUCK_TICKS = 3000;
 
     private EntityTickWatchdog() {
     }

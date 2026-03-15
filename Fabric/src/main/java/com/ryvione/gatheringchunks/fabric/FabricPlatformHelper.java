@@ -129,7 +129,13 @@ public final class FabricPlatformHelper implements CBCPlatformHelper {
     }
 
     @Override
+    public Item starterBookItem() {
+        return CommonRegistry.STARTER_BOOK_ITEM;
+    }
+
+    @Override
     public List<ItemStack> biomeThemeBlockItems() {
+
         return CommonRegistry.biomeThemedBlockItems;
     }
 
@@ -220,5 +226,10 @@ public final class FabricPlatformHelper implements CBCPlatformHelper {
     @Override
     public void sendConfigSavePacket(C2SSaveConfigPacket packet) {
         ClientPlayNetworking.send(packet);
+    }
+
+    @Override
+    public void openStarterBook() {
+        net.minecraft.client.Minecraft.getInstance().setScreen(new com.ryvione.gatheringchunks.client.screens.StarterBookScreen());
     }
 }

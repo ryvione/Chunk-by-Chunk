@@ -120,6 +120,9 @@ public class ModRegistry {
     public static final DeferredHolder<Item, Item> WORLD_CRYSTAL_ITEM = ITEMS.register("worldcrystal",
             () -> new Item(new Item.Properties()));
 
+    public static final DeferredHolder<Item, Item> STARTER_BOOK_ITEM = ITEMS.register("starter_book",
+            () -> new com.ryvione.gatheringchunks.common.items.StarterBookItem(new Item.Properties().stacksTo(1)));
+
     private static final List<DeferredHolder<Item, BlockItem>> BIOME_SPAWN_BLOCK_ITEMS = new ArrayList<>();
 
     static {
@@ -207,6 +210,7 @@ public class ModRegistry {
                         output.accept(WORLD_FRAGMENT_ITEM.get());
                         output.accept(WORLD_SHARD_ITEM.get());
                         output.accept(WORLD_CRYSTAL_ITEM.get());
+                        output.accept(STARTER_BOOK_ITEM.get());
                     })
                     .build());
 }

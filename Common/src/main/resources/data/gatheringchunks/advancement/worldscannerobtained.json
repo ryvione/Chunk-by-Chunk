@@ -2,7 +2,7 @@
   "parent": "gatheringchunks:worldcoreobtained",
   "display": {
     "icon": {
-      "item": "gatheringchunks:worldscanner"
+      "id": "gatheringchunks:worldscanner"
     },
     "title": {
       "translate": "advancement.gatheringchunks.worldscannerobtained.title"

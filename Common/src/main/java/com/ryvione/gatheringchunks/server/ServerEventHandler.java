@@ -330,8 +330,18 @@ public final class ServerEventHandler {
             BiomeSource biomeSource = noiseGen.getBiomeSource();
 
             if (biomeSource instanceof IMultiNoiseBiomeSource accessor) {
-                accessor.gc$getParameters().left().ifPresent(params -> {
+                var eitherParams = accessor.gc$getParameters();
+                eitherParams.left().ifPresent(params -> {
                     params.values().forEach(pair -> {
+                        pair.getSecond().unwrapKey().ifPresent(key -> {
+                            if (biomeKeys.contains(key)) {
+                                builder.add(pair);
+                            }
+                        });
+                    });
+                });
+                eitherParams.right().ifPresent(holder -> {
+                    holder.value().parameters().values().forEach(pair -> {
                         pair.getSecond().unwrapKey().ifPresent(key -> {
                             if (biomeKeys.contains(key)) {
                                 builder.add(pair);
@@ -766,7 +776,7 @@ public final class ServerEventHandler {
                 ChunkPos targetPos = new ChunkPos(centerChunkPos.x + offset[0], centerChunkPos.z + offset[1]);
                 boolean isInitial = (offset[0] == 0 && offset[1] == 0);
 
-                if (chunkSpawnController.request(targetPos, level.dimension(), targetPos, sourceLevelKey, true, false, isInitial)) {
+                if (chunkSpawnController.request(targetPos, level.dimension(), targetPos, sourceLevelKey, true, false, isInitial, null)) {
                     queuedChunks.add(targetPos);
                     LOGGER.info("[InitialSpawn] Spawned chunk {} (immediate, theme='{}')", targetPos, effectiveTheme);
 
@@ -783,7 +793,7 @@ public final class ServerEventHandler {
                 ChunkPos targetPos = new ChunkPos(spiralIterator.getX(), spiralIterator.getY());
                 boolean isInitial = (i == 0);
 
-                if (chunkSpawnController.request(targetPos, level.dimension(), targetPos, sourceLevelKey, true, false, isInitial)) {
+                if (chunkSpawnController.request(targetPos, level.dimension(), targetPos, sourceLevelKey, true, false, isInitial, null)) {
                     queuedChunks.add(targetPos);
                     LOGGER.info("[InitialSpawn] Spawned chunk {} (immediate, theme='{}')", targetPos, effectiveTheme);
 
@@ -808,7 +818,7 @@ public final class ServerEventHandler {
     private static void spawnChunkWithTimeout(ChunkSpawnController controller, ServerLevel level,
             ChunkPos targetPos, boolean isInitial, boolean addSpawner,
             List<ChunkPos> spawnedChunks) {
-        if (controller.request(level, "", false, targetPos.getMiddleBlockPosition(0), true, isInitial, isInitial)) {
+        if (controller.request(level, "", false, targetPos.getMiddleBlockPosition(0), true, isInitial, null)) {
             spawnedChunks.add(targetPos);
             LOGGER.info("[InitialSpawn]Queued chunk {} for spawning", targetPos);
 
@@ -889,9 +899,6 @@ public final class ServerEventHandler {
     }
 
     public static void onPlayerChangedDimension(ServerPlayer player, ResourceKey<Level> fromLevel, ResourceKey<Level> toLevel) {
-        ServerLevel targetLevel = player.server.getLevel(toLevel);
-        if (targetLevel == null) return;
-        checkAndRedirectPlayerToNearestChunk(player, targetLevel);
     }
 
     public static void onPlayerArrived(ServerPlayer player, ServerLevel targetLevel) {
@@ -988,4 +995,15 @@ public final class ServerEventHandler {
 
         return null;
     }
+
+    public static void giveStarterBookIfMissing(ServerPlayer player) {
+        if (player.getTags().contains("gc_received_book")) return;
+
+        player.addTag("gc_received_book");
+        net.minecraft.world.item.ItemStack book = new net.minecraft.world.item.ItemStack(com.ryvione.gatheringchunks.interop.Services.PLATFORM.starterBookItem());
+        if (!player.getInventory().add(book)) {
+            player.drop(book, false);
+        }
+    }
+
 }

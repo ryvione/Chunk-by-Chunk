@@ -212,7 +212,10 @@ public class ChunkByChunkMod implements ModInitializer {
                 S2CSyncConfigPacket packet = new S2CSyncConfigPacket(configJson);
                 Services.PLATFORM.sendConfigSyncPacket(player, packet);
                 LOGGER.debug("[ChunkByChunkMod] Synced config to player {} on join", player.getName().getString());
+                
+                ServerEventHandler.giveStarterBookIfMissing(player);
             } catch (Exception e) {
+
                 LOGGER.warn("[ChunkByChunkMod] Failed to sync config to player on join: {}", e.getMessage());
             }
 

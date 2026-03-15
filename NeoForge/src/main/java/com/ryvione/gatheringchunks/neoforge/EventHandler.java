@@ -173,7 +173,10 @@ public class EventHandler {
                         new com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket(configJson);
                 com.ryvione.gatheringchunks.interop.Services.PLATFORM.sendConfigSyncPacket(player, packet);
                 GatheringChunksConstants.LOGGER.debug("[EventHandler] Synced config to player {} on login", player.getName().getString());
+                
+                ServerEventHandler.giveStarterBookIfMissing(player);
             } catch (Exception e) {
+
                 GatheringChunksConstants.LOGGER.warn("[EventHandler] Failed to sync config to player on login: {}", e.getMessage());
             }
 

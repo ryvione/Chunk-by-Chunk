@@ -28,7 +28,7 @@ import java.util.List;
 
 public class WorldMigrationManager extends SavedData {
 
-    private static final int CURRENT_VERSION = 4;
+    private static final int CURRENT_VERSION = 5;
     private int savedVersion = 0;
 
     public static WorldMigrationManager get(MinecraftServer server) {
@@ -57,27 +57,87 @@ public class WorldMigrationManager extends SavedData {
             return;
         }
 
+        if (savedVersion == 0) {
+            ChunkSpawnController controller = ChunkSpawnController.get(server);
+            int totalSpawnedAcrossDims = 0;
+            for (ServerLevel level : server.getAllLevels()) {
+                totalSpawnedAcrossDims += controller.getSpawnedChunkCount(level.dimension().location().toString());
+            }
+            
+            if (totalSpawnedAcrossDims == 0) {
+                GatheringChunksConstants.LOGGER.info("[Migration] Fresh world detected. Initializing migration version to {}.", CURRENT_VERSION);
+                savedVersion = CURRENT_VERSION;
+                setDirty();
+                return;
+            }
+        }
+
         GatheringChunksConstants.LOGGER.info(
                 "[Migration] World data version {} detected, current version is {}. Running migrations...",
                 savedVersion, CURRENT_VERSION);
 
-        if (savedVersion < 1) {
-            migrate_v1_fixNetherBedrock(server);
-        }
-        if (savedVersion < 2) {
-            migrate_v2_fixChunkOrigins(server);
-        }
-        if (savedVersion < 3) {
-            migrate_v3_fixSpawnPoint(server);
-        }
-        if (savedVersion < 4) {
-            migrate_v4_fixSpawnHeight(server);
+
+        boolean success = true;
+        try {
+            if (savedVersion < 2) migrate_v2_fixChunkOrigins(server);
+            if (savedVersion < 3) migrate_v3_fixSpawnPoint(server);
+            if (savedVersion < 4) migrate_v4_fixSpawnHeight(server);
+            if (savedVersion < 5) migrate_v5_preventCorruption(server);
+        } catch (Exception e) {
+            GatheringChunksConstants.LOGGER.error("[Migration] CRITICAL ERROR DURING MIGRATION: ", e);
+            success = false;
         }
 
-        savedVersion = CURRENT_VERSION;
-        setDirty();
-        GatheringChunksConstants.LOGGER.info("[Migration] All migrations complete.");
+        if (success) {
+            savedVersion = CURRENT_VERSION;
+            setDirty();
+            server.getLevel(Level.OVERWORLD).getChunkSource().getDataStorage().save();
+            GatheringChunksConstants.LOGGER.info("[Migration] All migrations complete and saved.");
+        } else {
+            GatheringChunksConstants.LOGGER.error("[Migration] Migration failed. World may be in an inconsistent state.");
+        }
     }
+
+
+    private void migrate_v5_preventCorruption(MinecraftServer server) {
+        GatheringChunksConstants.LOGGER.info("[Migration v5] Running safety and anti-corruption checks...");
+        ChunkSpawnController controller = ChunkSpawnController.get(server);
+        
+        for (ServerLevel level : server.getAllLevels()) {
+            if (!(level.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator)) continue;
+            
+            String dimId = level.dimension().location().toString();
+            int actualCount = 0;
+            int radius = 64; 
+            ChunkPos spawnChunk = new ChunkPos(level.getSharedSpawnPos());
+            
+            for (int x = -radius; x <= radius; x++) {
+                for (int z = -radius; z <= radius; z++) {
+                    if (!SpawnChunkHelper.isEmptyChunk(level, new ChunkPos(spawnChunk.x + x, spawnChunk.z + z))) {
+                        actualCount++;
+                    }
+                }
+            }
+            
+            int storedCount = controller.getSpawnedChunkCount(dimId);
+            if (Math.abs(storedCount - actualCount) > 5) {
+                GatheringChunksConstants.LOGGER.warn("[Migration v5] Dimension {} count mismatch: Stored={}, Actual={}. Correcting.", dimId, storedCount, actualCount);
+                if (storedCount < actualCount) {
+                }
+            }
+            
+            if (controller.getOriginChunk(dimId) == null) {
+                controller.setOriginChunk(dimId, spawnChunk);
+                GatheringChunksConstants.LOGGER.info("[Migration v5] Set missing origin for {} to {}", dimId, spawnChunk);
+            }
+        }
+
+        ChunkEngineManager engineManager = ChunkEngineManager.get(server);
+        
+        GatheringChunksConstants.LOGGER.info("[Migration v5] Anti-corruption checks finished successfully.");
+    }
+
+
 
     private void migrate_v1_fixNetherBedrock(MinecraftServer server) {
         GatheringChunksConstants.LOGGER.info("[Migration v1] Scanning nether for bedrock ceiling issues...");
@@ -113,22 +173,27 @@ public class WorldMigrationManager extends SavedData {
     }
 
     private boolean fixNetherBedrockCeiling(ServerLevel nether, ChunkPos chunkPos) {
-        int maxY = nether.getMaxBuildHeight() - 1;
         boolean fixed = false;
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        for (int x = chunkPos.getMinBlockX(); x <= chunkPos.getMaxBlockX(); x++) {
-            for (int z = chunkPos.getMinBlockZ(); z <= chunkPos.getMaxBlockZ(); z++) {
-                pos.set(x, maxY, z);
-                BlockState state = nether.getBlockState(pos);
-                if (state.is(Blocks.BEDROCK)) {
-                    for (int y = maxY; y >= maxY - 5; y--) {
-                        pos.set(x, y, z);
-                        if (nether.getBlockState(pos).is(Blocks.BEDROCK)) {
-                            nether.setBlock(pos, Blocks.NETHERRACK.defaultBlockState(),
-                                    net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
-                            fixed = true;
-                        } else {
-                            break;
+        
+        int[] heightsToFix = {127, 255};
+        
+        for (int checkY : heightsToFix) {
+            if (checkY >= nether.getMaxBuildHeight()) continue;
+            
+            for (int x = chunkPos.getMinBlockX(); x <= chunkPos.getMaxBlockX(); x++) {
+                for (int z = chunkPos.getMinBlockZ(); z <= chunkPos.getMaxBlockZ(); z++) {
+                    pos.set(x, checkY, z);
+                    if (nether.getBlockState(pos).is(Blocks.BEDROCK)) {
+                        for (int y = checkY; y >= checkY - 5; y--) {
+                            pos.set(x, y, z);
+                            if (nether.getBlockState(pos).is(Blocks.BEDROCK)) {
+                                nether.setBlock(pos, Blocks.AIR.defaultBlockState(),
+                                        net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
+                                fixed = true;
+                            } else {
+                                break;
+                            }
                         }
                     }
                 }

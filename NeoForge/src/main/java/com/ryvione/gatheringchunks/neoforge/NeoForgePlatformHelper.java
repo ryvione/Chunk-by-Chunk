@@ -127,7 +127,13 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
     }
 
     @Override
+    public Item starterBookItem() {
+        return ModRegistry.STARTER_BOOK_ITEM.get();
+    }
+
+    @Override
     public List<ItemStack> biomeThemeBlockItems() {
+
         return ModRegistry.getBiomeThemedBlockItems();
     }
 
@@ -224,5 +230,10 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
     @Override
     public void sendConfigSavePacket(C2SSaveConfigPacket packet) {
         PacketDistributor.sendToServer(packet);
+    }
+
+    @Override
+    public void openStarterBook() {
+        net.minecraft.client.Minecraft.getInstance().setScreen(new com.ryvione.gatheringchunks.client.screens.StarterBookScreen());
     }
 }

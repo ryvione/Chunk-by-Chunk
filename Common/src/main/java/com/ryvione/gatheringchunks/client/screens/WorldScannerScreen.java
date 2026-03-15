@@ -175,7 +175,22 @@ public class WorldScannerScreen extends AbstractContainerScreen<WorldScannerMenu
         }
 
         renderCoordinatesAndControls(guiGraphics);
+        renderHelpIcon(guiGraphics, mouseX, mouseY);
     }
+
+    private void renderHelpIcon(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        int helpX = 285;
+        int helpY = 6;
+        boolean hovered = mouseX >= leftPos + helpX && mouseX <= leftPos + helpX + 10 &&
+                mouseY >= topPos + helpY && mouseY <= topPos + helpY + 10;
+
+        int bgColor = hovered ? 0xFF888888 : 0xFF444444;
+        int textColor = hovered ? 0xFFFFFFFF : 0xFFCCCCCC;
+
+        guiGraphics.fill(leftPos + helpX, topPos + helpY, leftPos + helpX + 10, topPos + helpY + 10, bgColor);
+        guiGraphics.drawString(font, "?", leftPos + helpX + 3, topPos + helpY + 1, textColor, false);
+    }
+
 
     private void renderMap(GuiGraphics guiGraphics) {
         int mapScreenX = leftPos + 174;

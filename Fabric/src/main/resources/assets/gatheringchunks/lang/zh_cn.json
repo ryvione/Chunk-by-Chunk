@@ -22,6 +22,8 @@
    "item.gatheringchunks.worldfragment": "世界碎片",
    "item.gatheringchunks.worldshard": "世界段片",
    "item.gatheringchunks.worldcrystal": "世界水晶",
+   "item.gatheringchunks.starter_book": "新手指南",
+   "item.gatheringchunks.starter_book.tooltip": "点击阅读 Gathering Chunks 的基础知识。",
    "ui.gatheringchunks.bedrockchest.sealedmessage": "区块有太多方块,移除 %1$s 方块才可开启此宝箱",
    "container.gatheringchunks.bedrockchest": "基岩宝箱",
    "container.gatheringchunks.worldforge": "世界锻造器",

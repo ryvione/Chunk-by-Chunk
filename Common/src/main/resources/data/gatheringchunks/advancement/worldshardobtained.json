@@ -2,7 +2,7 @@
   "parent": "gatheringchunks:worldfragmentobtained",
   "display": {
     "icon": {
-      "item": "gatheringchunks:worldshard"
+      "id": "gatheringchunks:worldshard"
     },
     "title": {
       "translate": "advancement.gatheringchunks.worldshardobtained.title"

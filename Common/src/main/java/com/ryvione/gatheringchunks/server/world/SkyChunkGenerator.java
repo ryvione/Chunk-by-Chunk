@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.mojang.serialization.Lifecycle;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
 import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;

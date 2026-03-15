@@ -172,27 +172,50 @@ public class ChunkEngineManager extends SavedData {
         long currentTick = server.getTickCount();
 
         pendingChunks.entrySet().removeIf(entry -> {
-            if (currentTick - entry.getValue() > GRACE_PERIOD_TICKS) {
-                startReset(entry.getKey());
-                return true;
+            ChunkId id = entry.getKey();
+            ServerLevel level = getLevelFromId(id.level);
+            if (level != null && level.getChunkSource().hasChunk(new ChunkPos(id.pos).x, new ChunkPos(id.pos).z)) {
+                if (currentTick - entry.getValue() > GRACE_PERIOD_TICKS) {
+                    startReset(id);
+                    return true;
+                }
+            } else {
+                entry.setValue(currentTick); 
             }
             return false;
         });
 
         activeChunks.entrySet().removeIf(entry -> {
-            if (currentTick - entry.getValue() > MAINTENANCE_TIMEOUT_TICKS) {
-                startReset(entry.getKey());
-                return true;
+            ChunkId id = entry.getKey();
+            ServerLevel level = getLevelFromId(id.level);
+            if (level != null && level.getChunkSource().hasChunk(new ChunkPos(id.pos).x, new ChunkPos(id.pos).z)) {
+                if (currentTick - entry.getValue() > MAINTENANCE_TIMEOUT_TICKS) {
+                    startReset(id);
+                    return true;
+                }
+            } else {
+                entry.setValue(currentTick); 
             }
             return false;
         });
+
 
         processResets();
 
         if (currentTick % 100 == 0) setDirty();
     }
 
+    private ServerLevel getLevelFromId(String dimId) {
+        for (ServerLevel level : server.getAllLevels()) {
+            if (level.dimension().location().toString().equals(dimId)) {
+                return level;
+            }
+        }
+        return null;
+    }
+
     private void startReset(ChunkId id) {
+
         if (resettingChunks.containsKey(id)) return;
 
         server.getAllLevels().forEach(level -> {

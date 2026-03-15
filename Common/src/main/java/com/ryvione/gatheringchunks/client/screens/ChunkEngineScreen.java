@@ -39,14 +39,45 @@ public class ChunkEngineScreen extends AbstractContainerScreen<ChunkEngineMenu> 
             int barY = FUEL_BAR_Y + FUEL_BAR_MAX_HEIGHT - barHeight;
             guiGraphics.blit(TEXTURE, leftPos + FUEL_BAR_X, topPos + barY, 176, FUEL_BAR_MAX_HEIGHT - barHeight, FUEL_BAR_WIDTH, barHeight, 256, 256);
         }
+
+        renderHelpIcon(guiGraphics, mouseX, mouseY);
     }
+
+
+    private void renderHelpIcon(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        int helpX = imageWidth - 18;
+        int helpY = 6;
+        boolean hovered = mouseX >= leftPos + helpX && mouseX <= leftPos + helpX + 10 &&
+                mouseY >= topPos + helpY && mouseY <= topPos + helpY + 10;
+
+        int bgColor = hovered ? 0xFF888888 : 0xFF444444;
+        int textColor = hovered ? 0xFFFFFFFF : 0xFFCCCCCC;
+
+        guiGraphics.fill(leftPos + helpX, topPos + helpY, leftPos + helpX + 10, topPos + helpY + 10, bgColor);
+        guiGraphics.drawString(font, "?", leftPos + helpX + 3, topPos + helpY + 1, textColor, false);
+    }
+
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         renderTooltip(guiGraphics, mouseX, mouseY);
+
+        int helpX = imageWidth - 18;
+        int helpY = 6;
+        if (mouseX >= leftPos + helpX && mouseX <= leftPos + helpX + 10 &&
+                mouseY >= topPos + helpY && mouseY <= topPos + helpY + 10) {
+            guiGraphics.renderTooltip(font, java.util.List.of(
+                    Component.literal("§6Chunk Engine").getVisualOrderText(),
+                    Component.literal("§fMaintains chunks in §cHard Mode§f.").getVisualOrderText(),
+                    Component.literal("§7If a chunk has no active engine,").getVisualOrderText(),
+                    Component.literal("§7it will eventually reset to air.").getVisualOrderText(),
+                    Component.literal("§f- §eRequires Fuel: §7World Shards/Crystals").getVisualOrderText()
+            ), mouseX, mouseY);
+        }
     }
+
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {

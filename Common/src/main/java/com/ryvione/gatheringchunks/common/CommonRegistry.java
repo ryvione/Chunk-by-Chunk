@@ -57,6 +57,7 @@ public class CommonRegistry {
     public static Item WORLD_FRAGMENT_ITEM;
     public static Item WORLD_SHARD_ITEM;
     public static Item WORLD_CRYSTAL_ITEM;
+    public static Item STARTER_BOOK_ITEM;
 
     public static BlockEntityType<BedrockChestBlockEntity> BEDROCK_CHEST_BLOCK_ENTITY;
     public static BlockEntityType<WorldForgeBlockEntity> WORLD_FORGE_BLOCK_ENTITY;
@@ -148,6 +149,9 @@ public class CommonRegistry {
         WORLD_CRYSTAL_ITEM = new Item(new Item.Properties());
         Registry.register(BuiltInRegistries.ITEM, id("worldcrystal"), WORLD_CRYSTAL_ITEM);
 
+        STARTER_BOOK_ITEM = new com.ryvione.gatheringchunks.common.items.StarterBookItem(new Item.Properties().stacksTo(1));
+        Registry.register(BuiltInRegistries.ITEM, id("starter_book"), STARTER_BOOK_ITEM);
+
         List<ItemStack> themeSpawnBlockItems = new ArrayList<>();
         List<String> biomeThemesList = new ArrayList<>(GatheringChunksConstants.BIOME_THEMES);
         for (String biomeTheme : biomeThemesList) {
@@ -221,6 +225,7 @@ public class CommonRegistry {
                             output.accept(WORLD_FRAGMENT_ITEM);
                             output.accept(WORLD_SHARD_ITEM);
                             output.accept(WORLD_CRYSTAL_ITEM);
+                            output.accept(STARTER_BOOK_ITEM);
 
                             if (biomeThemedBlockItems != null) {
                                 for (ItemStack stack : biomeThemedBlockItems) {

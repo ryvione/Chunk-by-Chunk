@@ -2,7 +2,7 @@
   "parent" : "gatheringchunks:worldforgeobtained",
   "display": {
     "icon": {
-      "item": "gatheringchunks:worldfragment"
+      "id": "gatheringchunks:worldfragment"
     },
     "title": {
       "translate" : "advancement.gatheringchunks.worldfragmentobtained.title"

@@ -2,7 +2,7 @@
   "parent" : "gatheringchunks:worldshardobtained",
   "display": {
     "icon": {
-      "item": "gatheringchunks:worldcrystal"
+      "id": "gatheringchunks:worldcrystal"
     },
     "title": {
       "translate" : "advancement.gatheringchunks.worldcrystalobtained.title"

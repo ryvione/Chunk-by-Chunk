@@ -36,6 +36,8 @@
   "item.gatheringchunks.worldfragment": "World Fragment",
   "item.gatheringchunks.worldshard": "World Shard",
   "item.gatheringchunks.worldcrystal": "World Crystal",
+  "item.gatheringchunks.starter_book": "Starter's Guide",
+  "item.gatheringchunks.starter_book.tooltip": "Click to read the basics of Gathering Chunks.",
   "itemGroup.gatheringchunks.main": "Gathering Chunks",
   "itemGroup.gatheringchunks": "Gathering Chunks",
   "ui.gatheringchunks.bedrockchest.sealedmessage": "The weight of the chunk seals this chest. %1$s blocks remain.",
