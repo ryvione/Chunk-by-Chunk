@@ -777,6 +777,7 @@ public final class ServerEventHandler {
                 boolean isInitial = (offset[0] == 0 && offset[1] == 0);
 
                 if (chunkSpawnController.request(targetPos, level.dimension(), targetPos, sourceLevelKey, true, false, isInitial, null)) {
+                    chunkSpawnController.registerChunkTheme(targetPos, effectiveTheme);
                     queuedChunks.add(targetPos);
                     LOGGER.info("[InitialSpawn] Spawned chunk {} (immediate, theme='{}')", targetPos, effectiveTheme);
 
@@ -794,6 +795,7 @@ public final class ServerEventHandler {
                 boolean isInitial = (i == 0);
 
                 if (chunkSpawnController.request(targetPos, level.dimension(), targetPos, sourceLevelKey, true, false, isInitial, null)) {
+                    chunkSpawnController.registerChunkTheme(targetPos, effectiveTheme);
                     queuedChunks.add(targetPos);
                     LOGGER.info("[InitialSpawn] Spawned chunk {} (immediate, theme='{}')", targetPos, effectiveTheme);
 

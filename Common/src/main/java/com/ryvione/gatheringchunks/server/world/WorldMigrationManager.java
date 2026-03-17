@@ -108,7 +108,7 @@ public class WorldMigrationManager extends SavedData {
             
             String dimId = level.dimension().location().toString();
             int actualCount = 0;
-            int radius = 64; 
+            int radius = 12;
             ChunkPos spawnChunk = new ChunkPos(level.getSharedSpawnPos());
             
             for (int x = -radius; x <= radius; x++) {
@@ -120,10 +120,10 @@ public class WorldMigrationManager extends SavedData {
             }
             
             int storedCount = controller.getSpawnedChunkCount(dimId);
-            if (Math.abs(storedCount - actualCount) > 5) {
+            if (storedCount != actualCount) {
                 GatheringChunksConstants.LOGGER.warn("[Migration v5] Dimension {} count mismatch: Stored={}, Actual={}. Correcting.", dimId, storedCount, actualCount);
-                if (storedCount < actualCount) {
-                }
+                controller.setSpawnedChunkCount(dimId, actualCount);
+                setDirty();
             }
             
             if (controller.getOriginChunk(dimId) == null) {

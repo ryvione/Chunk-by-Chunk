@@ -134,15 +134,6 @@ public class EventHandler {
 
         event.addListener(new ScannerDataLoader(event.getRegistryAccess()));
         event.addListener(new SkyDimensionDataLoader(event.getRegistryAccess()));
-        event.addListener((PreparableReloadListener.PreparationBarrier barrier,
-                ResourceManager manager,
-                net.minecraft.util.profiling.ProfilerFiller prepProfiler,
-                net.minecraft.util.profiling.ProfilerFiller reloadProfiler,
-                java.util.concurrent.Executor bgExecutor,
-                java.util.concurrent.Executor gameExecutor) -> barrier.wait(null).thenRunAsync(() -> {
-                    GatheringChunksConstants.LOGGER.info("Resource reload - reloading dynamic data");
-                    ServerEventHandler.onResourceManagerReload(manager);
-                }, gameExecutor));
 
         GatheringChunksConstants.LOGGER.info("Data reload listeners registered");
     }

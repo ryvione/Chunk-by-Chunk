@@ -229,11 +229,15 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
 
     @Override
     public void sendConfigSavePacket(C2SSaveConfigPacket packet) {
-        PacketDistributor.sendToServer(packet);
+        if (net.neoforged.fml.loading.FMLEnvironment.dist == net.neoforged.api.distmarker.Dist.CLIENT) {
+            NeoForgeClientHelper.sendConfigSavePacket(packet);
+        }
     }
 
     @Override
     public void openStarterBook() {
-        net.minecraft.client.Minecraft.getInstance().setScreen(new com.ryvione.gatheringchunks.client.screens.StarterBookScreen());
+        if (net.neoforged.fml.loading.FMLEnvironment.dist == net.neoforged.api.distmarker.Dist.CLIENT) {
+            NeoForgeClientHelper.openStarterBook();
+        }
     }
 }

@@ -551,21 +551,26 @@ public class ChunkSpawnController extends SavedData {
             }
 
             GatheringChunksConstants.LOGGER.info("Using DIRECT source for '{}' at {}", biomeTheme, targetChunkPos);
-            chunkTerrainProfiles.put(targetChunkPos, new TerrainProfile(
-                    new int[16], new int[16], new int[16], new int[16],
-                    new String[8], new String[8], new String[8], new String[8],
-                    64, 0, biomeTheme, targetChunkPos));
-            setDirty();
+            registerChunkTheme(targetChunkPos, biomeTheme);
             return request(targetChunkPos, level.dimension(), targetChunkPos, sourceLevelKey, immediate, overwrite, false, playerUUID);
         }
 
         GatheringChunksConstants.LOGGER.info("Using DIRECT source for basic spawner at {}", targetChunkPos);
+        registerChunkTheme(targetChunkPos, "");
+        return request(targetChunkPos, level.dimension(), targetChunkPos, generator.getGenerationLevel(), immediate, overwrite, false, playerUUID);
+    }
+
+    public void registerChunkTheme(ChunkPos targetChunkPos, String biomeTheme) {
         chunkTerrainProfiles.put(targetChunkPos, new TerrainProfile(
                 new int[16], new int[16], new int[16], new int[16],
                 new String[8], new String[8], new String[8], new String[8],
-                64, 0, "", targetChunkPos));
+                64, 0, biomeTheme, targetChunkPos));
         setDirty();
-        return request(targetChunkPos, level.dimension(), targetChunkPos, generator.getGenerationLevel(), immediate, overwrite, false, playerUUID);
+    }
+
+    public String getChunkBiomeTheme(ChunkPos chunkPos) {
+        TerrainProfile profile = chunkTerrainProfiles.get(chunkPos);
+        return profile != null ? profile.biomeTheme : null;
     }
 
     public boolean request(ChunkPos targetChunkPos, ResourceKey<Level> targetLevel, ChunkPos sourceChunkPos,
@@ -707,6 +712,11 @@ public class ChunkSpawnController extends SavedData {
     public void decreaseSpawnedChunkCount(String dimensionId) {
         int val = spawnedChunkCount.getOrDefault(dimensionId, 0);
         if (val > 0) { spawnedChunkCount.put(dimensionId, val - 1); setDirty(); }
+    }
+
+    public void setSpawnedChunkCount(String dimensionId, int count) {
+        spawnedChunkCount.put(dimensionId, count);
+        setDirty();
     }
 
     public ChunkPos getOriginChunk(String dimensionId) {

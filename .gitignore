@@ -53,6 +53,7 @@ temp/
 temp.sh
 *.tmp
 *.bak
+Logs/
 
 # OS files
 .DS_Store

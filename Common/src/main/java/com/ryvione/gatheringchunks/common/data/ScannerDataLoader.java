@@ -36,6 +36,7 @@ public class ScannerDataLoader extends SimpleJsonResourceReloadListener {
     @Override
     protected void apply(Map<ResourceLocation, JsonElement> map, ResourceManager resourceManager, ProfilerFiller profiler) {
         GatheringChunksConstants.LOGGER.info("Loading scanner data configs...");
+        com.ryvione.gatheringchunks.common.blockEntities.WorldScannerBlockEntity.clearItemMappings();
         int loaded = 0;
 
         for (Map.Entry<ResourceLocation, JsonElement> entry : map.entrySet()) {

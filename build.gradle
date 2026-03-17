@@ -17,12 +17,12 @@ def computedVersion = "${vMajor}.${vMinor}.${vPatch}"
 if (!vBeta.isEmpty()) {
     computedVersion += "-Beta.${vBeta}"
 }
-if (!vPrerelease.isEmpty()) {
-    computedVersion += "-${vPrerelease}"
-}
-computedVersion += "-Build.${vBuild}"
 if (!vHotfix.isEmpty()) {
     computedVersion += "-Hotfix.${vHotfix}"
+}
+computedVersion += "-Build.${vBuild}"
+if (!vPrerelease.isEmpty()) {
+    computedVersion += "-${vPrerelease}"
 }
 
 version = computedVersion

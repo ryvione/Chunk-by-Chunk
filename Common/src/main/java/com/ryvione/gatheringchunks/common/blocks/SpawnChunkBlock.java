@@ -172,22 +172,30 @@ public class SpawnChunkBlock extends Block {
 
 
     private String findAdjacentBiomeTheme(ServerLevel level, ChunkPos currentChunk) {
+        ChunkSpawnController chunkSpawnController = ChunkSpawnController.get(level.getServer());
+
         for (Direction dir : HORIZONTAL_DIR) {
             ChunkPos adjacentChunk = new ChunkPos(
                     currentChunk.x + dir.getStepX(),
                     currentChunk.z + dir.getStepZ());
 
             if (!SpawnChunkHelper.isEmptyChunk(level, adjacentChunk)) {
-                BlockPos centerPos = adjacentChunk.getMiddleBlockPosition(level.getMaxBuildHeight() - 10);
+                // First try to get it from the spawn controller's profiles
+                String theme = chunkSpawnController.getChunkBiomeTheme(adjacentChunk);
+                if (theme != null && !theme.isEmpty()) {
+                    return theme;
+                }
 
+                // Fallback to searching for SpawnChunkBlocks in the world
+                BlockPos centerPos = adjacentChunk.getMiddleBlockPosition(level.getMaxBuildHeight() - 10);
                 for (int y = level.getMaxBuildHeight() - 10; y >= level.getMinBuildHeight(); y--) {
                     BlockPos checkPos = new BlockPos(centerPos.getX(), y, centerPos.getZ());
                     Block block = level.getBlockState(checkPos).getBlock();
 
                     if (block instanceof SpawnChunkBlock spawnBlock) {
-                        String theme = spawnBlock.getBiomeTheme();
-                        if (!theme.isEmpty()) {
-                            return theme;
+                        String stheme = spawnBlock.getBiomeTheme();
+                        if (!stheme.isEmpty()) {
+                            return stheme;
                         }
                     }
                 }
