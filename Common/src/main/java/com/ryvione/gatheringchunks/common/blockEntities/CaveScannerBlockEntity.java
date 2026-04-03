@@ -52,9 +52,8 @@ import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import java.util.*;
 
 public class CaveScannerBlockEntity extends BaseFueledBlockEntity {
-    public static final int SLOT_INPUT = 0;
-    public static final int SLOT_FUEL = 1;
-    public static final int NUM_ITEM_SLOTS = 2;
+    public static final int SLOT_FUEL = 0;
+    public static final int NUM_ITEM_SLOTS = 1;
     public static final int DATA_MAP = 0;
     public static final int DATA_ENERGY = 1;
     public static final int DATA_MAX_ENERGY = 2;
@@ -210,10 +209,7 @@ public class CaveScannerBlockEntity extends BaseFueledBlockEntity {
                 shouldScan = entity.scanIterator.getX() >= 0 && entity.validTarget();
             }
 
-            if (shouldScan) {
-                ItemStack targetItem = entity.getItem(SLOT_INPUT);
-
-                if (entity.getRemainingFuel() > 0) {
+            if (shouldScan) {                if (entity.getRemainingFuel() > 0) {
                     int consumeAmount = entity
                             .consumeFuel(ChunkByChunkConfig.get().getWorldScannerConfig().getCaveScannerFuelConsumedPerTick());
                     entity.scanCharge += consumeAmount;
@@ -416,20 +412,12 @@ public class CaveScannerBlockEntity extends BaseFueledBlockEntity {
 
     @Override
     public boolean canTakeItemThroughFace(int slot, ItemStack itemStack, Direction direction) {
-        return slot == SLOT_INPUT;
+        return false;
     }
 
     @Override
     public void setItem(int slot, ItemStack newItem) {
-        boolean targetUnchanged = true;
-        if (slot == SLOT_INPUT) {
-            ItemStack itemStack = this.getItem(slot);
-            targetUnchanged = !newItem.isEmpty() && ItemStack.isSameItem(newItem, itemStack);
-        }
         super.setItem(slot, newItem);
-        if (!targetUnchanged) {
-            resetScan();
-        }
     }
 
     public boolean isEspEnabled() {
