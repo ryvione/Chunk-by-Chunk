@@ -10,6 +10,7 @@ import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 import com.ryvione.gatheringchunks.config.system.ConfigSystem;
 import com.ryvione.gatheringchunks.interop.Services;
+import com.ryvione.gatheringchunks.common.CauldronRainFiller;
 import com.ryvione.gatheringchunks.server.ChunkBoundaryEnforcer;
 import com.ryvione.gatheringchunks.server.MobLootHandler;
 import com.ryvione.gatheringchunks.server.ServerEventHandler;
@@ -144,7 +145,7 @@ public class ChunkByChunkMod implements ModInitializer {
             }
         });
 
-        ServerTickEvents.END_WORLD_TICK.register(com.ryvione.gatheringchunks.server.CauldronRainFiller::tick);
+        ServerTickEvents.END_WORLD_TICK.register(CauldronRainFiller::tick);
 
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
             MobLootHandler.onMobDeath(entity, entity.level());

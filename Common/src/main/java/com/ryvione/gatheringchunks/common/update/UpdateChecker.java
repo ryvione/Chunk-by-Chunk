@@ -16,6 +16,7 @@ import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
@@ -37,7 +38,7 @@ public class UpdateChecker {
             GatheringChunksConstants.LOGGER.info("[UpdateChecker] API URL: {}", API_URL);
 
             try {
-                URL url = new URL(API_URL);
+                URL url = URI.create(API_URL).toURL();
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(5000);

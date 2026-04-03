@@ -7,7 +7,7 @@
  *
  * Licensed under the MIT License. See LICENSE file in the project root for details.
  */
-package com.ryvione.gatheringchunks.server;
+package com.ryvione.gatheringchunks.common;
 
 import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
 import com.ryvione.gatheringchunks.server.world.SpawnChunkHelper;
