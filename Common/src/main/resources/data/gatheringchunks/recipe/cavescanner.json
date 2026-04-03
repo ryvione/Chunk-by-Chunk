@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "   ",
+    " a ",
+    " c "
+  ],
+  "key": {
+    "a": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "c": {
+      "item": "gatheringchunks:worldcore"
+    }
+  },
+  "result": {
+    "id": "gatheringchunks:cavescanner",
+    "count": 1
+  }
+}

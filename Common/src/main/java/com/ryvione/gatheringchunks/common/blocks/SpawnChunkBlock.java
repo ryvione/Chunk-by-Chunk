@@ -180,13 +180,11 @@ public class SpawnChunkBlock extends Block {
                     currentChunk.z + dir.getStepZ());
 
             if (!SpawnChunkHelper.isEmptyChunk(level, adjacentChunk)) {
-                // First try to get it from the spawn controller's profiles
                 String theme = chunkSpawnController.getChunkBiomeTheme(adjacentChunk);
                 if (theme != null && !theme.isEmpty()) {
                     return theme;
                 }
 
-                // Fallback to searching for SpawnChunkBlocks in the world
                 BlockPos centerPos = adjacentChunk.getMiddleBlockPosition(level.getMaxBuildHeight() - 10);
                 for (int y = level.getMaxBuildHeight() - 10; y >= level.getMinBuildHeight(); y--) {
                     BlockPos checkPos = new BlockPos(centerPos.getX(), y, centerPos.getZ());

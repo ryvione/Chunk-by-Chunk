@@ -74,6 +74,11 @@ public final class FabricPlatformHelper implements CBCPlatformHelper {
     }
 
     @Override
+    public Block caveScannerBlock() {
+        return CommonRegistry.CAVE_SCANNER_BLOCK;
+    }
+
+    @Override
     public Item spawnChunkBlockItem() {
         return CommonRegistry.SPAWN_CHUNK_BLOCK_ITEM;
     }
@@ -111,6 +116,11 @@ public final class FabricPlatformHelper implements CBCPlatformHelper {
     @Override
     public Item chunkEngineBlockItem() {
         return CommonRegistry.CHUNK_ENGINE_BLOCK_ITEM;
+    }
+
+    @Override
+    public Item caveScannerBlockItem() {
+        return CommonRegistry.CAVE_SCANNER_BLOCK_ITEM;
     }
 
     @Override
@@ -165,6 +175,11 @@ public final class FabricPlatformHelper implements CBCPlatformHelper {
     }
 
     @Override
+    public BlockEntityType<CaveScannerBlockEntity> caveScannerEntity() {
+        return CommonRegistry.CAVE_SCANNER_BLOCK_ENTITY;
+    }
+
+    @Override
     public SoundEvent spawnChunkSoundEffect() {
         return CommonRegistry.SPAWN_CHUNK_SOUND_EVENT;
     }
@@ -192,6 +207,11 @@ public final class FabricPlatformHelper implements CBCPlatformHelper {
     @Override
     public MenuType<ChunkEngineMenu> chunkEngineMenu() {
         return CommonRegistry.CHUNK_ENGINE_MENU;
+    }
+
+    @Override
+    public MenuType<com.ryvione.gatheringchunks.common.menus.CaveScannerMenu> caveScannerMenu() {
+        return CommonRegistry.CAVE_SCANNER_MENU;
     }
 
     @Override

@@ -33,10 +33,16 @@ public class WorldScannerMenu extends BaseInventoryContainerMenu {
     }
 
     public WorldScannerMenu(int menuId, Inventory inventory, Container container, ContainerData containerData) {
-        super(Services.PLATFORM.worldScannerMenu(), menuId, container, inventory, 8, 84);
+        this(menuId, inventory, container, containerData, Services.PLATFORM.worldScannerMenu());
+    }
+
+    public WorldScannerMenu(int menuId, Inventory inventory, Container container, ContainerData containerData, net.minecraft.world.inventory.MenuType<WorldScannerMenu> menuType) {
+        super(menuType, menuId, container, inventory, 8, 84);
         this.containerData = containerData;
         if (container instanceof WorldScannerBlockEntity entity) {
             this.blockPos = entity.getBlockPos();
+        } else if (container instanceof com.ryvione.gatheringchunks.common.blockEntities.CaveScannerBlockEntity caveEntity) {
+            this.blockPos = caveEntity.getBlockPos();
         }
         Preconditions.checkArgument(container.getContainerSize() >= WorldScannerBlockEntity.NUM_ITEM_SLOTS, "Expected " + WorldScannerBlockEntity.NUM_ITEM_SLOTS + " item slots, but entity has " + container.getContainerSize());
         Preconditions.checkArgument(containerData.getCount() >= WorldScannerBlockEntity.NUM_DATA_ITEMS, "Expected " + WorldScannerBlockEntity.NUM_DATA_ITEMS + " data items, but entity has " + containerData.getCount());
@@ -88,6 +94,8 @@ public class WorldScannerMenu extends BaseInventoryContainerMenu {
             if (player.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
                 net.minecraft.world.level.block.entity.BlockEntity be = serverLevel.getBlockEntity(blockPos);
                 if (be instanceof WorldScannerBlockEntity scanner) {
+                    scanner.triggerManualScan();
+                } else if (be instanceof com.ryvione.gatheringchunks.common.blockEntities.CaveScannerBlockEntity scanner) {
                     scanner.triggerManualScan();
                 }
             }

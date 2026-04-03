@@ -54,6 +54,8 @@ temp.sh
 *.tmp
 *.bak
 Logs/
+tmp.txt
+temp.md
 
 # OS files
 .DS_Store

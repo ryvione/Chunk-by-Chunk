@@ -1,0 +1,99 @@
+/*
+ * Original work Copyright (c) immortius
+ * Modified work Copyright (c) 2026 Ryvione
+ *
+ * This file is part of Gathering Chunks (Ryvione's Fork).
+ * Original: https://github.com/immortius/chunkbychunk
+ *
+ * Licensed under the MIT License. See LICENSE file in the project root for details.
+ */
+
+package com.ryvione.gatheringchunks.common.blocks;
+
+import com.mojang.serialization.MapCodec;
+import com.ryvione.gatheringchunks.common.blockEntities.CaveScannerBlockEntity;
+import com.ryvione.gatheringchunks.interop.Services;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import org.jetbrains.annotations.Nullable;
+
+public class CaveScannerBlock extends BaseEntityBlock {
+
+    public static final MapCodec<CaveScannerBlock> CODEC = BlockBehaviour.simpleCodec(CaveScannerBlock::new);
+    private final String theme;
+
+    public CaveScannerBlock(Properties properties) {
+        this("", properties);
+    }
+
+    public CaveScannerBlock(String theme, Properties properties) {
+        super(properties);
+        this.theme = theme;
+    }
+
+    @Override
+    protected MapCodec<? extends BaseEntityBlock> codec() {
+        return CODEC;
+    }
+
+    public String getTheme() {
+        return theme;
+    }
+
+    @Override
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new CaveScannerBlockEntity(pos, state);
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
+        if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (blockEntity instanceof CaveScannerBlockEntity caveScanner) {
+                serverPlayer.openMenu(caveScanner);
+                return InteractionResult.CONSUME;
+            }
+        }
+        return InteractionResult.sidedSuccess(level.isClientSide);
+    }
+
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> entityType) {
+        return level.isClientSide ? null : createTickerHelper(entityType, Services.PLATFORM.caveScannerEntity(), CaveScannerBlockEntity::serverTick);
+    }
+
+    @Nullable
+    protected static <E extends BlockEntity, A extends BlockEntity> BlockEntityTicker<A> createTickerHelper(
+            BlockEntityType<A> givenType, BlockEntityType<E> expectedType, BlockEntityTicker<? super E> ticker) {
+        return expectedType == givenType ? (BlockEntityTicker<A>) ticker : null;
+    }
+
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
+        if (!state.is(newState.getBlock())) {
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (blockEntity instanceof net.minecraft.world.Container container) {
+                net.minecraft.world.Containers.dropContents(level, pos, container);
+                level.updateNeighbourForOutputSignal(pos, this);
+            }
+            super.onRemove(state, level, pos, newState, isMoving);
+        }
+    }
+
+    @Override
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
+    }
+}

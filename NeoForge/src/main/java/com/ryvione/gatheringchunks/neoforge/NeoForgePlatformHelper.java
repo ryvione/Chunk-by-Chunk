@@ -72,6 +72,11 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
     }
 
     @Override
+    public Block caveScannerBlock() {
+        return ModRegistry.CAVE_SCANNER_BLOCK.get();
+    }
+
+    @Override
     public Item spawnChunkBlockItem() {
         return ModRegistry.SPAWN_CHUNK_BLOCK_ITEM.get();
     }
@@ -109,6 +114,11 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
     @Override
     public Item chunkEngineBlockItem() {
         return ModRegistry.CHUNK_ENGINE_BLOCK_ITEM.get();
+    }
+
+    @Override
+    public Item caveScannerBlockItem() {
+        return ModRegistry.CAVE_SCANNER_BLOCK_ITEM.get();
     }
 
     @Override
@@ -163,6 +173,11 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
     }
 
     @Override
+    public BlockEntityType<CaveScannerBlockEntity> caveScannerEntity() {
+        return ModRegistry.CAVE_SCANNER_BLOCK_ENTITY.get();
+    }
+
+    @Override
     public SoundEvent spawnChunkSoundEffect() {
         return ModRegistry.SPAWN_CHUNK_SOUND_EVENT.get();
     }
@@ -190,6 +205,11 @@ public class NeoForgePlatformHelper implements CBCPlatformHelper {
     @Override
     public MenuType<ChunkEngineMenu> chunkEngineMenu() {
         return ModRegistry.CHUNK_ENGINE_MENU.get();
+    }
+
+    @Override
+    public MenuType<com.ryvione.gatheringchunks.common.menus.CaveScannerMenu> caveScannerMenu() {
+        return ModRegistry.CAVE_SCANNER_MENU.get();
     }
 
     @Override

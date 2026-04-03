@@ -44,6 +44,7 @@ public class CommonRegistry {
     public static WorldMenderBlock WORLD_MENDER_BLOCK;
     public static ChunkEngineBlock CHUNK_ENGINE_BLOCK;
     public static ChunkEraserBlock CHUNK_ERASER_BLOCK;
+    public static CaveScannerBlock CAVE_SCANNER_BLOCK;
 
     public static BlockItem SPAWN_CHUNK_BLOCK_ITEM;
     public static BlockItem UNSTABLE_SPAWN_CHUNK_BLOCK_ITEM;
@@ -54,6 +55,7 @@ public class CommonRegistry {
     public static BlockItem WORLD_MENDER_BLOCK_ITEM;
     public static BlockItem CHUNK_ENGINE_BLOCK_ITEM;
     public static BlockItem CHUNK_ERASER_BLOCK_ITEM;
+    public static BlockItem CAVE_SCANNER_BLOCK_ITEM;
     public static Item WORLD_FRAGMENT_ITEM;
     public static Item WORLD_SHARD_ITEM;
     public static Item WORLD_CRYSTAL_ITEM;
@@ -64,12 +66,14 @@ public class CommonRegistry {
     public static BlockEntityType<WorldScannerBlockEntity> WORLD_SCANNER_BLOCK_ENTITY;
     public static BlockEntityType<WorldMenderBlockEntity> WORLD_MENDER_BLOCK_ENTITY;
     public static BlockEntityType<ChunkEngineBlockEntity> CHUNK_ENGINE_BLOCK_ENTITY;
+    public static BlockEntityType<CaveScannerBlockEntity> CAVE_SCANNER_BLOCK_ENTITY;
 
     public static MenuType<BedrockChestMenu> BEDROCK_CHEST_MENU;
     public static MenuType<WorldForgeMenu> WORLD_FORGE_MENU;
     public static MenuType<WorldScannerMenu> WORLD_SCANNER_MENU;
     public static MenuType<WorldMenderMenu> WORLD_MENDER_MENU;
     public static MenuType<ChunkEngineMenu> CHUNK_ENGINE_MENU;
+    public static MenuType<CaveScannerMenu> CAVE_SCANNER_MENU;
 
     public static SoundEvent SPAWN_CHUNK_SOUND_EVENT;
 
@@ -81,34 +85,52 @@ public class CommonRegistry {
         SPAWN_CHUNK_BLOCK = new SpawnChunkBlock("", false, BlockBehaviour.Properties.of().mapColor(MapColor.STONE));
         Registry.register(BuiltInRegistries.BLOCK, id("chunkspawner"), SPAWN_CHUNK_BLOCK);
 
-        UNSTABLE_SPAWN_CHUNK_BLOCK = new SpawnChunkBlock("", true, BlockBehaviour.Properties.of().mapColor(MapColor.STONE));
+        UNSTABLE_SPAWN_CHUNK_BLOCK = new SpawnChunkBlock("", true,
+                BlockBehaviour.Properties.of().mapColor(MapColor.STONE));
         Registry.register(BuiltInRegistries.BLOCK, id("unstablechunkspawner"), UNSTABLE_SPAWN_CHUNK_BLOCK);
 
-        BEDROCK_CHEST_BLOCK = new BedrockChestBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(-1, 3600000.0F).isValidSpawn((state, getter, pos, arg) -> false));
+        BEDROCK_CHEST_BLOCK = new BedrockChestBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE)
+                .strength(-1, 3600000.0F).isValidSpawn((state, getter, pos, arg) -> false));
         Registry.register(BuiltInRegistries.BLOCK, id("bedrockchest"), BEDROCK_CHEST_BLOCK);
 
-        WORLD_CORE_BLOCK = new Block(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.0F).lightLevel(state -> 7));
+        WORLD_CORE_BLOCK = new Block(
+                BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.0F).lightLevel(state -> 7));
         Registry.register(BuiltInRegistries.BLOCK, id("worldcore"), WORLD_CORE_BLOCK);
 
-        WORLD_FORGE_BLOCK = new WorldForgeBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F).lightLevel(state -> 7));
+        WORLD_FORGE_BLOCK = new WorldForgeBlock(
+                BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F).lightLevel(state -> 7));
         Registry.register(BuiltInRegistries.BLOCK, id("worldforge"), WORLD_FORGE_BLOCK);
 
-        WORLD_SCANNER_BLOCK = new WorldScannerBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F).lightLevel(state -> 4));
+        WORLD_SCANNER_BLOCK = new WorldScannerBlock(
+                BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F).lightLevel(state -> 4));
         Registry.register(BuiltInRegistries.BLOCK, id("worldscanner"), WORLD_SCANNER_BLOCK);
 
-        WORLD_MENDER_BLOCK = new WorldMenderBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F).lightLevel(state -> 4));
+        WORLD_MENDER_BLOCK = new WorldMenderBlock(
+                BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F).lightLevel(state -> 4));
         Registry.register(BuiltInRegistries.BLOCK, id("worldmender"), WORLD_MENDER_BLOCK);
 
-        CHUNK_ENGINE_BLOCK = new ChunkEngineBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F));
+        CHUNK_ENGINE_BLOCK = new ChunkEngineBlock(
+                BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F));
         Registry.register(BuiltInRegistries.BLOCK, id("chunkengine"), CHUNK_ENGINE_BLOCK);
 
-        CHUNK_ERASER_BLOCK = new ChunkEraserBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.0F));
+        CHUNK_ERASER_BLOCK = new ChunkEraserBlock(
+                BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.0F));
         Registry.register(BuiltInRegistries.BLOCK, id("chunkeraser"), CHUNK_ERASER_BLOCK);
+
+        CAVE_SCANNER_BLOCK = new CaveScannerBlock(
+                BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F).lightLevel(state -> 4));
+        Registry.register(BuiltInRegistries.BLOCK, id("cavescanner"), CAVE_SCANNER_BLOCK);
 
         List<String> biomeThemesList = new ArrayList<>(GatheringChunksConstants.BIOME_THEMES);
         for (String biomeTheme : biomeThemesList) {
-            SpawnChunkBlock spawnBlock = new SpawnChunkBlock(biomeTheme, false, BlockBehaviour.Properties.of().mapColor(MapColor.STONE));
-            Registry.register(BuiltInRegistries.BLOCK, id(biomeTheme + GatheringChunksConstants.BIOME_CHUNK_BLOCK_SUFFIX), spawnBlock);
+            SpawnChunkBlock spawnBlock = new SpawnChunkBlock(biomeTheme, false,
+                    BlockBehaviour.Properties.of().mapColor(MapColor.STONE));
+            Registry.register(BuiltInRegistries.BLOCK,
+                    id(biomeTheme + GatheringChunksConstants.BIOME_CHUNK_BLOCK_SUFFIX), spawnBlock);
+
+            CaveScannerBlock caveScanner = new CaveScannerBlock(biomeTheme,
+                    BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F).lightLevel(state -> 4));
+            Registry.register(BuiltInRegistries.BLOCK, id(biomeTheme + "cavescanner"), caveScanner);
         }
     }
 
@@ -140,6 +162,9 @@ public class CommonRegistry {
         CHUNK_ERASER_BLOCK_ITEM = new BlockItem(CHUNK_ERASER_BLOCK, new Item.Properties());
         Registry.register(BuiltInRegistries.ITEM, id("chunkeraser"), CHUNK_ERASER_BLOCK_ITEM);
 
+        CAVE_SCANNER_BLOCK_ITEM = new BlockItem(CAVE_SCANNER_BLOCK, new Item.Properties());
+        Registry.register(BuiltInRegistries.ITEM, id("cavescanner"), CAVE_SCANNER_BLOCK_ITEM);
+
         WORLD_FRAGMENT_ITEM = new Item(new Item.Properties());
         Registry.register(BuiltInRegistries.ITEM, id("worldfragment"), WORLD_FRAGMENT_ITEM);
 
@@ -149,16 +174,24 @@ public class CommonRegistry {
         WORLD_CRYSTAL_ITEM = new Item(new Item.Properties());
         Registry.register(BuiltInRegistries.ITEM, id("worldcrystal"), WORLD_CRYSTAL_ITEM);
 
-        STARTER_BOOK_ITEM = new com.ryvione.gatheringchunks.common.items.StarterBookItem(new Item.Properties().stacksTo(1));
+        STARTER_BOOK_ITEM = new com.ryvione.gatheringchunks.common.items.StarterBookItem(
+                new Item.Properties().stacksTo(1));
         Registry.register(BuiltInRegistries.ITEM, id("starter_book"), STARTER_BOOK_ITEM);
 
         List<ItemStack> themeSpawnBlockItems = new ArrayList<>();
         List<String> biomeThemesList = new ArrayList<>(GatheringChunksConstants.BIOME_THEMES);
         for (String biomeTheme : biomeThemesList) {
-            Block spawnBlock = BuiltInRegistries.BLOCK.get(id(biomeTheme + GatheringChunksConstants.BIOME_CHUNK_BLOCK_SUFFIX));
+            Block spawnBlock = BuiltInRegistries.BLOCK
+                    .get(id(biomeTheme + GatheringChunksConstants.BIOME_CHUNK_BLOCK_SUFFIX));
             BlockItem item = new BlockItem(spawnBlock, new Item.Properties());
-            Registry.register(BuiltInRegistries.ITEM, id(biomeTheme + GatheringChunksConstants.BIOME_CHUNK_BLOCK_ITEM_SUFFIX), item);
+            Registry.register(BuiltInRegistries.ITEM,
+                    id(biomeTheme + GatheringChunksConstants.BIOME_CHUNK_BLOCK_ITEM_SUFFIX), item);
             themeSpawnBlockItems.add(item.getDefaultInstance());
+
+            Block caveScanner = BuiltInRegistries.BLOCK.get(id(biomeTheme + "cavescanner"));
+            BlockItem caveItem = new BlockItem(caveScanner, new Item.Properties());
+            Registry.register(BuiltInRegistries.ITEM, id(biomeTheme + "cavescanner"), caveItem);
+            themeSpawnBlockItems.add(caveItem.getDefaultInstance());
         }
         biomeThemedBlockItems = ImmutableList.copyOf(themeSpawnBlockItems);
     }
@@ -178,6 +211,15 @@ public class CommonRegistry {
 
         CHUNK_ENGINE_BLOCK_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id("chunkengineentity"),
                 BlockEntityType.Builder.of(ChunkEngineBlockEntity::new, CHUNK_ENGINE_BLOCK).build(null));
+
+        List<Block> caveScannerBlocks = new ArrayList<>();
+        caveScannerBlocks.add(CAVE_SCANNER_BLOCK);
+        for (String theme : GatheringChunksConstants.BIOME_THEMES) {
+            caveScannerBlocks.add(BuiltInRegistries.BLOCK.get(id(theme + "cavescanner")));
+        }
+        CAVE_SCANNER_BLOCK_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id("cavescannerentity"),
+                BlockEntityType.Builder.of(CaveScannerBlockEntity::new, caveScannerBlocks.toArray(new Block[0]))
+                        .build(null));
     }
 
     public static void registerMenus() {
@@ -195,6 +237,9 @@ public class CommonRegistry {
 
         CHUNK_ENGINE_MENU = Registry.register(BuiltInRegistries.MENU, id("chunkenginemenu"),
                 new MenuType<>(ChunkEngineMenu::new, FeatureFlags.VANILLA_SET));
+
+        CAVE_SCANNER_MENU = Registry.register(BuiltInRegistries.MENU, id("cavescannermenu"),
+                new MenuType<>(CaveScannerMenu::new, FeatureFlags.VANILLA_SET));
     }
 
     public static void registerSounds() {
@@ -204,7 +249,8 @@ public class CommonRegistry {
 
     public static void registerChunkGenerators() {
         Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id("skychunkgenerator"), SkyChunkGenerator.CODEC);
-        Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id("netherchunkgenerator"), SkyChunkGenerator.OLD_NETHER_CODEC);
+        Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id("netherchunkgenerator"),
+                SkyChunkGenerator.OLD_NETHER_CODEC);
     }
 
     public static void registerCreativeTab() {
@@ -222,6 +268,7 @@ public class CommonRegistry {
                             output.accept(WORLD_MENDER_BLOCK_ITEM);
                             output.accept(CHUNK_ENGINE_BLOCK_ITEM);
                             output.accept(CHUNK_ERASER_BLOCK_ITEM);
+                            output.accept(CAVE_SCANNER_BLOCK_ITEM);
                             output.accept(WORLD_FRAGMENT_ITEM);
                             output.accept(WORLD_SHARD_ITEM);
                             output.accept(WORLD_CRYSTAL_ITEM);
@@ -233,8 +280,7 @@ public class CommonRegistry {
                                 }
                             }
                         })
-                        .build()
-        );
+                        .build());
     }
 
     public static void registerAll() {

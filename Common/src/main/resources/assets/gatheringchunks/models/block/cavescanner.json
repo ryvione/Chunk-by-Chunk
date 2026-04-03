@@ -1,0 +1,12 @@
+{
+  "parent" : "block/cube",
+  "textures" : {
+    "up" : "gatheringchunks:block/cavescanner-off",
+    "down" : "gatheringchunks:block/worldforge-bottom",
+    "north" : "gatheringchunks:block/cavescanner-side",
+    "east" : "gatheringchunks:block/cavescanner-side",
+    "south" : "gatheringchunks:block/cavescanner-side",
+    "west" : "gatheringchunks:block/cavescanner-side",
+    "particle": "gatheringchunks:block/worldcore"
+  }
+}

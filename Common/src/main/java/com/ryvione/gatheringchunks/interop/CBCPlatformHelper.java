@@ -5,6 +5,7 @@ import com.ryvione.gatheringchunks.common.blockEntities.WorldForgeBlockEntity;
 import com.ryvione.gatheringchunks.common.blockEntities.WorldMenderBlockEntity;
 import com.ryvione.gatheringchunks.common.blockEntities.WorldScannerBlockEntity;
 import com.ryvione.gatheringchunks.common.blockEntities.ChunkEngineBlockEntity;
+import com.ryvione.gatheringchunks.common.blockEntities.CaveScannerBlockEntity;
 import com.ryvione.gatheringchunks.common.blocks.SpawnChunkBlock;
 import com.ryvione.gatheringchunks.common.menus.BedrockChestMenu;
 import com.ryvione.gatheringchunks.common.menus.WorldForgeMenu;
@@ -36,6 +37,7 @@ public interface CBCPlatformHelper {
     Block worldScannerBlock();
     Block worldMenderBlock();
     Block chunkEngineBlock();
+    Block caveScannerBlock();
     Item spawnChunkBlockItem();
     Item unstableChunkSpawnBlockItem();
     Item bedrockChestItem();
@@ -44,6 +46,7 @@ public interface CBCPlatformHelper {
     Item worldScannerBlockItem();
     Item worldMenderBlockItem();
     Item chunkEngineBlockItem();
+    Item caveScannerBlockItem();
     Item worldFragmentItem();
     Item worldShardItem();
     Item worldCrystalItem();
@@ -55,12 +58,14 @@ public interface CBCPlatformHelper {
     BlockEntityType<WorldScannerBlockEntity> worldScannerEntity();
     BlockEntityType<WorldMenderBlockEntity> worldMenderEntity();
     BlockEntityType<ChunkEngineBlockEntity> chunkEngineEntity();
+    BlockEntityType<CaveScannerBlockEntity> caveScannerEntity();
     SoundEvent spawnChunkSoundEffect();
     MenuType<BedrockChestMenu> bedrockChestMenu();
     MenuType<WorldForgeMenu> worldForgeMenu();
     MenuType<WorldScannerMenu> worldScannerMenu();
     MenuType<WorldMenderMenu> worldMenderMenu();
     MenuType<ChunkEngineMenu> chunkEngineMenu();
+    MenuType<CaveScannerMenu> caveScannerMenu();
     Fluid getFluidContent(BucketItem bucketItem);
     <T> void unfreezeRegistry(MappedRegistry<T> registry);
     void openConfigScreen(ServerPlayer player);

@@ -72,8 +72,10 @@ public class ModRegistry {
     public static final DeferredHolder<Block, ChunkEraserBlock> CHUNK_ERASER_BLOCK = BLOCKS.register("chunkeraser",
             () -> new ChunkEraserBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.0F)));
 
-    private static final List<DeferredHolder<Block, SpawnChunkBlock>> BIOME_SPAWN_BLOCKS = new ArrayList<>();
+    public static final DeferredHolder<Block, CaveScannerBlock> CAVE_SCANNER_BLOCK = BLOCKS.register("cavescanner",
+            () -> new CaveScannerBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F).lightLevel((state) -> 4)));
 
+    private static final List<DeferredHolder<Block, SpawnChunkBlock>> BIOME_SPAWN_BLOCKS = new ArrayList<>();
     static {
         for (String biomeTheme : GatheringChunksConstants.BIOME_THEMES) {
             DeferredHolder<Block, SpawnChunkBlock> block = BLOCKS.register(
@@ -111,6 +113,9 @@ public class ModRegistry {
     public static final DeferredHolder<Item, BlockItem> CHUNK_ERASER_BLOCK_ITEM = ITEMS.register("chunkeraser",
             () -> new BlockItem(CHUNK_ERASER_BLOCK.get(), new Item.Properties()));
 
+    public static final DeferredHolder<Item, BlockItem> CAVE_SCANNER_BLOCK_ITEM = ITEMS.register("cavescanner",
+            () -> new BlockItem(CAVE_SCANNER_BLOCK.get(), new Item.Properties()));
+
     public static final DeferredHolder<Item, Item> WORLD_FRAGMENT_ITEM = ITEMS.register("worldfragment",
             () -> new Item(new Item.Properties()));
 
@@ -124,7 +129,6 @@ public class ModRegistry {
             () -> new com.ryvione.gatheringchunks.common.items.StarterBookItem(new Item.Properties().stacksTo(1)));
 
     private static final List<DeferredHolder<Item, BlockItem>> BIOME_SPAWN_BLOCK_ITEMS = new ArrayList<>();
-
     static {
         int index = 0;
         for (String biomeTheme : GatheringChunksConstants.BIOME_THEMES) {
@@ -164,6 +168,10 @@ public class ModRegistry {
             BLOCK_ENTITIES.register("chunkengineentity",
                     () -> BlockEntityType.Builder.of(ChunkEngineBlockEntity::new, CHUNK_ENGINE_BLOCK.get()).build(null));
 
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CaveScannerBlockEntity>> CAVE_SCANNER_BLOCK_ENTITY =
+            BLOCK_ENTITIES.register("cavescannerentity",
+                    () -> BlockEntityType.Builder.of(CaveScannerBlockEntity::new, CAVE_SCANNER_BLOCK.get()).build(null));
+
     public static final DeferredHolder<MenuType<?>, MenuType<BedrockChestMenu>> BEDROCK_CHEST_MENU =
             MENU_TYPES.register("bedrockchestmenu",
                     () -> new MenuType<>(BedrockChestMenu::new, FeatureFlags.DEFAULT_FLAGS));
@@ -183,6 +191,10 @@ public class ModRegistry {
     public static final DeferredHolder<MenuType<?>, MenuType<ChunkEngineMenu>> CHUNK_ENGINE_MENU =
             MENU_TYPES.register("chunkenginemenu",
                     () -> new MenuType<>(ChunkEngineMenu::new, FeatureFlags.DEFAULT_FLAGS));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<WorldScannerMenu>> CAVE_SCANNER_MENU =
+            MENU_TYPES.register("cavescannermenu",
+                    () -> new MenuType<>(WorldScannerMenu::new, FeatureFlags.DEFAULT_FLAGS));
 
     public static final DeferredHolder<SoundEvent, SoundEvent> SPAWN_CHUNK_SOUND_EVENT =
             SOUND_EVENTS.register("spawnchunkevent",
@@ -207,6 +219,7 @@ public class ModRegistry {
                         output.accept(WORLD_MENDER_BLOCK_ITEM.get());
                         output.accept(CHUNK_ENGINE_BLOCK_ITEM.get());
                         output.accept(CHUNK_ERASER_BLOCK_ITEM.get());
+                        output.accept(CAVE_SCANNER_BLOCK_ITEM.get());
                         output.accept(WORLD_FRAGMENT_ITEM.get());
                         output.accept(WORLD_SHARD_ITEM.get());
                         output.accept(WORLD_CRYSTAL_ITEM.get());
