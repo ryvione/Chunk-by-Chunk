@@ -1,8 +1,8 @@
 # Gathering Chunks (Ryvione's Fork)
 
 [![Minecraft Version](https://img.shields.io/badge/Minecraft-1.21.1-brightgreen.svg)](https://www.minecraft.net/)
-[![Mod Loader](https://img.shields.io/badge/Mod%20Loader-Fabric-blue.svg)](https://fabricmc.net/)
-[![Mod Loader](https://img.shields.io/badge/NeoForge-1.21+-orange?style=for-the-badge)](https://neoforged.net)
+[![Mod Loader](https://img.shields.io/badge/NeoForge-1.21.1-orange)](https://neoforged.net)
+[![Mod Loader](https://img.shields.io/badge/Fabric-1.21.1-blue)](https://fabricmc.net)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Discord Server Link : https://discord.gg/3S9aKukmmJ
