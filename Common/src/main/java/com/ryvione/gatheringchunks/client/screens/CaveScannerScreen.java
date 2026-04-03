@@ -30,7 +30,7 @@ import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
 public class CaveScannerScreen extends AbstractContainerScreen<CaveScannerMenu> {
 
     public static final ResourceLocation CONTAINER_TEXTURE = ResourceLocation.fromNamespaceAndPath(
-            GatheringChunksConstants.MOD_ID, "textures/gui/container/worldscanner.png"
+            GatheringChunksConstants.MOD_ID, "textures/gui/container/cavescanner.png"
     );
 
     private static final int MAIN_TEXTURE_DIM = 512;
@@ -127,10 +127,14 @@ public class CaveScannerScreen extends AbstractContainerScreen<CaveScannerMenu> 
         if (mouseX >= leftPos + helpX && mouseX <= leftPos + helpX + 10 &&
                 mouseY >= topPos + helpY && mouseY <= topPos + helpY + 10) {
             guiGraphics.renderTooltip(font, java.util.List.of(
-                    Component.literal("§6Cave Density:").getVisualOrderText(),
-                    Component.literal("§f- §fWhite: §7Max Open Space").getVisualOrderText(),
-                    Component.literal("§f- §7Colors: §7Density Gradient").getVisualOrderText(),
-                    Component.literal("§f- §0Black: §7Solid Rock").getVisualOrderText(),
+                    Component.literal("§6Cave Types:").getVisualOrderText(),
+                    Component.literal("§f- §aGreen: §7Lush Caves").getVisualOrderText(),
+                    Component.literal("§f- §6Brown: §7Dripstone Caves").getVisualOrderText(),
+                    Component.literal("§f- §8Dark: §7Deep Dark").getVisualOrderText(),
+                    Component.literal("§f- §bCyan: §7Frozen/Ice Cave").getVisualOrderText(),
+                    Component.literal("§f- §cRed: §7Nether Biome").getVisualOrderText(),
+                    Component.literal("§f- §7Gray: §7Generic Cave").getVisualOrderText(),
+                    Component.literal("§f- §0Black: §7No Special Cave").getVisualOrderText(),
                     Component.literal("").getVisualOrderText(),
                     Component.literal("§6Controls:").getVisualOrderText(),
                     Component.literal("§f- §eCtrl+Scroll: §7Zoom in/out").getVisualOrderText(),

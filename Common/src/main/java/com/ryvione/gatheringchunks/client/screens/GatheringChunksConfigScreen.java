@@ -377,6 +377,56 @@ public class GatheringChunksConfigScreen extends Screen {
                 .build());
         currentY += SPACING;
 
+        this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getGeneration().isFragmentOreEnabled())
+                .withTooltip(value -> Tooltip.create(Component.literal("Enable World Fragment Ore generation in the world")))
+                .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
+                        Component.literal("Fragment Ore Enabled"),
+                        (button, value) -> ChunkByChunkConfig.get().getGeneration().setFragmentOreEnabled(value)));
+        currentY += SPACING;
+
+        this.addRenderableWidget(new AbstractSliderButton(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
+                Component.literal("Fragment Ore Vein Size: " + ChunkByChunkConfig.get().getGeneration().getFragmentOreVeinSize()),
+                (ChunkByChunkConfig.get().getGeneration().getFragmentOreVeinSize() - 1) / 63.0) {
+            { this.setTooltip(Tooltip.create(Component.literal("Size of Fragment Ore veins (1-64)"))); }
+            @Override protected void updateMessage() { int v = (int)(this.value * 63) + 1; setMessage(Component.literal("Fragment Ore Vein Size: " + v)); }
+            @Override protected void applyValue() { int v = (int)(this.value * 63) + 1; ChunkByChunkConfig.get().getGeneration().setFragmentOreVeinSize(v); }
+        });
+        currentY += SPACING;
+
+        this.addRenderableWidget(new AbstractSliderButton(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
+                Component.literal("Fragment Ore Veins/Chunk: " + ChunkByChunkConfig.get().getGeneration().getFragmentOreCount()),
+                (ChunkByChunkConfig.get().getGeneration().getFragmentOreCount() - 1) / 63.0) {
+            { this.setTooltip(Tooltip.create(Component.literal("Number of Fragment Ore veins per chunk (1-64). Increase for more fragments."))); }
+            @Override protected void updateMessage() { int v = (int)(this.value * 63) + 1; setMessage(Component.literal("Fragment Ore Veins/Chunk: " + v)); }
+            @Override protected void applyValue() { int v = (int)(this.value * 63) + 1; ChunkByChunkConfig.get().getGeneration().setFragmentOreCount(v); }
+        });
+        currentY += SPACING;
+
+        this.addRenderableWidget(new AbstractSliderButton(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
+                Component.literal("Fragment Ore Min Y: " + ChunkByChunkConfig.get().getGeneration().getFragmentOreMinHeight()),
+                (ChunkByChunkConfig.get().getGeneration().getFragmentOreMinHeight() + 64) / 384.0) {
+            { this.setTooltip(Tooltip.create(Component.literal("Min Y level for Fragment Ore (-64 to 320)"))); }
+            @Override protected void updateMessage() { int v = (int)(this.value * 384) - 64; setMessage(Component.literal("Fragment Ore Min Y: " + v)); }
+            @Override protected void applyValue() { int v = (int)(this.value * 384) - 64; ChunkByChunkConfig.get().getGeneration().setFragmentOreMinHeight(v); }
+        });
+        currentY += SPACING;
+
+        this.addRenderableWidget(new AbstractSliderButton(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
+                Component.literal("Fragment Ore Max Y: " + ChunkByChunkConfig.get().getGeneration().getFragmentOreMaxHeight()),
+                (ChunkByChunkConfig.get().getGeneration().getFragmentOreMaxHeight() + 64) / 384.0) {
+            { this.setTooltip(Tooltip.create(Component.literal("Max Y level for Fragment Ore (-64 to 320)"))); }
+            @Override protected void updateMessage() { int v = (int)(this.value * 384) - 64; setMessage(Component.literal("Fragment Ore Max Y: " + v)); }
+            @Override protected void applyValue() { int v = (int)(this.value * 384) - 64; ChunkByChunkConfig.get().getGeneration().setFragmentOreMaxHeight(v); }
+        });
+        currentY += SPACING;
+
+        this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getGeneration().isDisableWaterOnlyChunks())
+                .withTooltip(value -> Tooltip.create(Component.literal("Prevent spawning chunks that are mostly water")))
+                .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
+                        Component.literal("Disable Water-Only Chunks"),
+                        (button, value) -> ChunkByChunkConfig.get().getGeneration().setDisableWaterOnlyChunks(value)));
+        currentY += SPACING;
+
         currentY += SECTION_SPACING;
 
         currentY = addSectionLabel(centerX, currentY, "Gameplay", 0xFF5555FF);
@@ -435,10 +485,24 @@ public class GatheringChunksConfigScreen extends Screen {
                         (button, value) -> config.setPreventFluidFlowIntoVoid(value)));
         currentY += SPACING;
 
+        this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getGameplayConfig().isEnableWorldFragmentOre())
+                .withTooltip(value -> Tooltip.create(Component.literal("Enable World Fragment Ore drops (disabling overrides ore gen setting)")))
+                .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
+                        Component.literal("Enable Fragment Ore"),
+                        (button, value) -> ChunkByChunkConfig.get().getGameplayConfig().setEnableWorldFragmentOre(value)));
+        currentY += SPACING;
+
+        this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getGameplayConfig().isEnableCaveScanner())
+                .withTooltip(value -> Tooltip.create(Component.literal("Enable the Cave Scanner block functionality")))
+                .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
+                        Component.literal("Enable Cave Scanner"),
+                        (button, value) -> ChunkByChunkConfig.get().getGameplayConfig().setEnableCaveScanner(value)));
+        currentY += SPACING;
+
         currentY += SECTION_SPACING;
 
         currentY = addSectionLabel(centerX, currentY, "Other", 0xFFFFFFFF);
-
+        
         this.addRenderableWidget(CycleButton.onOffBuilder(config.isMobsDropFragments())
                 .withTooltip(value -> Tooltip.create(Component.literal("Allow mobs to drop world fragments when killed")))
                 .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,

@@ -555,6 +555,20 @@ public class ChunkSpawnController extends SavedData {
             return request(targetChunkPos, level.dimension(), targetChunkPos, sourceLevelKey, immediate, overwrite, false, playerUUID);
         }
 
+        String dim = level.dimension().location().toString();
+        ChunkPos originTarget = originChunks.get(dim);
+        if (originTarget != null) {
+            TerrainProfile originProfile = chunkTerrainProfiles.get(originTarget);
+            if (originProfile != null) {
+                int dx = targetChunkPos.x - originTarget.x;
+                int dz = targetChunkPos.z - originTarget.z;
+                ChunkPos lockedSource = new ChunkPos(originProfile.sourcePos.x + dx, originProfile.sourcePos.z + dz);
+                GatheringChunksConstants.LOGGER.info("Using LOCKED source {} for basic spawner at {} (origin-locked)", lockedSource, targetChunkPos);
+                registerChunkTheme(targetChunkPos, "");
+                return request(targetChunkPos, level.dimension(), lockedSource, generator.getGenerationLevel(), immediate, overwrite, false, playerUUID);
+            }
+        }
+
         GatheringChunksConstants.LOGGER.info("Using DIRECT source for basic spawner at {}", targetChunkPos);
         registerChunkTheme(targetChunkPos, "");
         return request(targetChunkPos, level.dimension(), targetChunkPos, generator.getGenerationLevel(), immediate, overwrite, false, playerUUID);

@@ -129,28 +129,41 @@ public final class ChunkCopyHelper {
 
     public static void triggerLightingUpdate(ServerLevel level, ChunkPos chunkPos) {
         try {
-            level.getLightEngine().checkBlock(chunkPos.getMiddleBlockPosition(level.getMaxBuildHeight() / 2));
-
             int minX = chunkPos.getMinBlockX();
             int minZ = chunkPos.getMinBlockZ();
             int maxX = chunkPos.getMaxBlockX();
             int maxZ = chunkPos.getMaxBlockZ();
+            int minY = level.getMinBuildHeight();
+            int maxY = level.getMaxBuildHeight();
 
-            for (int y = level.getMinBuildHeight(); y < level.getMaxBuildHeight(); y += 16) {
-                level.getLightEngine().checkBlock(new BlockPos(minX, y, minZ));
-                level.getLightEngine().checkBlock(new BlockPos(maxX, y, minZ));
-                level.getLightEngine().checkBlock(new BlockPos(minX, y, maxZ));
-                level.getLightEngine().checkBlock(new BlockPos(maxX, y, maxZ));
+            for (int y = minY; y < maxY; y++) {
+                for (int x = minX; x <= maxX; x++) {
+                    level.getLightEngine().checkBlock(new BlockPos(x, y, minZ));
+                    level.getLightEngine().checkBlock(new BlockPos(x, y, maxZ));
+                }
+                for (int z = minZ + 1; z < maxZ; z++) {
+                    level.getLightEngine().checkBlock(new BlockPos(minX, y, z));
+                    level.getLightEngine().checkBlock(new BlockPos(maxX, y, z));
+                }
             }
 
             int[][] borderOffsets = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
             for (int[] off : borderOffsets) {
                 ChunkPos neighbor = new ChunkPos(chunkPos.x + off[0], chunkPos.z + off[1]);
                 if (level.hasChunk(neighbor.x, neighbor.z)) {
-                    int edgeX = off[0] == 1 ? chunkPos.getMaxBlockX() : (off[0] == -1 ? chunkPos.getMinBlockX() : chunkPos.getMiddleBlockX());
-                    int edgeZ = off[1] == 1 ? chunkPos.getMaxBlockZ() : (off[1] == -1 ? chunkPos.getMinBlockZ() : chunkPos.getMiddleBlockZ());
-                    for (int y = level.getMinBuildHeight(); y < level.getMaxBuildHeight(); y += 16) {
-                        level.getLightEngine().checkBlock(new BlockPos(edgeX, y, edgeZ));
+                    int edgeX = off[0] == 1 ? maxX : (off[0] == -1 ? minX : minX);
+                    int edgeZ = off[1] == 1 ? maxZ : (off[1] == -1 ? minZ : minZ);
+                    boolean alongX = off[1] != 0;
+                    for (int y = minY; y < maxY; y++) {
+                        if (alongX) {
+                            for (int x = minX; x <= maxX; x++) {
+                                level.getLightEngine().checkBlock(new BlockPos(x, y, edgeZ));
+                            }
+                        } else {
+                            for (int z = minZ; z <= maxZ; z++) {
+                                level.getLightEngine().checkBlock(new BlockPos(edgeX, y, z));
+                            }
+                        }
                     }
                 }
             }

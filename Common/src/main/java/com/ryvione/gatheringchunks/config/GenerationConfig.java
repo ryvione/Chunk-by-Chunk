@@ -88,12 +88,12 @@ public class GenerationConfig {
     @Name("fragment_ore_vein_size")
     @Comment("The size of World Fragment Ore veins")
     @IntRange(min = 1, max = 64)
-    private int fragmentOreVeinSize = 4;
+    private int fragmentOreVeinSize = 3;
 
     @Name("fragment_ore_count")
     @Comment("The number of World Fragment Ore veins per chunk")
     @IntRange(min = 1, max = 64)
-    private int fragmentOreCount = 8;
+    private int fragmentOreCount = 10;
 
     @Name("disable_water_only_chunks")
     @Comment("Prevent spawning chunks that are mostly water (for biome spawners)")

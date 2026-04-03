@@ -69,23 +69,13 @@ public class CaveScannerBlockEntity extends BaseFueledBlockEntity {
     private static final int[] SLOTS_FOR_UP = new int[] {};
     private static final int[] SLOTS_FOR_SIDES = new int[] { SLOT_FUEL };
     private static final int[] SLOTS_FOR_DOWN = new int[] { SLOT_FUEL };
-    public static final byte[] SCAN_COLOR_PALETTE = {
-            MapColor.COLOR_BLACK.getPackedId(MapColor.Brightness.NORMAL),
-            MapColor.COLOR_BROWN.getPackedId(MapColor.Brightness.LOWEST),
-            MapColor.COLOR_BROWN.getPackedId(MapColor.Brightness.LOW),
-            MapColor.COLOR_BROWN.getPackedId(MapColor.Brightness.NORMAL),
-            MapColor.TERRACOTTA_BROWN.getPackedId(MapColor.Brightness.HIGH),
-            MapColor.COLOR_ORANGE.getPackedId(MapColor.Brightness.LOWEST),
-            MapColor.COLOR_ORANGE.getPackedId(MapColor.Brightness.LOW),
-            MapColor.COLOR_ORANGE.getPackedId(MapColor.Brightness.NORMAL),
-            MapColor.COLOR_ORANGE.getPackedId(MapColor.Brightness.HIGH),
-            MapColor.COLOR_YELLOW.getPackedId(MapColor.Brightness.HIGH),
-            MapColor.COLOR_LIGHT_GRAY.getPackedId(MapColor.Brightness.HIGH),
-            MapColor.COLOR_GRAY.getPackedId(MapColor.Brightness.HIGH),
-            MapColor.SNOW.getPackedId(MapColor.Brightness.HIGH)
-    };
-    public static final Multimap<Item, Block> scanItemMappings = ArrayListMultimap.create();
-    public static final int[] SCAN_COLOR_THRESHOLD = { 0, 1, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096 };
+    public static final byte CAVE_COLOR_NONE = MapColor.COLOR_BLACK.getPackedId(MapColor.Brightness.NORMAL);
+    public static final byte CAVE_COLOR_GENERIC = MapColor.STONE.getPackedId(MapColor.Brightness.NORMAL);
+    public static final byte CAVE_COLOR_LUSH = MapColor.COLOR_GREEN.getPackedId(MapColor.Brightness.NORMAL);
+    public static final byte CAVE_COLOR_DRIPSTONE = MapColor.TERRACOTTA_BROWN.getPackedId(MapColor.Brightness.HIGH);
+    public static final byte CAVE_COLOR_DEEP_DARK = MapColor.COLOR_BLACK.getPackedId(MapColor.Brightness.LOW);
+    public static final byte CAVE_COLOR_FROZEN = MapColor.ICE.getPackedId(MapColor.Brightness.HIGH);
+    public static final byte CAVE_COLOR_NETHER = MapColor.NETHER.getPackedId(MapColor.Brightness.NORMAL);
     private MapId map = null;
     private int scanCharge = 0;
     private final SpiralIterator scanIterator = new SpiralIterator(SCAN_CENTER, SCAN_CENTER);
@@ -256,20 +246,7 @@ public class CaveScannerBlockEntity extends BaseFueledBlockEntity {
                     }
 
                     ChunkAccess chunk = scanLevel.getChunkSource().getChunk(chunkX, chunkZ, ChunkStatus.FULL, false);
-                    int blockCount;
-                    if (chunk != null) {
-                        blockCount = countCaveBlocks(chunk);
-                    } else {
-                        blockCount = countCaveBiomes(scanLevel, chunkX, chunkZ);
-                    }
-
-                    byte color = MapColor.COLOR_BLACK.getPackedId(MapColor.Brightness.NORMAL);
-                    for (int i = 0; i < SCAN_COLOR_THRESHOLD.length; i++) {
-                        color = SCAN_COLOR_PALETTE[i];
-                        if (blockCount <= SCAN_COLOR_THRESHOLD[i]) {
-                            break;
-                        }
-                    }
+                    byte color = getCaveTypeColor(scanLevel, chunkX, chunkZ, chunk);
 
                     MapItemSavedData data = serverLevel.getMapData(entity.map);
                     if (data != null) {
@@ -330,6 +307,39 @@ public class CaveScannerBlockEntity extends BaseFueledBlockEntity {
         } else {
             entity.tickUntilReplicate--;
         }
+    }
+
+    private static byte getCaveTypeColor(ServerLevel level, int chunkX, int chunkZ, ChunkAccess chunk) {
+        try {
+            net.minecraft.world.level.biome.BiomeSource source = level.getChunkSource().getGenerator().getBiomeSource();
+            net.minecraft.world.level.levelgen.RandomState rs = level.getChunkSource().randomState();
+            int minY = Math.max(level.getMinBuildHeight() >> 2, -16);
+            int maxY = 16 >> 2;
+            boolean hasLush = false, hasDripstone = false, hasDeepDark = false;
+            boolean hasFrozen = false, hasNether = false, hasCave = false;
+            for (int qx = 0; qx < 4; qx++) {
+                for (int qz = 0; qz < 4; qz++) {
+                    for (int qy = minY; qy <= maxY; qy++) {
+                        net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> biome =
+                            source.getNoiseBiome((chunkX << 2) + qx, qy, (chunkZ << 2) + qz, rs.sampler());
+                        String path = biome.unwrapKey().map(k -> k.location().getPath()).orElse("");
+                        if (path.contains("lush_caves")) hasLush = true;
+                        else if (path.contains("dripstone")) hasDripstone = true;
+                        else if (path.contains("deep_dark")) hasDeepDark = true;
+                        else if (path.contains("ice") || path.contains("frozen")) hasFrozen = true;
+                        else if (path.contains("nether") || path.contains("basalt") || path.contains("crimson") || path.contains("warped") || path.contains("soul_sand")) hasNether = true;
+                        else if (path.contains("cave") || path.contains("underground")) hasCave = true;
+                    }
+                }
+            }
+            if (hasDeepDark) return MapColor.COLOR_BLACK.getPackedId(MapColor.Brightness.LOW);
+            if (hasLush) return MapColor.COLOR_GREEN.getPackedId(MapColor.Brightness.NORMAL);
+            if (hasDripstone) return MapColor.TERRACOTTA_BROWN.getPackedId(MapColor.Brightness.HIGH);
+            if (hasFrozen) return MapColor.ICE.getPackedId(MapColor.Brightness.HIGH);
+            if (hasNether) return MapColor.NETHER.getPackedId(MapColor.Brightness.NORMAL);
+            if (hasCave) return MapColor.STONE.getPackedId(MapColor.Brightness.NORMAL);
+        } catch (Exception ignored) {}
+        return MapColor.COLOR_BLACK.getPackedId(MapColor.Brightness.NORMAL);
     }
 
     private static int countCaveBlocks(ChunkAccess chunk) {
