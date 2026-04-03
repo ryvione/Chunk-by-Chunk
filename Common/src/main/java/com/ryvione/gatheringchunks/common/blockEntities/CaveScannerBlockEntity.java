@@ -67,7 +67,7 @@ public class CaveScannerBlockEntity extends BaseFueledBlockEntity {
     public static final int NO_MAP = -1;
     private static final int TICKS_BETWEEN_REPLICATES = 11;
     public static final Map<Item, FuelValueSupplier> FUEL;
-    private static final int[] SLOTS_FOR_UP = new int[] { SLOT_INPUT };
+    private static final int[] SLOTS_FOR_UP = new int[] {};
     private static final int[] SLOTS_FOR_SIDES = new int[] { SLOT_FUEL };
     private static final int[] SLOTS_FOR_DOWN = new int[] { SLOT_FUEL };
     public static final byte[] SCAN_COLOR_PALETTE = {
@@ -188,16 +188,7 @@ public class CaveScannerBlockEntity extends BaseFueledBlockEntity {
     }
 
     private boolean validTarget() {
-        ItemStack targetItem = getItem(SLOT_INPUT);
-        if (targetItem.isEmpty()) {
-            return true; 
-        }
-        if (targetItem.getItem() instanceof BucketItem bucket) {
-            return Services.PLATFORM.getFluidContent(bucket) instanceof FlowingFluid;
-        } else if (Items.SLIME_BALL.equals(targetItem.getItem())) {
-            return true;
-        }
-        return targetItem.getItem() instanceof BlockItem || scanItemMappings.keySet().contains(targetItem.getItem());
+        return true; 
     }
 
     public static void serverTick(Level level, BlockPos blockPos, BlockState blockState,
@@ -267,37 +258,11 @@ public class CaveScannerBlockEntity extends BaseFueledBlockEntity {
                     }
 
                     ChunkAccess chunk = scanLevel.getChunkSource().getChunk(chunkX, chunkZ, ChunkStatus.FULL, false);
-                    if (chunk == null) {
-                        if (scanMode != com.ryvione.gatheringchunks.config.WorldScannerConfig.WorldScannerMode.Manual) {
-                        }
-                        return;
-                    }
-
                     int blockCount;
-                    if (targetItem.isEmpty()) {
+                    if (chunk != null) {
                         blockCount = countCaveBlocks(chunk);
-                    } else if (targetItem.getItem().equals(Items.SLIME_BALL)
-                            || targetItem.getItem().equals(Items.SLIME_BLOCK)) {
-                        if (WorldgenRandom
-                                .seedSlimeChunk(chunkX, chunkZ, ((WorldGenLevel) scanLevel).getSeed(), 987234911L)
-                                .nextInt(10) == 0) {
-                            blockCount = 20000;
-                        } else {
-                            blockCount = 0;
-                        }
                     } else {
-                        Set<Block> scanForBlocks = new HashSet<>();
-                        Collection<Block> mappings = scanItemMappings.get(targetItem.getItem());
-                        if (!mappings.isEmpty()) {
-                            scanForBlocks.addAll(mappings);
-                        } else if (targetItem.getItem() instanceof BucketItem bucket) {
-                            Fluid fluid = Services.PLATFORM.getFluidContent(bucket);
-                            if (fluid != null)
-                                scanForBlocks.add(fluid.defaultFluidState().createLegacyBlock().getBlock());
-                        } else if (targetItem.getItem() instanceof BlockItem blockItem) {
-                            scanForBlocks.add(blockItem.getBlock());
-                        }
-                        blockCount = scanForBlocks.isEmpty() ? 0 : ChunkUtil.countBlocks(chunk, scanForBlocks);
+                        blockCount = countCaveBiomes(scanLevel, chunkX, chunkZ);
                     }
 
                     byte color = MapColor.COLOR_BLACK.getPackedId(MapColor.Brightness.NORMAL);
@@ -372,20 +337,52 @@ public class CaveScannerBlockEntity extends BaseFueledBlockEntity {
     private static int countCaveBlocks(ChunkAccess chunk) {
         int count = 0;
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        ChunkPos cp = chunk.getPos();
+        int minX = chunk.getPos().getMinBlockX();
+        int minZ = chunk.getPos().getMinBlockZ();
+        int minY = chunk.getMinBuildHeight();
         int maxY = Math.min(chunk.getMaxBuildHeight(), 64);
-        for (int x = cp.getMinBlockX(); x <= cp.getMaxBlockX(); x++) {
-            for (int z = cp.getMinBlockZ(); z <= cp.getMaxBlockZ(); z++) {
-                for (int y = chunk.getMinBuildHeight(); y <= maxY; y++) {
-                    pos.set(x, y, z);
+        
+        for (int x = 0; x < 16; x += 2) {
+            for (int z = 0; z < 16; z += 2) {
+                for (int y = minY; y <= maxY; y += 4) {
+                    pos.set(minX + x, y, minZ + z);
                     BlockState state = chunk.getBlockState(pos);
                     if (state.isAir() || state.is(Blocks.CAVE_AIR)) {
-                        count++;
+                        count += 8;
                     }
                 }
             }
         }
         return count;
+    }
+
+    private static int countCaveBiomes(ServerLevel level, int chunkX, int chunkZ) {
+        int caveDensity = 0;
+        try {
+            net.minecraft.world.level.biome.BiomeSource source = level.getChunkSource().getGenerator().getBiomeSource();
+            net.minecraft.world.level.levelgen.RandomState rs = level.getChunkSource().randomState();
+            int minY = level.getMinBuildHeight() >> 2;
+            int maxY = 64 >> 2;
+            
+            for (int qx = 0; qx < 4; qx++) {
+                for (int qz = 0; qz < 4; qz++) {
+                    for (int qy = minY; qy <= maxY; qy += 2) {
+                        net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> biome = source.getNoiseBiome((chunkX << 2) + qx, qy, (chunkZ << 2) + qz, rs.sampler());
+                        if (isCaveBiome(biome)) {
+                            caveDensity += 200;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return caveDensity;
+    }
+
+    private static boolean isCaveBiome(net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> biome) {
+        return biome.unwrapKey().map(key -> {
+            String path = key.location().getPath();
+            return path.contains("lush_caves") || path.contains("dripstone_caves");
+        }).orElse(false);
     }
 
     private void createMap() {

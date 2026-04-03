@@ -58,6 +58,30 @@ public class GameplayConfig {
         this.enableChunkBarriers = enableChunkBarriers;
     }
 
+    @Name("enable_world_fragment_ore")
+    @Comment("If disabled, World Fragment Ores will not generate in the world")
+    private boolean enableWorldFragmentOre = true;
+
+    @Name("enable_cave_scanner")
+    @Comment("If disabled, the Cave Scanner will be non-functional")
+    private boolean enableCaveScanner = true;
+
+    public boolean isEnableWorldFragmentOre() {
+        return enableWorldFragmentOre;
+    }
+
+    public void setEnableWorldFragmentOre(boolean enableWorldFragmentOre) {
+        this.enableWorldFragmentOre = enableWorldFragmentOre;
+    }
+
+    public boolean isEnableCaveScanner() {
+        return enableCaveScanner;
+    }
+
+    public void setEnableCaveScanner(boolean enableCaveScanner) {
+        this.enableCaveScanner = enableCaveScanner;
+    }
+
     public int getUnstableChunkChance() {
         return unstableChunkChance;
     }

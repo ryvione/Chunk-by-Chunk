@@ -140,8 +140,10 @@ public class ChunkByChunkMod implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(ServerEventHandler::onLevelTick);
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
-            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-                ChunkBoundaryEnforcer.checkPlayerBoundaries(player);
+            if (server.getTickCount() % 10 == 0) {
+                for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                    ChunkBoundaryEnforcer.checkPlayerBoundaries(player);
+                }
             }
         });
 
@@ -344,6 +346,8 @@ public class ChunkByChunkMod implements ModInitializer {
         current.getGameplayConfig().setChunkSpawnLeafDecayDisabled(incoming.getGameplayConfig().isChunkSpawnLeafDecayDisabled());
         current.getGameplayConfig().setEnableChunkBarriers(incoming.getGameplayConfig().isEnableChunkBarriers());
         current.getGameplayConfig().setUnstableChunkChance(incoming.getGameplayConfig().getUnstableChunkChance());
+        current.getGameplayConfig().setEnableWorldFragmentOre(incoming.getGameplayConfig().isEnableWorldFragmentOre());
+        current.getGameplayConfig().setEnableCaveScanner(incoming.getGameplayConfig().isEnableCaveScanner());
 
         current.getGatheringChunksConfig().setMobsDropFragments(incoming.getGatheringChunksConfig().isMobsDropFragments());
         current.getGatheringChunksConfig().setFragmentDropChance(incoming.getGatheringChunksConfig().getFragmentDropChance());

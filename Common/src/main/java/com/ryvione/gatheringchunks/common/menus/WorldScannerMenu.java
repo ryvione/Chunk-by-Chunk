@@ -44,11 +44,14 @@ public class WorldScannerMenu extends BaseInventoryContainerMenu {
         } else if (container instanceof com.ryvione.gatheringchunks.common.blockEntities.CaveScannerBlockEntity caveEntity) {
             this.blockPos = caveEntity.getBlockPos();
         }
+        addScannerSlots(container);
+        addDataSlots(containerData);
+    }
+
+    protected void addScannerSlots(Container container) {
         Preconditions.checkArgument(container.getContainerSize() >= WorldScannerBlockEntity.NUM_ITEM_SLOTS, "Expected " + WorldScannerBlockEntity.NUM_ITEM_SLOTS + " item slots, but entity has " + container.getContainerSize());
-        Preconditions.checkArgument(containerData.getCount() >= WorldScannerBlockEntity.NUM_DATA_ITEMS, "Expected " + WorldScannerBlockEntity.NUM_DATA_ITEMS + " data items, but entity has " + containerData.getCount());
         addSlot(new Slot(container, WorldScannerBlockEntity.SLOT_INPUT, 27, 21));
         addSlot(new FilteredSlot(container, WorldScannerBlockEntity.SLOT_FUEL, 27, 50, WorldScannerBlockEntity::isWorldScannerFuel));
-        addDataSlots(containerData);
     }
 
     public BlockPos getBlockPos() {

@@ -37,20 +37,24 @@ public final class SpawnChunkHelper {
     }
 
     public static boolean isEmptyChunk(Level level, ChunkPos chunkPos) {
-        BlockPos bedrockCheckBlock = chunkPos.getMiddleBlockPosition(level.getMinBuildHeight());
-        if (Blocks.BEDROCK.equals(level.getBlockState(bedrockCheckBlock).getBlock())) {
+        net.minecraft.world.level.chunk.ChunkAccess chunk = level.getChunkSource().getChunkNow(chunkPos.x, chunkPos.z);
+        if (chunk == null) {
+            return true;
+        }
+
+        int minY = level.getMinBuildHeight();
+        BlockPos bedrockCheckBlock = chunkPos.getMiddleBlockPosition(minY);
+        if (Blocks.BEDROCK.equals(chunk.getBlockState(bedrockCheckBlock).getBlock())) {
             return false;
         }
 
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        int minY = level.getMinBuildHeight();
-
         int[][] samples = {{8, 8}, {2, 2}, {13, 13}, {2, 13}, {13, 2}};
         int solidCount = 0;
         for (int[] sample : samples) {
             for (int dy = 0; dy <= 4; dy++) {
                 pos.set(chunkPos.getMinBlockX() + sample[0], minY + dy, chunkPos.getMinBlockZ() + sample[1]);
-                if (!level.getBlockState(pos).isAir()) {
+                if (!chunk.getBlockState(pos).isAir()) {
                     solidCount++;
                     break;
                 }
@@ -61,15 +65,12 @@ public final class SpawnChunkHelper {
             return false;
         }
 
-        net.minecraft.world.level.chunk.ChunkAccess chunk = level.getChunkSource().getChunkNow(chunkPos.x, chunkPos.z);
-        if (chunk != null) {
-            for (int[] sample : samples) {
-                int surfaceY = chunk.getHeight(
-                        net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                        sample[0], sample[1]);
-                if (surfaceY > minY + 2) {
-                    return false;
-                }
+        for (int[] sample : samples) {
+            int surfaceY = chunk.getHeight(
+                    net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                    sample[0], sample[1]);
+            if (surfaceY > minY + 2) {
+                return false;
             }
         }
 

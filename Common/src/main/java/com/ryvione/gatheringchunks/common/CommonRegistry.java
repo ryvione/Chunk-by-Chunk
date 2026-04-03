@@ -126,11 +126,11 @@ public class CommonRegistry {
         Registry.register(BuiltInRegistries.BLOCK, id("cavescanner"), CAVE_SCANNER_BLOCK);
 
         WORLD_FRAGMENT_ORE_BLOCK = new Block(
-                BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.0F).requiresCorrectToolForDrops());
+                BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(1.5F, 1.5F).requiresCorrectToolForDrops());
         Registry.register(BuiltInRegistries.BLOCK, id("worldfragmentore"), WORLD_FRAGMENT_ORE_BLOCK);
 
         DEEPSLATE_WORLD_FRAGMENT_ORE_BLOCK = new Block(
-                BlockBehaviour.Properties.of().mapColor(MapColor.DEEPSLATE).strength(4.5F, 3.0F).requiresCorrectToolForDrops());
+                BlockBehaviour.Properties.of().mapColor(MapColor.DEEPSLATE).strength(2.0F, 2.0F).requiresCorrectToolForDrops());
         Registry.register(BuiltInRegistries.BLOCK, id("deepslate_worldfragmentore"), DEEPSLATE_WORLD_FRAGMENT_ORE_BLOCK);
 
         List<String> biomeThemesList = new ArrayList<>(GatheringChunksConstants.BIOME_THEMES);

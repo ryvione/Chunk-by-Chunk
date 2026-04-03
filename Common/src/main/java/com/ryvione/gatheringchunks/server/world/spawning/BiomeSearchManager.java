@@ -81,9 +81,6 @@ public class BiomeSearchManager {
             ChunkPos adjTarget = new ChunkPos(targetPos.x + offset[0], targetPos.z + offset[1]);
             TerrainProfile adjProfile = chunkTerrainProfiles.get(adjTarget);
             if (adjProfile == null) continue;
-            if (!theme.isEmpty() && !adjProfile.biomeTheme.equals(theme)) continue;
-            if (adjProfile.sourcePos.toLong() == ChunkPos.INVALID_CHUNK_POS) continue;
-
             ChunkPos candidateSource = new ChunkPos(
                     adjProfile.sourcePos.x + offset[0],
                     adjProfile.sourcePos.z + offset[1]);
@@ -96,10 +93,10 @@ public class BiomeSearchManager {
             Holder<Biome> holder = sourceLevel.getChunkSource()
                     .getGenerator().getBiomeSource()
                     .getNoiseBiome(quartX, quartYv, quartZ, null);
+            
             if (!doesBiomeMatchTheme(holder, theme)) {
                 GatheringChunksConstants.LOGGER.debug(
-                        "[Chained] Candidate {} failed noise-source biome check for '{}', skipping.", candidateSource, theme);
-                continue;
+                        "[Chained] Candidate {} does not match theme '{}' but checking terrain compatibility...", candidateSource, theme);
             }
 
             GatheringChunksConstants.LOGGER.info(
@@ -262,7 +259,12 @@ public class BiomeSearchManager {
                         bioMatch++;
                     }
                 }
-                int threshold = isOcean ? 2 : 3;
+                int threshold = isOcean ? 2 : 1; 
+                if (bioMatch < threshold) {
+                    if (!target.biomeTheme.equals(candidate.biomeTheme)) {
+                        bioMatch += 2; 
+                    }
+                }
                 if (bioMatch < threshold) return false;
             }
 

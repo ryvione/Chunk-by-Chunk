@@ -182,7 +182,7 @@ public class ChunkSpawnController extends SavedData {
     private void processPendingSearches() {
         Iterator<BiomeSearchManager.PendingSearch> it = biomeSearch.getPendingSearches().iterator();
         int totalAttemptsThisTick = 0;
-        int maxAttemptsPerTick = 8;
+        int maxAttemptsPerTick = 1; // Reduced to reduce lag during biome search
 
         while (it.hasNext() && totalAttemptsThisTick < maxAttemptsPerTick) {
             BiomeSearchManager.PendingSearch search = it.next();
