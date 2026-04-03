@@ -105,7 +105,7 @@ public class EventHandler {
     @SubscribeEvent
     public static void onWorldTick(LevelTickEvent.Post event) {
         if (event.getLevel() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
-            com.ryvione.gatheringchunks.server.CauldronRainFiller.tick(serverLevel);
+            com.ryvione.gatheringchunks.common.CauldronRainFiller.tick(serverLevel);
         }
     }
 

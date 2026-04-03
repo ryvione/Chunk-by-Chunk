@@ -192,9 +192,9 @@ public class ModRegistry {
             MENU_TYPES.register("chunkenginemenu",
                     () -> new MenuType<>(ChunkEngineMenu::new, FeatureFlags.DEFAULT_FLAGS));
 
-    public static final DeferredHolder<MenuType<?>, MenuType<WorldScannerMenu>> CAVE_SCANNER_MENU =
+    public static final DeferredHolder<MenuType<?>, MenuType<CaveScannerMenu>> CAVE_SCANNER_MENU =
             MENU_TYPES.register("cavescannermenu",
-                    () -> new MenuType<>(WorldScannerMenu::new, FeatureFlags.DEFAULT_FLAGS));
+                    () -> new MenuType<>(CaveScannerMenu::new, FeatureFlags.DEFAULT_FLAGS));
 
     public static final DeferredHolder<SoundEvent, SoundEvent> SPAWN_CHUNK_SOUND_EVENT =
             SOUND_EVENTS.register("spawnchunkevent",
