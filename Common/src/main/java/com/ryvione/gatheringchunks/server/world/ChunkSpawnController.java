@@ -555,7 +555,6 @@ public class ChunkSpawnController extends SavedData {
             return request(targetChunkPos, level.dimension(), targetChunkPos, sourceLevelKey, immediate, overwrite, false, playerUUID);
         }
 
-        String dim = level.dimension().location().toString();
         ChunkPos originTarget = originChunks.get(dim);
         if (originTarget != null) {
             TerrainProfile originProfile = chunkTerrainProfiles.get(originTarget);

@@ -270,4 +270,12 @@ public class GenerationConfig {
     public void setFragmentOreCount(int fragmentOreCount) {
         this.fragmentOreCount = fragmentOreCount;
     }
+
+    public boolean isDisableWaterOnlyChunks() {
+        return disableWaterOnlyChunks;
+    }
+
+    public void setDisableWaterOnlyChunks(boolean disableWaterOnlyChunks) {
+        this.disableWaterOnlyChunks = disableWaterOnlyChunks;
+    }
 }
