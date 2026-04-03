@@ -1,25 +1,16 @@
 {
   "type": "minecraft:ore",
   "config": {
-    "size": 4,
     "discard_chance_on_air_exposure": 0.0,
+    "size": 6,
     "targets": [
       {
+        "state": {
+          "Name": "gatheringchunks:worldfragmentore"
+        },
         "target": {
           "predicate_type": "minecraft:tag_match",
           "tag": "minecraft:stone_ore_replaceables"
-        },
-        "state": {
-          "name": "gatheringchunks:worldfragmentore"
-        }
-      },
-      {
-        "target": {
-          "predicate_type": "minecraft:tag_match",
-          "tag": "minecraft:deepslate_ore_replaceables"
-        },
-        "state": {
-          "name": "gatheringchunks:worldfragmentore"
         }
       }
     ]

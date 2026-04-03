@@ -108,7 +108,7 @@ public class UpdateChecker {
                 }
                 connection.disconnect();
             } catch (Exception e) {
-                GatheringChunksConstants.LOGGER.error("[UpdateChecker] Failed to check for updates", e);
+                GatheringChunksConstants.LOGGER.warn("[UpdateChecker] Could not reach update API ({}). This usually means no internet connection.", e.getMessage());
             }
         });
     }
