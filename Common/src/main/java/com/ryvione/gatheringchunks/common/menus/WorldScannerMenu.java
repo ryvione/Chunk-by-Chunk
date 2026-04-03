@@ -36,7 +36,7 @@ public class WorldScannerMenu extends BaseInventoryContainerMenu {
         this(menuId, inventory, container, containerData, Services.PLATFORM.worldScannerMenu());
     }
 
-    public WorldScannerMenu(int menuId, Inventory inventory, Container container, ContainerData containerData, net.minecraft.world.inventory.MenuType<WorldScannerMenu> menuType) {
+    protected WorldScannerMenu(int menuId, Inventory inventory, Container container, ContainerData containerData, net.minecraft.world.inventory.MenuType<?> menuType) {
         super(menuType, menuId, container, inventory, 8, 84);
         this.containerData = containerData;
         if (container instanceof WorldScannerBlockEntity entity) {
