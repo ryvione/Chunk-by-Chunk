@@ -1,4 +1,4 @@
-﻿{
+{
    "generator.gatheringchunks.onechunkskyworld": "单区块",
    "generator.gatheringchunks.onechunksealedworld": "密封世界",
    "block.gatheringchunks.worldcore": "世界核心",
@@ -18,17 +18,20 @@
    "block.gatheringchunks.bedrockchest": "基岩宝箱",
    "block.gatheringchunks.worldforge": "世界锻造器",
    "block.gatheringchunks.worldscanner": "世界扫描器",
-   "block.gatheringchunks.worldmender": "世界修复器",
+   "block.gatheringchunks.worldmender": "World Mender",
+   "block.gatheringchunks.chunkengine": "Chunk Engine",
+   "block.gatheringchunks.chunkeraser": "Chunk Eraser",
    "item.gatheringchunks.worldfragment": "世界碎片",
    "item.gatheringchunks.worldshard": "世界段片",
    "item.gatheringchunks.worldcrystal": "世界水晶",
-   "item.gatheringchunks.starter_book": "新手指南",
+   "item.gatheringchunks.starter_book": "入门指南",
    "item.gatheringchunks.starter_book.tooltip": "点击阅读 Gathering Chunks 的基础知识。",
    "ui.gatheringchunks.bedrockchest.sealedmessage": "区块有太多方块,移除 %1$s 方块才可开启此宝箱",
    "container.gatheringchunks.bedrockchest": "基岩宝箱",
    "container.gatheringchunks.worldforge": "世界锻造器",
    "container.gatheringchunks.worldscanner": "世界扫描器",
-   "container.gatheringchunks.worldmender": "世界修复器",
+   "container.gatheringchunks.worldmender": "World Mender",
+   "container.gatheringchunks.chunkengine": "Chunk Engine",
    "config.gatheringchunks.title": "Gathering Chunks 设置",
    "config.gatheringchunks.section.chunkgeneration": "区块生成",
    "config.gatheringchunks.option.enabled": "启用",
@@ -60,7 +63,7 @@
    "config.gatheringchunks.option.blockPlacementAllowedOutsideSpawnedChunks": "允许加入区块外的方块",
    "config.gatheringchunks.section.worldscanner": "世界扫描器",
    "config.gatheringchunks.option.fuelPerFragment": "碎片可以提供燃料",
-	"config.gatheringchunks.option.fuelRequiredPerChunk": "每个区块的所需燃料",
+   "config.gatheringchunks.option.fuelRequiredPerChunk": "每个区块的所需燃料",
    "config.gatheringchunks.option.fuelConsumedPerTick": "每时间刻所需的燃料",
    "config.gatheringchunks.option.startingBiome": "初始区块的生物群落",
    "config.gatheringchunks.option.chunkSpawnLeafDecayDisabled": "停止区块生成器显生的树叶腐烂",
@@ -100,5 +103,6 @@
    "commands.gatheringchunks.spawnchunk.invalidPosition": "无效的方块坐标",
    "commands.gatheringchunks.spawnchunk.invalidlevel": "无效的区块生成维度",
    "commands.gatheringchunks.spawnchunk.nonemptychunk": "拒绝生成到现有的区块中",
-   "commands.gatheringchunks.spawnchunk.invalidtheme": "无效的生物群落类别"
+   "commands.gatheringchunks.spawnchunk.invalidtheme": "无效的生物群落类别",
+   "itemGroup.gatheringchunks.main": "收集区块"
 }

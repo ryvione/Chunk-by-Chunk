@@ -17,18 +17,33 @@ public class WorldScannerConfig {
     private static boolean MANUAL_SYSTEM_ENABLED = true;
     @Name("fuel_per_fragment")
     @IntRange(min = 1, max = 512)
-    @Comment("The amount of fuel provided by each world fragment (and then scaled up for world shard, crystal and core")
+    @Comment("The amount of fuel provided by each world fragment (and then scaled up for world shard, crystal and core)")
     private int fuelPerFragment = 32;
+
+    @Name("cave_scanner_fuel_per_fragment")
+    @IntRange(min = 1, max = 512)
+    @Comment("The amount of fuel provided by each world fragment for the Cave Scanner")
+    private int caveScannerFuelPerFragment = 32;
     
     @Name("fuel_required_per_chunk")
     @Comment("The amount of fuel required to scan each chunk")
     @IntRange(min = 1, max = Short.MAX_VALUE * 2)
     private int fuelRequiredPerChunk = 32;
+
+    @Name("cave_scanner_fuel_required_per_chunk")
+    @Comment("The amount of fuel required for the Cave Scanner to scan each chunk")
+    @IntRange(min = 1, max = Short.MAX_VALUE * 2)
+    private int caveScannerFuelRequiredPerChunk = 32;
     
     @Name("fuel_consumed_per_tick")
     @Comment("The amount of fuel consumed each tick")
     @IntRange(min = 1, max = Short.MAX_VALUE * 2)
     private int fuelConsumedPerTick = 1;
+
+    @Name("cave_scanner_fuel_consumed_per_tick")
+    @Comment("The amount of fuel consumed each tick by the Cave Scanner")
+    @IntRange(min = 1, max = Short.MAX_VALUE * 2)
+    private int caveScannerFuelConsumedPerTick = 1;
 
     @Name("experimental_mode")
     @Comment("Enable experimental mode for the world scanner which highlights blocks in the world")
@@ -74,6 +89,30 @@ public class WorldScannerConfig {
 
     public void setFuelRequiredPerChunk(int fuelRequiredPerChunk) {
         this.fuelRequiredPerChunk = fuelRequiredPerChunk;
+    }
+
+    public int getCaveScannerFuelPerFragment() {
+        return caveScannerFuelPerFragment;
+    }
+
+    public void setCaveScannerFuelPerFragment(int caveScannerFuelPerFragment) {
+        this.caveScannerFuelPerFragment = caveScannerFuelPerFragment;
+    }
+
+    public int getCaveScannerFuelRequiredPerChunk() {
+        return caveScannerFuelRequiredPerChunk;
+    }
+
+    public void setCaveScannerFuelRequiredPerChunk(int caveScannerFuelRequiredPerChunk) {
+        this.caveScannerFuelRequiredPerChunk = caveScannerFuelRequiredPerChunk;
+    }
+
+    public int getCaveScannerFuelConsumedPerTick() {
+        return caveScannerFuelConsumedPerTick;
+    }
+
+    public void setCaveScannerFuelConsumedPerTick(int caveScannerFuelConsumedPerTick) {
+        this.caveScannerFuelConsumedPerTick = caveScannerFuelConsumedPerTick;
     }
 
     public boolean isExperimentalMode() {

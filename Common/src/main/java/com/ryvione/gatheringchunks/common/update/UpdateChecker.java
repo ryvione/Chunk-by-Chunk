@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 
 public class UpdateChecker {
     private static final String API_URL = "https://api.ryvux.ryvione.dev/mods/gathering-chunks";
-    private static final String CURRENT_VERSION = "2.2.5-Beta.4-Build.16";
+    private static final String CURRENT_VERSION = "2.2.5-Beta.4-Build.18";
     private static final Gson GSON = new Gson();
     private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+\\.\\d+\\.\\d+)(?:-Beta\\.(\\d+)(?:\\.(\\d+))?)?(?:-Hotfix\\.(\\d+))?");
 

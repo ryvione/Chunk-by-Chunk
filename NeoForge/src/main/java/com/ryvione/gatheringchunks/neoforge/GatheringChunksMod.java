@@ -95,6 +95,7 @@ public class GatheringChunksMod {
             event.register(ModRegistry.WORLD_SCANNER_MENU.get(), com.ryvione.gatheringchunks.client.screens.WorldScannerScreen::new);
             event.register(ModRegistry.WORLD_MENDER_MENU.get(), com.ryvione.gatheringchunks.client.screens.WorldMenderScreen::new);
             event.register(ModRegistry.CHUNK_ENGINE_MENU.get(), com.ryvione.gatheringchunks.client.screens.ChunkEngineScreen::new);
+            event.register(ModRegistry.CAVE_SCANNER_MENU.get(), com.ryvione.gatheringchunks.client.screens.CaveScannerScreen::new);
         }
     }
 

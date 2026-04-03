@@ -128,13 +128,13 @@ public class CaveScannerBlockEntity extends BaseFueledBlockEntity {
     static {
         FUEL = ImmutableMap.<Item, FuelValueSupplier>builder()
                 .put(Services.PLATFORM.worldFragmentItem(),
-                        () -> ChunkByChunkConfig.get().getWorldScannerConfig().getFuelPerFragment())
+                        () -> ChunkByChunkConfig.get().getWorldScannerConfig().getCaveScannerFuelPerFragment())
                 .put(Services.PLATFORM.worldShardItem(),
-                        () -> 4 * ChunkByChunkConfig.get().getWorldScannerConfig().getFuelPerFragment())
+                        () -> 4 * ChunkByChunkConfig.get().getWorldScannerConfig().getCaveScannerFuelPerFragment())
                 .put(Services.PLATFORM.worldCrystalItem(),
-                        () -> 16 * ChunkByChunkConfig.get().getWorldScannerConfig().getFuelPerFragment())
+                        () -> 16 * ChunkByChunkConfig.get().getWorldScannerConfig().getCaveScannerFuelPerFragment())
                 .put(Services.PLATFORM.worldCoreBlockItem(),
-                        () -> 64 * ChunkByChunkConfig.get().getWorldScannerConfig().getFuelPerFragment())
+                        () -> 64 * ChunkByChunkConfig.get().getWorldScannerConfig().getCaveScannerFuelPerFragment())
                 .build();
     }
 
@@ -224,13 +224,13 @@ public class CaveScannerBlockEntity extends BaseFueledBlockEntity {
 
                 if (entity.getRemainingFuel() > 0) {
                     int consumeAmount = entity
-                            .consumeFuel(ChunkByChunkConfig.get().getWorldScannerConfig().getFuelConsumedPerTick());
+                            .consumeFuel(ChunkByChunkConfig.get().getWorldScannerConfig().getCaveScannerFuelConsumedPerTick());
                     entity.scanCharge += consumeAmount;
                 }
 
                 changed = entity.checkConsumeFuelItem();
 
-                int chunkCost = ChunkByChunkConfig.get().getWorldScannerConfig().getFuelRequiredPerChunk();
+                int chunkCost = ChunkByChunkConfig.get().getWorldScannerConfig().getCaveScannerFuelRequiredPerChunk();
                 if (entity.scanCharge >= chunkCost) {
                     if (entity.map == null) {
                         entity.createMap();

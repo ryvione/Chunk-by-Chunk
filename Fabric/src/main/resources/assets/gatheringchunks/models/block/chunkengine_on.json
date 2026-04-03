@@ -1,8 +1,8 @@
 {
-  "parent": "minecraft:block/orientable",
-  "textures": {
-    "top": "gatheringchunks:block/chunkengine_top",
-    "front": "gatheringchunks:block/chunkengine_front_on",
-    "side": "gatheringchunks:block/chunkengine_side"
-  }
+    "parent": "minecraft:block/orientable",
+    "textures": {
+        "top": "gatheringchunks:block/chunkengine_top",
+        "front": "gatheringchunks:block/chunkengine_front_on",
+        "side": "gatheringchunks:block/chunkengine_side"
+    }
 }

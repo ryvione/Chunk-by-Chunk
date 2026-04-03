@@ -39,6 +39,7 @@ public class ChunkByChunkClientMod implements ClientModInitializer {
         MenuScreens.register(CommonRegistry.WORLD_SCANNER_MENU, WorldScannerScreen::new);
         MenuScreens.register(CommonRegistry.WORLD_MENDER_MENU, WorldMenderScreen::new);
         MenuScreens.register(CommonRegistry.CHUNK_ENGINE_MENU, ChunkEngineScreen::new);
+        MenuScreens.register(CommonRegistry.CAVE_SCANNER_MENU, CaveScannerScreen::new);
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             String serverId = handler.getConnection().getRemoteAddress() != null

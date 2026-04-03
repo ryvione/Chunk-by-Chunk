@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "gatheringchunks:block/fragments_ore_deepslate"
+  }
+}

@@ -60,6 +60,19 @@ public class ChunkByChunkMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        net.fabricmc.fabric.api.biome.v1.BiomeModifications.addFeature(
+                net.fabricmc.fabric.api.biome.v1.BiomeSelectors.foundInOverworld(),
+                net.minecraft.world.level.levelgen.GenerationStep.Decoration.UNDERGROUND_ORES,
+                net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.PLACED_FEATURE,
+                        ResourceLocation.fromNamespaceAndPath(GatheringChunksConstants.MOD_ID, "world_fragment_ore"))
+        );
+        net.fabricmc.fabric.api.biome.v1.BiomeModifications.addFeature(
+                net.fabricmc.fabric.api.biome.v1.BiomeSelectors.foundInOverworld(),
+                net.minecraft.world.level.levelgen.GenerationStep.Decoration.UNDERGROUND_ORES,
+                net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.PLACED_FEATURE,
+                        ResourceLocation.fromNamespaceAndPath(GatheringChunksConstants.MOD_ID, "deepslate_world_fragment_ore"))
+        );
+
         PayloadTypeRegistry.playS2C().register(S2COpenConfigPacket.TYPE, S2COpenConfigPacket.CODEC);
         PayloadTypeRegistry.playS2C().register(S2CSyncConfigPacket.TYPE, S2CSyncConfigPacket.CODEC);
         PayloadTypeRegistry.playC2S().register(C2SSaveConfigPacket.TYPE, C2SSaveConfigPacket.CODEC);
@@ -335,6 +348,13 @@ public class ChunkByChunkMod implements ModInitializer {
         current.getGatheringChunksConfig().setFragmentDropChance(incoming.getGatheringChunksConfig().getFragmentDropChance());
         current.getGatheringChunksConfig().setMinFragmentDrop(incoming.getGatheringChunksConfig().getMinFragmentDrop());
         current.getGatheringChunksConfig().setMaxFragmentDrop(incoming.getGatheringChunksConfig().getMaxFragmentDrop());
+
+        current.getGeneration().setFragmentOreEnabled(incoming.getGeneration().isFragmentOreEnabled());
+        current.getGeneration().setFragmentOreMinHeight(incoming.getGeneration().getFragmentOreMinHeight());
+        current.getGeneration().setFragmentOreMaxHeight(incoming.getGeneration().getFragmentOreMaxHeight());
+        current.getGeneration().setFragmentOreVeinSize(incoming.getGeneration().getFragmentOreVeinSize());
+        current.getGeneration().setFragmentOreCount(incoming.getGeneration().getFragmentOreCount());
+
         current.getGatheringChunksConfig().setAutoSpawnTrees(incoming.getGatheringChunksConfig().isAutoSpawnTrees());
         current.getGatheringChunksConfig().setPreventFluidFlowIntoVoid(incoming.getGatheringChunksConfig().isPreventFluidFlowIntoVoid());
     }

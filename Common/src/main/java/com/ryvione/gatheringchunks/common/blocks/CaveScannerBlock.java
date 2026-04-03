@@ -31,24 +31,13 @@ import org.jetbrains.annotations.Nullable;
 public class CaveScannerBlock extends BaseEntityBlock {
 
     public static final MapCodec<CaveScannerBlock> CODEC = BlockBehaviour.simpleCodec(CaveScannerBlock::new);
-    private final String theme;
-
     public CaveScannerBlock(Properties properties) {
-        this("", properties);
-    }
-
-    public CaveScannerBlock(String theme, Properties properties) {
         super(properties);
-        this.theme = theme;
     }
 
     @Override
     protected MapCodec<? extends BaseEntityBlock> codec() {
         return CODEC;
-    }
-
-    public String getTheme() {
-        return theme;
     }
 
     @Override

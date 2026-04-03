@@ -68,9 +68,32 @@ public class GenerationConfig {
     private int initialChunks = 1;
     
     @Name("chunk_layer_spawn_rate")
-    @Comment("Number of chunk layers to spawn per tick")
     @IntRange(min = 1, max = 512)
     private int chunkLayerSpawnRate = 8;
+
+    @Name("fragment_ore_enabled")
+    @Comment("Enable World Fragment Ore generation")
+    private boolean fragmentOreEnabled = true;
+
+    @Name("fragment_ore_min_height")
+    @Comment("The minimum height at which World Fragment Ore can spawn")
+    @IntRange(min = -64, max = 320)
+    private int fragmentOreMinHeight = -64;
+
+    @Name("fragment_ore_max_height")
+    @Comment("The maximum height at which World Fragment Ore can spawn")
+    @IntRange(min = -64, max = 320)
+    private int fragmentOreMaxHeight = 32;
+
+    @Name("fragment_ore_vein_size")
+    @Comment("The size of World Fragment Ore veins")
+    @IntRange(min = 1, max = 64)
+    private int fragmentOreVeinSize = 4;
+
+    @Name("fragment_ore_count")
+    @Comment("The number of World Fragment Ore veins per chunk")
+    @IntRange(min = 1, max = 64)
+    private int fragmentOreCount = 8;
 
     @Name("disable_water_only_chunks")
     @Comment("Prevent spawning chunks that are mostly water (for biome spawners)")
@@ -206,5 +229,45 @@ public class GenerationConfig {
 
     public void setInitialChunkBiomes(List<String> initialChunkBiomes) {
         this.initialChunkBiomes = initialChunkBiomes;
+    }
+
+    public boolean isFragmentOreEnabled() {
+        return fragmentOreEnabled;
+    }
+
+    public void setFragmentOreEnabled(boolean fragmentOreEnabled) {
+        this.fragmentOreEnabled = fragmentOreEnabled;
+    }
+
+    public int getFragmentOreMinHeight() {
+        return fragmentOreMinHeight;
+    }
+
+    public void setFragmentOreMinHeight(int fragmentOreMinHeight) {
+        this.fragmentOreMinHeight = fragmentOreMinHeight;
+    }
+
+    public int getFragmentOreMaxHeight() {
+        return fragmentOreMaxHeight;
+    }
+
+    public void setFragmentOreMaxHeight(int fragmentOreMaxHeight) {
+        this.fragmentOreMaxHeight = fragmentOreMaxHeight;
+    }
+
+    public int getFragmentOreVeinSize() {
+        return fragmentOreVeinSize;
+    }
+
+    public void setFragmentOreVeinSize(int fragmentOreVeinSize) {
+        this.fragmentOreVeinSize = fragmentOreVeinSize;
+    }
+
+    public int getFragmentOreCount() {
+        return fragmentOreCount;
+    }
+
+    public void setFragmentOreCount(int fragmentOreCount) {
+        this.fragmentOreCount = fragmentOreCount;
     }
 }
