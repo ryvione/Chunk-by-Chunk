@@ -205,7 +205,7 @@ public class ChunkSpawnController extends SavedData {
                 var result = sourceLevelInstance.getChunkSource().getGenerator().getBiomeSource()
                         .findBiomeHorizontal(
                                 centerPos.getX(), centerPos.getY(), centerPos.getZ(),
-                                100000, 64,
+                                2000, 64,
                                 holder -> biomeSearch.doesBiomeMatchTheme(holder, search.biomeTheme),
                                 net.minecraft.util.RandomSource.create(search.seedFinder.nextLong()),
                                 true,

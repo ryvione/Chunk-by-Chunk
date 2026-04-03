@@ -146,7 +146,7 @@ public class GatheringChunksConfigScreen extends Screen {
         this.addRenderableWidget(CycleButton.onOffBuilder(ChunkByChunkConfig.get().getDifficulty().spawnNewChunkChest())
                 .withTooltip(value -> Tooltip.create(Component.literal("Should chunks include a chest with materials?")))
                 .create(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
-                        Component.literal("Spawn New Chunk Chest"),
+                        Component.literal("Enable Chest System"),
                         (button, value) -> ChunkByChunkConfig.get().getDifficulty().setSpawnNewChunkChest(value)));
         currentY += SPACING;
 
