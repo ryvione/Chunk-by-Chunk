@@ -87,7 +87,7 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
     public static final int[] SCAN_COLOR_THRESHOLD = {0, 1, 4, 8, 16, 32, 64, 128, 256, 512, 2048, 8192, 16384};
     private MapId map = null;
     private int scanCharge = 0;
-    private final SpiralIterator scanIterator = new SpiralIterator();
+    private final SpiralIterator scanIterator = new SpiralIterator(SCAN_CENTER, SCAN_CENTER);
     private int tickUntilReplicate = 0;
     private boolean espEnabled = false;
     private boolean manualScanPending = false;
@@ -207,7 +207,9 @@ public class WorldScannerBlockEntity extends BaseFueledBlockEntity {
         if (scanMode == com.ryvione.gatheringchunks.config.WorldScannerConfig.WorldScannerMode.Manual) {
             shouldScan = entity.manualScanPending && entity.validTarget();
         } else {
-            shouldScan = entity.scanIterator.getX() >= 0 && entity.validTarget();
+            shouldScan = entity.scanIterator.getX() >= 0 && entity.scanIterator.getX() < 128 / SCAN_ZOOM &&
+                         entity.scanIterator.getY() >= 0 && entity.scanIterator.getY() < 128 / SCAN_ZOOM && 
+                         entity.validTarget();
         }
 
         if (shouldScan) {

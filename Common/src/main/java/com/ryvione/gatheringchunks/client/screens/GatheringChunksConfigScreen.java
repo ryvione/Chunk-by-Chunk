@@ -644,8 +644,10 @@ public class GatheringChunksConfigScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        int viewHeight = Math.max(0, this.height - 60);
+        int maxOffset = Math.max(0, contentHeight - viewHeight);
         scrollOffset -= (int) (scrollY * SCROLL_SPEED);
-        scrollOffset = Math.max(0, scrollOffset);
+        scrollOffset = Math.max(0, Math.min(maxOffset, scrollOffset));
         this.rebuildWidgets();
         return true;
     }
