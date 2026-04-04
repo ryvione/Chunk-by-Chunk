@@ -15,13 +15,13 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 
 public class WorldMenderScreen extends AbstractContainerScreen<WorldMenderMenu> {
 
-    public static final ResourceLocation CONTAINER_TEXTURE = ResourceLocation.fromNamespaceAndPath(
+    public static final Identifier CONTAINER_TEXTURE = Identifier.of(
             GatheringChunksConstants.MOD_ID, "textures/gui/container/worldmender.png"
     );
 

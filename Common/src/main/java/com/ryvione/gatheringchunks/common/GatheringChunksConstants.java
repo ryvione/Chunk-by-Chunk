@@ -48,6 +48,7 @@ public final class GatheringChunksConstants {
             "jungle",
             "mushroom",
             "mountain",
+            "palegarden",
             "netherwastes",
             "crimsonforest",
             "warpedforest",

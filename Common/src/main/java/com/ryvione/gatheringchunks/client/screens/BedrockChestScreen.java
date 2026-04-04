@@ -17,10 +17,10 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 public class BedrockChestScreen extends AbstractContainerScreen<BedrockChestMenu> {
-    private static final ResourceLocation CONTAINER_TEXTURE = ResourceLocation.fromNamespaceAndPath(GatheringChunksConstants.MOD_ID, "textures/gui/container/bedrockchest.png");
+    private static final Identifier CONTAINER_TEXTURE = Identifier.of(GatheringChunksConstants.MOD_ID, "textures/gui/container/bedrockchest.png");
     public BedrockChestScreen(BedrockChestMenu menu, Inventory inventory, Component component) {
         super(menu, inventory, component);
     }

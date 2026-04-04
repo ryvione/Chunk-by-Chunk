@@ -25,7 +25,7 @@ import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -53,7 +53,7 @@ public class WorldForgeRecipeCategory implements IRecipeCategory<WorldForgeRecip
         return CBCJeiPlugin.WORLD_FORGE;
     }
 
-    public ResourceLocation getUid() {
+    public Identifier getUid() {
         return getRecipeType().getUid();
     }
 

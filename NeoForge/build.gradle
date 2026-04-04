@@ -18,7 +18,7 @@ plugins {
     }
     
     neoForge {
-        version = '21.1.220'
+        version = neoforge_version
         parchment {
             minecraftVersion = minecraft_version
             mappingsVersion = '2024.11.17'
@@ -50,17 +50,17 @@ plugins {
     
         def replaceProperties = [
                 minecraft_version      : minecraft_version,
-                minecraft_version_range: "[${minecraft_version},1.22)",
-                neoforge_version       : '21.1.220',
-                neoforge_version_range : '[21.1,)',
-                loader_version_range   : '[4,)',
+                minecraft_version_range: minecraft_version_range,
+                neoforge_version       : neoforge_version,
+                neoforge_version_range : neoforge_version_range,
+                loader_version_range   : loader_version_range,
                 mod_id                 : mod_id,
                 mod_name               : mod_name,
-                mod_license            : 'MIT License',
+                mod_license            : mod_license,
                 mod_version            : version,
                 mod_authors            : mod_author,
                 mod_author             : mod_author,
-                mod_description        : 'This mod starts the overworld with a single chunk, but provides the tools to expand the world one chunk at a time.'
+                mod_description        : mod_description
         ]
         inputs.properties replaceProperties
     

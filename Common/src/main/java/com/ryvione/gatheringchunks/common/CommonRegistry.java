@@ -17,7 +17,7 @@ import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.inventory.MenuType;
@@ -301,7 +301,7 @@ public class CommonRegistry {
         registerCreativeTab();
     }
 
-    private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(GatheringChunksConstants.MOD_ID, path);
+    private static Identifier id(String path) {
+        return Identifier.of(GatheringChunksConstants.MOD_ID, path);
     }
 }

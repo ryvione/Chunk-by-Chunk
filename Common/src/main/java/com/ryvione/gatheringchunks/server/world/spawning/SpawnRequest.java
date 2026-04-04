@@ -2,7 +2,7 @@ package com.ryvione.gatheringchunks.server.world.spawning;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 
@@ -36,10 +36,10 @@ public record SpawnRequest(
     public static SpawnRequest load(CompoundTag tag) {
         ChunkPos targetPos = new ChunkPos(tag.getLong(TARGET_POS));
         ResourceKey<Level> targetLevel = ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,
-                ResourceLocation.parse(tag.getString(TARGET_LEVEL)));
+                Identifier.of(tag.getString(TARGET_LEVEL)));
         ChunkPos sourcePos = new ChunkPos(tag.getLong(SOURCE_POS));
         ResourceKey<Level> sourceLevel = ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,
-                ResourceLocation.parse(tag.getString(SOURCE_LEVEL)));
+                Identifier.of(tag.getString(SOURCE_LEVEL)));
         boolean immediate = tag.getBoolean(IMMEDIATE);
         boolean overwrite = tag.getBoolean(OVERWRITE);
         boolean isMender = tag.getBoolean(IS_INITIAL);

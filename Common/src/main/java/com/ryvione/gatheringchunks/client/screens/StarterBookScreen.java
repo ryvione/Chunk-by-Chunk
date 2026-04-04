@@ -5,11 +5,11 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class StarterBookScreen extends Screen {
-    private static final ResourceLocation BOOK_TEXTURE =
-        ResourceLocation.withDefaultNamespace("textures/gui/book.png");
+    private static final Identifier BOOK_TEXTURE =
+        Identifier.withDefaultNamespace("textures/gui/book.png");
 
     private final int imageWidth = 192;
     private final int imageHeight = 192;

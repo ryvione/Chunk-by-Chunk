@@ -35,7 +35,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.PackType;
@@ -65,13 +65,13 @@ public class ChunkByChunkMod implements ModInitializer {
                 net.fabricmc.fabric.api.biome.v1.BiomeSelectors.foundInOverworld(),
                 net.minecraft.world.level.levelgen.GenerationStep.Decoration.UNDERGROUND_ORES,
                 net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.PLACED_FEATURE,
-                        ResourceLocation.fromNamespaceAndPath(GatheringChunksConstants.MOD_ID, "world_fragment_ore"))
+                        Identifier.of(GatheringChunksConstants.MOD_ID, "world_fragment_ore"))
         );
         net.fabricmc.fabric.api.biome.v1.BiomeModifications.addFeature(
                 net.fabricmc.fabric.api.biome.v1.BiomeSelectors.foundInOverworld(),
                 net.minecraft.world.level.levelgen.GenerationStep.Decoration.UNDERGROUND_ORES,
                 net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.PLACED_FEATURE,
-                        ResourceLocation.fromNamespaceAndPath(GatheringChunksConstants.MOD_ID, "deepslate_world_fragment_ore"))
+                        Identifier.of(GatheringChunksConstants.MOD_ID, "deepslate_world_fragment_ore"))
         );
 
         PayloadTypeRegistry.playS2C().register(S2COpenConfigPacket.TYPE, S2COpenConfigPacket.CODEC);
@@ -298,8 +298,8 @@ public class ChunkByChunkMod implements ModInitializer {
         ResourceManagerHelper.get(PackType.SERVER_DATA)
                 .registerReloadListener(new SimpleSynchronousResourceReloadListener() {
                     @Override
-                    public ResourceLocation getFabricId() {
-                        return ResourceLocation.fromNamespaceAndPath(GatheringChunksConstants.MOD_ID, "server_data");
+                    public Identifier getFabricId() {
+                        return Identifier.of(GatheringChunksConstants.MOD_ID, "server_data");
                     }
 
                     @Override

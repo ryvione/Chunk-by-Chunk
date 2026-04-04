@@ -17,7 +17,7 @@ import com.ryvione.gatheringchunks.common.menus.*;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.inventory.MenuType;
@@ -199,7 +199,7 @@ public class ModRegistry {
     public static final DeferredHolder<SoundEvent, SoundEvent> SPAWN_CHUNK_SOUND_EVENT =
             SOUND_EVENTS.register("spawnchunkevent",
                     () -> SoundEvent.createVariableRangeEvent(
-                            ResourceLocation.fromNamespaceAndPath(GatheringChunksConstants.MOD_ID, "chunk_spawn_sound")));
+                            Identifier.of(GatheringChunksConstants.MOD_ID, "chunk_spawn_sound")));
 
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> CHUNK_BY_CHUNK_TAB =

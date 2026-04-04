@@ -91,6 +91,9 @@
     ],
     "mangroveswamp": [
       "minecraft:mangrove_swamp"
+    ],
+    "palegarden": [
+      "minecraft:pale_garden"
     ]
   }
 }

@@ -11,7 +11,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import com.ryvione.gatheringchunks.common.CommonRegistry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.TickTask;
@@ -278,7 +278,7 @@ public class ChunkSpawnController extends SavedData {
                     spawnerBlock = CommonRegistry.UNSTABLE_SPAWN_CHUNK_BLOCK;
                 } else if (!search.biomeTheme.isEmpty()) {
                     spawnerBlock = net.minecraft.core.registries.BuiltInRegistries.BLOCK.get(
-                            ResourceLocation.fromNamespaceAndPath(GatheringChunksConstants.MOD_ID,
+                            Identifier.of(GatheringChunksConstants.MOD_ID,
                                     search.biomeTheme + GatheringChunksConstants.BIOME_CHUNK_BLOCK_SUFFIX));
                 }
                 ItemStack stack = new ItemStack(spawnerBlock);

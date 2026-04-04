@@ -33,7 +33,7 @@ import com.ryvione.gatheringchunks.server.world.WorldMigrationManager;
 import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -177,7 +177,7 @@ public final class ServerEventHandler {
             return;
         }
 
-        for (Map.Entry<ResourceLocation, SkyDimensionData> entry : SkyDimensions.getSkyDimensions().entrySet()) {
+        for (Map.Entry<Identifier, SkyDimensionData> entry : SkyDimensions.getSkyDimensions().entrySet()) {
             setupDimension(entry.getKey(), entry.getValue(), dimensions, blocks, biomeRegistry, dimensionTypeRegistry);
         }
         configureDimensionSynching(dimensions);
@@ -188,11 +188,11 @@ public final class ServerEventHandler {
             if (!config.enabled) {
                 continue;
             }
-            LevelStem dimension = dimensions.get(ResourceLocation.parse(config.dimensionId));
+            LevelStem dimension = dimensions.get(Identifier.of(config.dimensionId));
             if (dimension.generator() instanceof SkyChunkGenerator generator) {
                 for (String synchDimId : config.synchToDimensions) {
                     generator.addSynchLevel(
-                            ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(synchDimId)));
+                            ResourceKey.create(Registries.DIMENSION, Identifier.of(synchDimId)));
                 }
             } else {
                 GatheringChunksConstants.LOGGER
@@ -201,7 +201,7 @@ public final class ServerEventHandler {
         }
     }
 
-    private static void setupDimension(ResourceLocation skyDimensionId, SkyDimensionData config,
+    private static void setupDimension(Identifier skyDimensionId, SkyDimensionData config,
             MappedRegistry<LevelStem> dimensions, Registry<Block> blocks, WritableRegistry<Biome> biomeRegistry,
             Registry<DimensionType> dimensionTypeRegistry) {
         if (!config.validate(skyDimensionId, dimensions)) {
@@ -211,7 +211,7 @@ public final class ServerEventHandler {
             return;
         }
         GatheringChunksConstants.LOGGER.info("Setting up sky dimension for {}", config.dimensionId);
-        LevelStem level = dimensions.get(ResourceLocation.parse(config.dimensionId));
+        LevelStem level = dimensions.get(Identifier.of(config.dimensionId));
         ChunkGenerator rootGenerator;
         if (level.generator() instanceof SkyChunkGenerator skyChunkGenerator) {
             rootGenerator = skyChunkGenerator.getParent();
@@ -223,7 +223,7 @@ public final class ServerEventHandler {
         Holder<DimensionType> themeDimensionType = level.type();
         if (config.biomeThemeDimensionType != null && !config.biomeThemeDimensionType.isEmpty()) {
             Optional<Holder.Reference<DimensionType>> holder = dimensionTypeRegistry.getHolder(ResourceKey
-                    .create(Registries.DIMENSION_TYPE, ResourceLocation.parse(config.biomeThemeDimensionType)));
+                    .create(Registries.DIMENSION_TYPE, Identifier.of(config.biomeThemeDimensionType)));
             if (holder.isPresent()) {
                 themeDimensionType = holder.get();
             }
@@ -240,7 +240,7 @@ public final class ServerEventHandler {
     private static SkyChunkGenerator setupCoreGenerationDimension(SkyDimensionData config,
             MappedRegistry<LevelStem> dimensions, Registry<Block> blocks, Registry<Biome> biomes, LevelStem level,
             ChunkGenerator rootGenerator) {
-        ResourceLocation genDimensionId = config.getGenDimensionId();
+        Identifier genDimensionId = config.getGenDimensionId();
         ResourceKey<LevelStem> genLevelId = ResourceKey.create(Registries.LEVEL_STEM, genDimensionId);
         LevelStem generationLevel = dimensions.get(genDimensionId);
         if (generationLevel == null) {
@@ -250,7 +250,7 @@ public final class ServerEventHandler {
         }
         SkyChunkGenerator skyGenerator;
         ResourceKey<LevelStem> mainLevelKey = ResourceKey.create(Registries.LEVEL_STEM,
-                ResourceLocation.parse(config.dimensionId));
+                Identifier.of(config.dimensionId));
         LevelStem currentLevel = dimensions.get(mainLevelKey);
         if (currentLevel.generator() instanceof SkyChunkGenerator existing) {
             skyGenerator = existing;
@@ -276,13 +276,13 @@ public final class ServerEventHandler {
                 GatheringChunksConstants.LOGGER.info("Registered new dimension: {}", config.dimensionId);
             }
         }
-        Block sealBlock = blocks.get(ResourceLocation.parse(config.sealBlock));
+        Block sealBlock = blocks.get(Identifier.of(config.sealBlock));
         if (sealBlock == null) {
             sealBlock = Blocks.BEDROCK;
         }
-        Block coverBlock = blocks.get(ResourceLocation.parse(config.sealCoverBlock));
+        Block coverBlock = blocks.get(Identifier.of(config.sealCoverBlock));
         if (config.unspawnedBiome != null && !config.unspawnedBiome.isEmpty()) {
-            biomes.getHolder(ResourceKey.create(Registries.BIOME, ResourceLocation.parse(config.unspawnedBiome)))
+            biomes.getHolder(ResourceKey.create(Registries.BIOME, Identifier.of(config.unspawnedBiome)))
                     .ifPresent(skyGenerator::setUnspawnedBiome);
         }
         skyGenerator.configure(ResourceKey.create(Registries.DIMENSION, genLevelId.location()), config.generationType,
@@ -294,7 +294,7 @@ public final class ServerEventHandler {
     private static ResourceKey<Level> setupThemeDimension(String dimId, String themeName, List<String> biomes,
             LevelStem sourceLevel, MappedRegistry<LevelStem> dimensions, ChunkGenerator rootGenerator,
             WritableRegistry<Biome> biomeRegistry, Holder<DimensionType> themeDimensionType) {
-        ResourceLocation biomeDimId = ResourceLocation.parse(dimId + "_" + themeName + "_gen");
+        Identifier biomeDimId = Identifier.of(dimId + "_" + themeName + "_gen");
         ResourceKey<LevelStem> levelKey = ResourceKey.create(Registries.LEVEL_STEM, biomeDimId);
         if (dimensions.containsKey(levelKey)) {
             GatheringChunksConstants.LOGGER.info("Theme dimension {} already exists, skipping registration",
@@ -302,7 +302,7 @@ public final class ServerEventHandler {
             return ResourceKey.create(Registries.DIMENSION, biomeDimId);
         }
         List<ResourceKey<Biome>> biomeKeys = biomes.stream()
-                .map(x -> ResourceKey.create(Registries.BIOME, ResourceLocation.parse(x))).filter(key -> {
+                .map(x -> ResourceKey.create(Registries.BIOME, Identifier.of(x))).filter(key -> {
                     boolean valid = biomeRegistry.containsKey(key);
                     if (!valid) {
                         GatheringChunksConstants.LOGGER.warn("Could not resolve biome {} for {}", key, dimId);
@@ -674,7 +674,7 @@ public final class ServerEventHandler {
                 if (hasMatch) {
                     String genDimId = "minecraft:overworld_" + themeName + "_gen";
                     ResourceKey<Level> levelKey = ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,
-                            net.minecraft.resources.ResourceLocation.parse(genDimId));
+                            net.minecraft.resources.Identifier.of(genDimId));
                     ServerLevel level = server.getLevel(levelKey);
                     if (level != null) {
                         LOGGER.info("[SpawnFinder] Using biome gen dimension {} for allowed biomes", genDimId);
@@ -690,7 +690,7 @@ public final class ServerEventHandler {
             RegistryAccess registryAccess, BlockPos spawnPos, String startingBiome) {
         if (startingBiome.startsWith("#")) {
             Optional<HolderSet.Named<Biome>> tagSet = registryAccess.registry(Registries.BIOME).orElseThrow()
-                    .getTag(TagKey.create(Registries.BIOME, ResourceLocation.parse(startingBiome.substring(1))));
+                    .getTag(TagKey.create(Registries.BIOME, Identifier.of(startingBiome.substring(1))));
             if (tagSet.isPresent()) {
                 Pair<BlockPos, Holder<Biome>> location = generationLevel
                         .findClosestBiome3d(x -> tagSet.get().contains(x), spawnPos, 6400, 32, 64);
@@ -703,7 +703,7 @@ public final class ServerEventHandler {
             }
         } else {
             Biome biome = registryAccess.registry(Registries.BIOME).orElseThrow()
-                    .get(ResourceLocation.parse(startingBiome));
+                    .get(Identifier.of(startingBiome));
             if (biome != null) {
                 Pair<BlockPos, Holder<Biome>> location = generationLevel
                         .findClosestBiome3d(x -> x.value().equals(biome), spawnPos, 6400, 32, 64);
@@ -845,11 +845,11 @@ public final class ServerEventHandler {
     private static void loadScannerData(ResourceManager resourceManager, Gson gson) {
         WorldScannerBlockEntity.clearItemMappings();
         int count = 0;
-        Map<ResourceLocation, Resource> resources = resourceManager.listResources(
+        Map<Identifier, Resource> resources = resourceManager.listResources(
                 GatheringChunksConstants.SCANNER_DATA_PATH,
                 r -> !r.getPath().isEmpty() && !GatheringChunksConstants.SCANNER_DATA_PATH.equals(r.getPath()));
-        for (Map.Entry<ResourceLocation, Resource> entry : resources.entrySet()) {
-            ResourceLocation location = entry.getKey();
+        for (Map.Entry<Identifier, Resource> entry : resources.entrySet()) {
+            Identifier location = entry.getKey();
             Resource resource = entry.getValue();
             try (InputStreamReader reader = new InputStreamReader(resource.open())) {
                 ScannerData data = gson.fromJson(reader, ScannerData.class);

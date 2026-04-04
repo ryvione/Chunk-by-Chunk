@@ -15,7 +15,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.ryvione.gatheringchunks.common.GatheringChunksConstants;
 import net.minecraft.core.RegistryAccess;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -34,13 +34,13 @@ public class ScannerDataLoader extends SimpleJsonResourceReloadListener {
     }
 
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> map, ResourceManager resourceManager, ProfilerFiller profiler) {
+    protected void apply(Map<Identifier, JsonElement> map, ResourceManager resourceManager, ProfilerFiller profiler) {
         GatheringChunksConstants.LOGGER.info("Loading scanner data configs...");
         com.ryvione.gatheringchunks.common.blockEntities.WorldScannerBlockEntity.clearItemMappings();
         int loaded = 0;
 
-        for (Map.Entry<ResourceLocation, JsonElement> entry : map.entrySet()) {
-            ResourceLocation id = entry.getKey();
+        for (Map.Entry<Identifier, JsonElement> entry : map.entrySet()) {
+            Identifier id = entry.getKey();
             JsonElement json = entry.getValue();
 
             try {
