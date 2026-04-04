@@ -233,11 +233,17 @@ public class ChunkSpawnController extends SavedData {
                 Holder<Biome> holder = sourceLevelInstance.getChunkSource()
                         .getGenerator().getBiomeSource()
                         .getNoiseBiome(quartXcheck, quartYcheck, quartZcheck, null);
+                
+                String candidateTheme = BiomeCoordinateCache.get(server).getBiomeTheme(holder);
+                GatheringChunksConstants.LOGGER.debug("[Search] Candidate at {} has biome theme '{}' (searching for '{}')", 
+                        candidatePos, candidateTheme, search.biomeTheme);
+
                 if (!search.biomeTheme.isEmpty() && !biomeSearch.doesBiomeMatchTheme(holder, search.biomeTheme)) continue;
 
                 if (search.targetProfile != null) {
                     TerrainProfile candidateProfile = biomeSearch.analyzeChunkTerrain(sourceLevelInstance, candidatePos, search.biomeTheme);
                     if (candidateProfile != null && biomeSearch.terrainsMatch(search.targetProfile, candidateProfile, search.targetPos, candidatePos)) {
+                        GatheringChunksConstants.LOGGER.info("[Search] Match found with Terrain Profile at {} for theme '{}'", candidatePos, search.biomeTheme);
                         requests.add(new SpawnRequest(search.targetPos, search.level.dimension(), candidatePos,
                                 sourceLevelKey, search.immediate, search.overwrite, false, search.playerUUID));
                         chunkTerrainProfiles.put(search.targetPos, candidateProfile);
@@ -246,6 +252,7 @@ public class ChunkSpawnController extends SavedData {
                         it.remove();
                     }
                 } else {
+                    GatheringChunksConstants.LOGGER.info("[Search] Match found (direct) at {} for theme '{}'", candidatePos, search.biomeTheme);
                     requests.add(new SpawnRequest(search.targetPos, search.level.dimension(), candidatePos,
                             sourceLevelKey, search.immediate, search.overwrite, false, search.playerUUID));
                     TerrainProfile prof = biomeSearch.analyzeChunkTerrain(sourceLevelInstance, candidatePos, search.biomeTheme);
@@ -260,12 +267,12 @@ public class ChunkSpawnController extends SavedData {
                 if (!alreadyLoaded) sourceLevelInstance.setChunkForced(candidatePos.x, candidatePos.z, false);
             }
 
-            if (search.attempts >= 1000) handleFailedSearch(search, it);
+            if (search.attempts >= 2000) handleFailedSearch(search, it);
         }
     }
 
     private void handleFailedSearch(BiomeSearchManager.PendingSearch search, Iterator<BiomeSearchManager.PendingSearch> it) {
-        GatheringChunksConstants.LOGGER.warn("Async search for '{}' failed after 1000 attempts at {}", search.biomeTheme, search.targetPos);
+        GatheringChunksConstants.LOGGER.warn("Async search for '{}' failed after 2000 attempts at {}", search.biomeTheme, search.targetPos);
         if (search.playerUUID != null) {
             net.minecraft.server.level.ServerPlayer player = server.getPlayerList().getPlayer(search.playerUUID);
             if (player != null) {

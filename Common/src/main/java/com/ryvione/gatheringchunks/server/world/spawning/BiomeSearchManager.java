@@ -85,7 +85,10 @@ public class BiomeSearchManager {
                     adjProfile.sourcePos.x + offset[0],
                     adjProfile.sourcePos.z + offset[1]);
 
-            if (theme.isEmpty()) return candidateSource;
+            if (theme.isEmpty()) {
+                GatheringChunksConstants.LOGGER.debug("[Chained] Using direct offset for theme-less search: target {} -> candidate {}", targetPos, candidateSource);
+                return candidateSource;
+            }
 
             int quartX = candidateSource.getMiddleBlockX() >> 2;
             int quartZ = candidateSource.getMiddleBlockZ() >> 2;
@@ -94,15 +97,17 @@ public class BiomeSearchManager {
                     .getGenerator().getBiomeSource()
                     .getNoiseBiome(quartX, quartYv, quartZ, null);
             
-            if (!doesBiomeMatchTheme(holder, theme)) {
+            if (doesBiomeMatchTheme(holder, theme)) {
+                GatheringChunksConstants.LOGGER.info(
+                        "[Chained] SUCCESS for theme '{}': target {} -> source {}",
+                        theme, targetPos, candidateSource);
+                return candidateSource;
+            } else {
+                String foundTheme = BiomeCoordinateCache.get(server).getBiomeTheme(holder);
                 GatheringChunksConstants.LOGGER.debug(
-                        "[Chained] Candidate {} does not match theme '{}' but checking terrain compatibility...", candidateSource, theme);
+                        "[Chained] Theme mismatch: Candidate {} is '{}', but need '{}'. skipping.",
+                        candidateSource, foundTheme, theme);
             }
-
-            GatheringChunksConstants.LOGGER.info(
-                    "[Chained] '{}': target {} adj-target {} adj-source {} -> candidate-source {}",
-                    theme, targetPos, adjTarget, adjProfile.sourcePos, candidateSource);
-            return candidateSource;
         }
         return null;
     }
@@ -233,7 +238,10 @@ public class BiomeSearchManager {
     public boolean terrainsMatch(TerrainProfile target, TerrainProfile candidate,
             ChunkPos targetPos, ChunkPos candidatePos) {
         if (target == null || candidate == null) return true;
-        if (!target.biomeTheme.equals(candidate.biomeTheme)) return false;
+        if (!target.biomeTheme.equals(candidate.biomeTheme)) {
+            GatheringChunksConstants.LOGGER.debug("[TerrainMatch] Theme mismatch: target={} candidate={}", target.biomeTheme, candidate.biomeTheme);
+            return false;
+        }
 
         int dx = candidatePos.x - targetPos.x;
         int dz = candidatePos.z - targetPos.z;
@@ -242,11 +250,12 @@ public class BiomeSearchManager {
         int[] candidateEdge = null;
         String[] targetBio    = null;
         String[] candidateBio = null;
+        String dirLabel = "none";
 
-        if      (dx ==  1 && dz == 0) { targetEdge = target.eastEdge;  candidateEdge = candidate.westEdge;  targetBio = target.eastBiomes;  candidateBio = candidate.westBiomes;  }
-        else if (dx == -1 && dz == 0) { targetEdge = target.westEdge;  candidateEdge = candidate.eastEdge;  targetBio = target.westBiomes;  candidateBio = candidate.eastBiomes;  }
-        else if (dx == 0 && dz ==  1) { targetEdge = target.southEdge; candidateEdge = candidate.northEdge; targetBio = target.southBiomes; candidateBio = candidate.northBiomes; }
-        else if (dx == 0 && dz == -1) { targetEdge = target.northEdge; candidateEdge = candidate.southEdge; targetBio = target.northBiomes; candidateBio = candidate.southBiomes; }
+        if      (dx ==  1 && dz == 0) { targetEdge = target.eastEdge;  candidateEdge = candidate.westEdge;  targetBio = target.eastBiomes;  candidateBio = candidate.westBiomes; dirLabel="EAST"; }
+        else if (dx == -1 && dz == 0) { targetEdge = target.westEdge;  candidateEdge = candidate.eastEdge;  targetBio = target.westBiomes;  candidateBio = candidate.eastBiomes; dirLabel="WEST"; }
+        else if (dx == 0 && dz ==  1) { targetEdge = target.southEdge; candidateEdge = candidate.northEdge; targetBio = target.southBiomes; candidateBio = candidate.northBiomes; dirLabel="SOUTH"; }
+        else if (dx == 0 && dz == -1) { targetEdge = target.northEdge; candidateEdge = candidate.southEdge; targetBio = target.northBiomes; candidateBio = candidate.southBiomes; dirLabel="NORTH"; }
 
         boolean isOcean = target.biomeTheme.equals("ocean");
 
@@ -259,26 +268,33 @@ public class BiomeSearchManager {
                         bioMatch++;
                     }
                 }
-                int threshold = isOcean ? 2 : 1; 
+                int threshold = isOcean ? 3 : 2; 
                 if (bioMatch < threshold) {
-                    if (!target.biomeTheme.equals(candidate.biomeTheme)) {
-                        bioMatch += 2; 
-                    }
+                    GatheringChunksConstants.LOGGER.debug("[TerrainMatch] {} Bio match failed: {}/{}", dirLabel, bioMatch, threshold);
+                    return false;
                 }
-                if (bioMatch < threshold) return false;
             }
 
-            int maxAvgDiff = isOcean ? 12 : 6;
             int totalDiff = 0;
             for (int i = 0; i < 16; i++) {
                 totalDiff += Math.abs(targetEdge[i] - candidateEdge[i]);
             }
-            return (totalDiff / 16) <= maxAvgDiff;
+            int avgDiff = totalDiff / 16;
+            int maxAvgDiff = isOcean ? 10 : 8;
+            if (avgDiff > maxAvgDiff) {
+                 GatheringChunksConstants.LOGGER.debug("[TerrainMatch] {} Edge match failed: avgDiff={} max={}", dirLabel, avgDiff, maxAvgDiff);
+                 return false;
+            }
+            return true;
         }
 
         int heightDiff   = Math.abs(target.averageHeight - candidate.averageHeight);
         int varianceDiff = Math.abs(target.heightVariance - candidate.heightVariance);
-        int maxHeightDiff = isOcean ? 15 : 10;
-        return heightDiff <= maxHeightDiff && varianceDiff <= 20;
+        int maxHeightDiff = isOcean ? 20 : 15;
+        boolean matched = heightDiff <= maxHeightDiff && varianceDiff <= 30;
+        if (!matched) {
+            GatheringChunksConstants.LOGGER.debug("[TerrainMatch] Profile match failed: hDiff={} vDiff={}", heightDiff, varianceDiff);
+        }
+        return matched;
     }
 }

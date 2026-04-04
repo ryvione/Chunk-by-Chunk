@@ -380,7 +380,7 @@ public class BiomeCoordinateCache extends SavedData {
         if (biomeName.contains("savanna")) return "savanna";
         if (biomeName.contains("swamp")) return "swamp";
         if (biomeName.contains("plains")) return "plains";
-        if (biomeName.contains("peak") || biomeName.contains("grove") || (biomeName.contains("windswept") && biomeName.contains("hill"))) return "mountain";
+        if (biomeName.contains("peak") || biomeName.contains("mountain") || biomeName.contains("slope") || biomeName.contains("grove") || (biomeName.contains("windswept") && biomeName.contains("hill"))) return "mountain";
         if (biomeName.contains("stony") || biomeName.contains("windswept")) return "rocky";
         if (biomeName.contains("forest") || biomeName.contains("birch")) return "forest";
 
