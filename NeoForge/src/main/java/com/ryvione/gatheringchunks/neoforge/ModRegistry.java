@@ -75,6 +75,12 @@ public class ModRegistry {
     public static final DeferredHolder<Block, CaveScannerBlock> CAVE_SCANNER_BLOCK = BLOCKS.register("cavescanner",
             () -> new CaveScannerBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.5F).lightLevel((state) -> 4)));
 
+    public static final DeferredHolder<Block, Block> WORLD_FRAGMENT_ORE_BLOCK = BLOCKS.register("world_fragment_ore",
+            () -> new Block(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(1.5F, 1.5F).requiresCorrectToolForDrops()));
+
+    public static final DeferredHolder<Block, Block> DEEPSLATE_WORLD_FRAGMENT_ORE_BLOCK = BLOCKS.register("deepslate_world_fragment_ore",
+            () -> new Block(BlockBehaviour.Properties.of().mapColor(MapColor.DEEPSLATE).strength(2.0F, 2.0F).requiresCorrectToolForDrops()));
+
     private static final List<DeferredHolder<Block, SpawnChunkBlock>> BIOME_SPAWN_BLOCKS = new ArrayList<>();
     static {
         for (String biomeTheme : GatheringChunksConstants.BIOME_THEMES) {
@@ -115,6 +121,12 @@ public class ModRegistry {
 
     public static final DeferredHolder<Item, BlockItem> CAVE_SCANNER_BLOCK_ITEM = ITEMS.register("cavescanner",
             () -> new BlockItem(CAVE_SCANNER_BLOCK.get(), new Item.Properties()));
+
+    public static final DeferredHolder<Item, BlockItem> WORLD_FRAGMENT_ORE_BLOCK_ITEM = ITEMS.register("world_fragment_ore",
+            () -> new BlockItem(WORLD_FRAGMENT_ORE_BLOCK.get(), new Item.Properties()));
+
+    public static final DeferredHolder<Item, BlockItem> DEEPSLATE_WORLD_FRAGMENT_ORE_BLOCK_ITEM = ITEMS.register("deepslate_world_fragment_ore",
+            () -> new BlockItem(DEEPSLATE_WORLD_FRAGMENT_ORE_BLOCK.get(), new Item.Properties()));
 
     public static final DeferredHolder<Item, Item> WORLD_FRAGMENT_ITEM = ITEMS.register("worldfragment",
             () -> new Item(new Item.Properties()));
@@ -220,6 +232,8 @@ public class ModRegistry {
                         output.accept(CHUNK_ENGINE_BLOCK_ITEM.get());
                         output.accept(CHUNK_ERASER_BLOCK_ITEM.get());
                         output.accept(CAVE_SCANNER_BLOCK_ITEM.get());
+                        output.accept(WORLD_FRAGMENT_ORE_BLOCK_ITEM.get());
+                        output.accept(DEEPSLATE_WORLD_FRAGMENT_ORE_BLOCK_ITEM.get());
                         output.accept(WORLD_FRAGMENT_ITEM.get());
                         output.accept(WORLD_SHARD_ITEM.get());
                         output.accept(WORLD_CRYSTAL_ITEM.get());

@@ -1,7 +1,7 @@
 {
   "replace": false,
   "values": [
-    "gatheringchunks:worldfragmentore",
-    "gatheringchunks:deepslate_worldfragmentore"
+    "gatheringchunks:world_fragment_ore",
+    "gatheringchunks:deepslate_world_fragment_ore"
   ]
 }

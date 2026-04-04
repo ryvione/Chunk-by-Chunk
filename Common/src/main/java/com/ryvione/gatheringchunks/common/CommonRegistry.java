@@ -127,11 +127,11 @@ public class CommonRegistry {
 
         WORLD_FRAGMENT_ORE_BLOCK = new Block(
                 BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(1.5F, 1.5F).requiresCorrectToolForDrops());
-        Registry.register(BuiltInRegistries.BLOCK, id("worldfragmentore"), WORLD_FRAGMENT_ORE_BLOCK);
+        Registry.register(BuiltInRegistries.BLOCK, id("world_fragment_ore"), WORLD_FRAGMENT_ORE_BLOCK);
 
         DEEPSLATE_WORLD_FRAGMENT_ORE_BLOCK = new Block(
                 BlockBehaviour.Properties.of().mapColor(MapColor.DEEPSLATE).strength(2.0F, 2.0F).requiresCorrectToolForDrops());
-        Registry.register(BuiltInRegistries.BLOCK, id("deepslate_worldfragmentore"), DEEPSLATE_WORLD_FRAGMENT_ORE_BLOCK);
+        Registry.register(BuiltInRegistries.BLOCK, id("deepslate_world_fragment_ore"), DEEPSLATE_WORLD_FRAGMENT_ORE_BLOCK);
 
         List<String> biomeThemesList = new ArrayList<>(GatheringChunksConstants.BIOME_THEMES);
         for (String biomeTheme : biomeThemesList) {
@@ -174,10 +174,10 @@ public class CommonRegistry {
         Registry.register(BuiltInRegistries.ITEM, id("cavescanner"), CAVE_SCANNER_BLOCK_ITEM);
 
         WORLD_FRAGMENT_ORE_BLOCK_ITEM = new BlockItem(WORLD_FRAGMENT_ORE_BLOCK, new Item.Properties());
-        Registry.register(BuiltInRegistries.ITEM, id("worldfragmentore"), WORLD_FRAGMENT_ORE_BLOCK_ITEM);
+        Registry.register(BuiltInRegistries.ITEM, id("world_fragment_ore"), WORLD_FRAGMENT_ORE_BLOCK_ITEM);
 
         DEEPSLATE_WORLD_FRAGMENT_ORE_BLOCK_ITEM = new BlockItem(DEEPSLATE_WORLD_FRAGMENT_ORE_BLOCK, new Item.Properties());
-        Registry.register(BuiltInRegistries.ITEM, id("deepslate_worldfragmentore"), DEEPSLATE_WORLD_FRAGMENT_ORE_BLOCK_ITEM);
+        Registry.register(BuiltInRegistries.ITEM, id("deepslate_world_fragment_ore"), DEEPSLATE_WORLD_FRAGMENT_ORE_BLOCK_ITEM);
 
         WORLD_FRAGMENT_ITEM = new Item(new Item.Properties());
         Registry.register(BuiltInRegistries.ITEM, id("worldfragment"), WORLD_FRAGMENT_ITEM);

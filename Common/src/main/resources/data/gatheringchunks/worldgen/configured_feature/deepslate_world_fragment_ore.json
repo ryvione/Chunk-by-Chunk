@@ -6,7 +6,7 @@
     "targets": [
       {
         "state": {
-          "Name": "gatheringchunks:deepslate_worldfragmentore"
+          "Name": "gatheringchunks:deepslate_world_fragment_ore"
         },
         "target": {
           "predicate_type": "minecraft:tag_match",

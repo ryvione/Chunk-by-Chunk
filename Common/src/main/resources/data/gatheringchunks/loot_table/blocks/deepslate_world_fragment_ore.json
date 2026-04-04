@@ -26,18 +26,14 @@
                   }
                 }
               ],
-              "name": "gatheringchunks:worldfragmentore"
+              "name": "gatheringchunks:deepslate_world_fragment_ore"
             },
             {
               "type": "minecraft:item",
               "functions": [
                 {
                   "function": "minecraft:set_count",
-                    "count": {
-                    "type": "minecraft:uniform",
-                    "min": 2.0,
-                    "max": 5.0
-                  }
+                  "count": 1.0
                 },
                 {
                   "function": "minecraft:apply_bonus",
@@ -55,5 +51,5 @@
       ]
     }
   ],
-  "random_sequence": "gatheringchunks:blocks/worldfragmentore"
+  "random_sequence": "gatheringchunks:blocks/deepslate_world_fragment_ore"
 }
