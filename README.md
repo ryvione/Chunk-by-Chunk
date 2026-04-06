@@ -110,7 +110,8 @@ Found a bug? Please report it on our Issues page with:
 
 ## Community
 
-- Issues: [GitHub Issues](../../issues)
+- Issues (Github): [GitHub Issues](../../issues)
+- Issues (Ryvione.dev): [Ryvione.dev issues](https://ryvione.dev/minecraft/mod/gatheringchunks/issues)
 - Discussions: [GitHub Discussions](../../discussions)
 - Download (Modrinth): [Modrinth](https://modrinth.com/mod/gathering-chunks)
 - Download (CurseForge): [CurseForge](https://www.curseforge.com/minecraft/mc-mods/gathering-chunks)
