@@ -56,6 +56,12 @@ public class GatheringChunksMod {
 
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerPayloads);
+
+        if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient()) {
+            modEventBus.addListener(ClientModEvents::onClientSetup);
+            modEventBus.addListener(ClientModEvents::registerScreens);
+            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ClientGameEvents::onClientJoin);
+        }
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
@@ -79,15 +85,12 @@ public class GatheringChunksMod {
         LOGGER.info("[GatheringChunksMod] Registered network payloads");
     }
 
-    @EventBusSubscriber(modid = GatheringChunksConstants.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ClientModEvents {
-        @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
             com.ryvione.gatheringchunks.client.ClientConfigStorage.init(FMLPaths.GAMEDIR.get());
             LOGGER.info("[GatheringChunksMod] ClientConfigStorage initialized");
         }
 
-        @SubscribeEvent
         public static void registerScreens(RegisterMenuScreensEvent event) {
             LOGGER.info("Client Initializing");
             event.register(ModRegistry.BEDROCK_CHEST_MENU.get(), com.ryvione.gatheringchunks.client.screens.BedrockChestScreen::new);
@@ -99,9 +102,7 @@ public class GatheringChunksMod {
         }
     }
 
-    @EventBusSubscriber(modid = GatheringChunksConstants.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
     public static class ClientGameEvents {
-        @SubscribeEvent
         public static void onClientJoin(ClientPlayerNetworkEvent.LoggingIn event) {
             String address = "singleplayer";
             try {

@@ -46,6 +46,7 @@ public class ChunkSpawnController extends SavedData {
     private final Map<String, Integer> maxChunks = new ConcurrentHashMap<>();
     private final Map<String, Integer> spawnedChunkCount = new ConcurrentHashMap<>();
     private final Map<String, ChunkPos> originChunks = new ConcurrentHashMap<>();
+    private final Map<String, ResourceKey<Level>> baseGenerationLevels = new ConcurrentHashMap<>();
 
     @Nullable private SpawnRequest currentSpawnRequest = null;
     private SpawnPhase phase = SpawnPhase.COPY_BIOMES;
@@ -130,6 +131,13 @@ public class ChunkSpawnController extends SavedData {
             CompoundTag map = tag.getCompound("originChunksMap");
             for (String key : map.getAllKeys()) originChunks.put(key, new ChunkPos(map.getLong(key)));
         }
+        if (tag.contains("baseGenerationLevelsMap")) {
+            CompoundTag map = tag.getCompound("baseGenerationLevelsMap");
+            for (String key : map.getAllKeys()) {
+                baseGenerationLevels.put(key, ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,
+                        ResourceLocation.parse(map.getString(key))));
+            }
+        }
     }
 
     @Override
@@ -160,6 +168,10 @@ public class ChunkSpawnController extends SavedData {
         CompoundTag originsMap = new CompoundTag();
         originChunks.forEach((dim, pos) -> originsMap.putLong(dim, pos.toLong()));
         tag.put("originChunksMap", originsMap);
+
+        CompoundTag baseGenMap = new CompoundTag();
+        baseGenerationLevels.forEach((dim, key) -> baseGenMap.putString(dim, key.location().toString()));
+        tag.put("baseGenerationLevelsMap", baseGenMap);
 
         return tag;
     }
@@ -411,8 +423,10 @@ public class ChunkSpawnController extends SavedData {
             String dim = targetLevel.dimension().location().toString();
             if (!originChunks.containsKey(dim)) {
                 originChunks.put(dim, currentSpawnRequest.targetChunkPos());
+                baseGenerationLevels.put(dim, currentSpawnRequest.sourceLevel());
                 setDirty();
-                GatheringChunksConstants.LOGGER.info("[Sync] Set origin for {} to {}", dim, currentSpawnRequest.targetChunkPos());
+                GatheringChunksConstants.LOGGER.info("[Sync] Set origin for {} to {}, base generation level {}", 
+                        dim, currentSpawnRequest.targetChunkPos(), currentSpawnRequest.sourceLevel().location());
             }
             if (targetLevel.dimension().equals(Level.OVERWORLD)) {
                 ChunkPos initialPos = currentSpawnRequest.targetChunkPos();
@@ -527,7 +541,8 @@ public class ChunkSpawnController extends SavedData {
             ChunkPos sourceChunkPos = new ChunkPos(
                     rng.nextInt(Short.MIN_VALUE, Short.MAX_VALUE),
                     rng.nextInt(Short.MIN_VALUE, Short.MAX_VALUE));
-            return request(targetChunkPos, level.dimension(), sourceChunkPos, generator.getGenerationLevel(),
+            ResourceKey<Level> genLevel = baseGenerationLevels.getOrDefault(dim, generator.getGenerationLevel());
+            return request(targetChunkPos, level.dimension(), sourceChunkPos, genLevel,
                     immediate, overwrite, false, playerUUID);
         }
 
@@ -571,13 +586,15 @@ public class ChunkSpawnController extends SavedData {
                 ChunkPos lockedSource = new ChunkPos(originProfile.sourcePos.x + dx, originProfile.sourcePos.z + dz);
                 GatheringChunksConstants.LOGGER.info("Using LOCKED source {} for basic spawner at {} (origin-locked)", lockedSource, targetChunkPos);
                 registerChunkTheme(targetChunkPos, "");
-                return request(targetChunkPos, level.dimension(), lockedSource, generator.getGenerationLevel(), immediate, overwrite, false, playerUUID);
+                ResourceKey<Level> genLevel = baseGenerationLevels.getOrDefault(dim, generator.getGenerationLevel());
+                return request(targetChunkPos, level.dimension(), lockedSource, genLevel, immediate, overwrite, false, playerUUID);
             }
         }
 
         GatheringChunksConstants.LOGGER.info("Using DIRECT source for basic spawner at {}", targetChunkPos);
         registerChunkTheme(targetChunkPos, "");
-        return request(targetChunkPos, level.dimension(), targetChunkPos, generator.getGenerationLevel(), immediate, overwrite, false, playerUUID);
+        ResourceKey<Level> genLevel = baseGenerationLevels.getOrDefault(dim, generator.getGenerationLevel());
+        return request(targetChunkPos, level.dimension(), targetChunkPos, genLevel, immediate, overwrite, false, playerUUID);
     }
 
     public void registerChunkTheme(ChunkPos targetChunkPos, String biomeTheme) {

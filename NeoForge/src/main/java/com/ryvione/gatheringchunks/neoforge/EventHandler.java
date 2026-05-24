@@ -49,12 +49,17 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
-@EventBusSubscriber(modid = GatheringChunksConstants.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = GatheringChunksConstants.MOD_ID)
 public class EventHandler {
 
     private static final ConfigSystem configSystem = new ConfigSystem();
     private static boolean dimensionsConfigured = false;
+
+    private static final Set<UUID> INITIAL_SPAWNED_PLAYERS = new HashSet<>();
 
     @SubscribeEvent
     public static void onServerAboutToStart(ServerAboutToStartEvent event) {
@@ -82,6 +87,7 @@ public class EventHandler {
         }
 
         dimensionsConfigured = true;
+        INITIAL_SPAWNED_PLAYERS.clear();
     }
 
     @SubscribeEvent
@@ -164,12 +170,18 @@ public class EventHandler {
                         new com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket(configJson);
                 com.ryvione.gatheringchunks.interop.Services.PLATFORM.sendConfigSyncPacket(player, packet);
                 GatheringChunksConstants.LOGGER.debug("[EventHandler] Synced config to player {} on login", player.getName().getString());
-                
+
                 ServerEventHandler.giveStarterBookIfMissing(player);
             } catch (Exception e) {
 
                 GatheringChunksConstants.LOGGER.warn("[EventHandler] Failed to sync config to player on login: {}", e.getMessage());
             }
+
+            boolean isFirstJoin = !player.getTags().contains("gatheringchunks.spawned");
+            if (!isFirstJoin) {
+                return;
+            }
+            player.addTag("gatheringchunks.spawned");
 
             ServerLevel level = player.serverLevel();
             if (!level.dimension().equals(Level.OVERWORLD))
@@ -182,8 +194,8 @@ public class EventHandler {
 
                 if (playerChunk.x != spawnChunk.x || playerChunk.z != spawnChunk.z) {
                     GatheringChunksConstants.LOGGER.info(
-                            "Correcting initial spawn position from chunk [{},{}] to spawn chunk [{},{}]",
-                            playerChunk.x, playerChunk.z, spawnChunk.x, spawnChunk.z);
+                            "Correcting initial spawn position from chunk [{},{}] to spawn chunk [{},{}] for player {}",
+                            playerChunk.x, playerChunk.z, spawnChunk.x, spawnChunk.z, player.getName().getString());
 
                     int safeY = level.getMaxBuildHeight();
                     net.minecraft.world.level.chunk.LevelChunk spawnLevelChunk =

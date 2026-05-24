@@ -1,13 +1,16 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "mCm",
+    "rCr",
     "CXC",
-    "mCm"
+    "bCb"
   ],
   "key": {
-    "m": {
-      "tag": "gatheringchunks:mushrooms"
+    "r": {
+      "item": "minecraft:red_mushroom"
+    },
+    "b": {
+      "item": "minecraft:brown_mushroom"
     },
     "C": {
       "item": "minecraft:copper_ingot"

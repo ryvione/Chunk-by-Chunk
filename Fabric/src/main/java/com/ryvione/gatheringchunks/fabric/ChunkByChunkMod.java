@@ -240,9 +240,10 @@ public class ChunkByChunkMod implements ModInitializer {
                 return;
 
             if (level.getChunkSource().getGenerator() instanceof SkyChunkGenerator) {
-                boolean isFirstJoin = !INITIAL_SPAWNED_PLAYERS.contains(player.getUUID());
+                boolean isFirstJoin = !player.getTags().contains("gatheringchunks.spawned");
 
                 if (isFirstJoin) {
+                    player.addTag("gatheringchunks.spawned");
                     INITIAL_SPAWNED_PLAYERS.add(player.getUUID());
 
                     final UUID firstJoinUUID = player.getUUID();
