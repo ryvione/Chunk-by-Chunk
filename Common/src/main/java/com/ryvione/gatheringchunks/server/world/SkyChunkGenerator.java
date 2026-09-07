@@ -333,4 +333,54 @@ public class SkyChunkGenerator extends ChunkGenerator {
     protected List<StructurePlacement> getPlacementsForFeatureCompat(Holder<Structure> structure) {
         return ChunkGeneratorAccess.getPlacementsForFeature(parent, structure);
     }
+
+    @Override
+    @Nullable
+    public com.mojang.datafixers.util.Pair<BlockPos, Holder<Structure>> findNearestMapStructure(
+            net.minecraft.server.level.ServerLevel level, net.minecraft.core.HolderSet<Structure> structureTags,
+            BlockPos pos, int searchRadius, boolean skipReferencedStructures) {
+        net.minecraft.server.level.ServerLevel searchLevel = level;
+        ResourceKey<Level> effectiveGenerationLevel = generationLevel;
+        if (generationLevel != null) {
+            effectiveGenerationLevel = com.ryvione.gatheringchunks.server.world.ChunkSpawnController
+                    .get(level.getServer())
+                    .getEffectiveGenerationLevel(level.dimension().location().toString(), generationLevel);
+            net.minecraft.server.level.ServerLevel genLevel = level.getServer().getLevel(effectiveGenerationLevel);
+            if (genLevel != null) {
+                searchLevel = genLevel;
+            } else {
+                com.ryvione.gatheringchunks.common.GatheringChunksConstants.LOGGER.warn(
+                        "[locate] Generation level {} not loaded/found - searching {} directly instead, which is "
+                        + "usually empty for ungathered chunks and may return nothing or hang",
+                        effectiveGenerationLevel.location(), level.dimension().location());
+            }
+        }
+        boolean devMode = com.ryvione.gatheringchunks.server.DevMode.isEnabled();
+        if (devMode) {
+            com.ryvione.gatheringchunks.common.GatheringChunksConstants.LOGGER.info(
+                    "[DevMode][locate] Searching {} (redirected from {}) from {} radius {} for {}",
+                    searchLevel.dimension().location(), level.dimension().location(), pos, searchRadius, structureTags);
+        }
+        long startNanos = System.nanoTime();
+        com.mojang.datafixers.util.Pair<BlockPos, Holder<Structure>> result =
+                parent.findNearestMapStructure(searchLevel, structureTags, pos, searchRadius, skipReferencedStructures);
+        long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+        if (elapsedMs > 2000) {
+            com.ryvione.gatheringchunks.common.GatheringChunksConstants.LOGGER.info(
+                    "[Perf][locate] Search of {} from {} radius {} for {} took {}ms",
+                    searchLevel.dimension().location(), pos, searchRadius, structureTags, elapsedMs);
+        }
+        if (devMode) {
+            if (result == null) {
+                com.ryvione.gatheringchunks.common.GatheringChunksConstants.LOGGER.info(
+                        "[DevMode][locate] No match found within radius {} of {}", searchRadius, pos);
+            } else {
+                com.ryvione.gatheringchunks.common.GatheringChunksConstants.LOGGER.info(
+                        "[DevMode][locate] Found {} at {} in {} (this position is only accurate in the visible "
+                        + "dimension for direct-source spawning - random/themed sourcing will not line up)",
+                        result.getSecond(), result.getFirst(), searchLevel.dimension().location());
+            }
+        }
+        return result;
+    }
 }

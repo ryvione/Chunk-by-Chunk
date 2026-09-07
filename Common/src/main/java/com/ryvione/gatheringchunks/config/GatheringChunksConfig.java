@@ -43,6 +43,27 @@ public class GatheringChunksConfig {
     @Name("Prevent Fluid Flow Into Void")
     private boolean preventFluidFlowIntoVoid = true;
 
+    @Comment("Where a themed chunk spawner draws its terrain from. DIRECT: the same coordinate as the "
+            + "target chunk, so the terrain matches the surrounding world (biome-only change). RANDOM: "
+            + "a random coordinate inside the theme's own dimension, giving terrain suited to the theme "
+            + "but no longer lined up with neighbouring chunks. Applies to themed spawner blocks and the "
+            + "World Mender alike.")
+    @Name("Themed Spawner Source")
+    private ThemedSpawnerSource themedSpawnerSource = ThemedSpawnerSource.DIRECT;
+
+    public enum ThemedSpawnerSource {
+        DIRECT,
+        RANDOM
+    }
+
+    public ThemedSpawnerSource getThemedSpawnerSource() {
+        return themedSpawnerSource;
+    }
+
+    public void setThemedSpawnerSource(ThemedSpawnerSource themedSpawnerSource) {
+        this.themedSpawnerSource = themedSpawnerSource != null ? themedSpawnerSource : ThemedSpawnerSource.DIRECT;
+    }
+
     public boolean isMobsDropFragments() {
         return mobsDropFragments;
     }

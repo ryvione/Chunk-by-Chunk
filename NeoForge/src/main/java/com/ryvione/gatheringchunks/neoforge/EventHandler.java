@@ -48,6 +48,7 @@ import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
@@ -74,9 +75,34 @@ public class EventHandler {
         java.nio.file.Path defaultFilePath = Paths.get(GatheringChunksConstants.DEFAULT_CONFIG_PATH)
                 .resolve(GatheringChunksConstants.CONFIG_FILE);
 
-        configSystem.synchConfig(serverConfigPath, defaultFilePath, ChunkByChunkConfig.get());
+        java.nio.file.Path centralConfigPath = ConfigSystem.getCentralConfigPath(GatheringChunksConstants.CONFIG_FILE);
 
-        configSystem.write(ConfigSystem.getCentralConfigPath(GatheringChunksConstants.CONFIG_FILE), ChunkByChunkConfig.get());
+        boolean centralExists = Files.exists(centralConfigPath);
+        boolean worldExists = Files.exists(serverConfigPath);
+
+        if (!centralExists && !worldExists) {
+            configSystem.synchConfig(serverConfigPath, defaultFilePath, ChunkByChunkConfig.get());
+        } else if (centralExists && !worldExists) {
+            configSystem.synchConfig(centralConfigPath, ChunkByChunkConfig.get());
+        } else if (!centralExists) {
+            configSystem.synchConfig(serverConfigPath, defaultFilePath, ChunkByChunkConfig.get());
+        } else {
+            java.nio.file.Path source = centralConfigPath;
+            try {
+                if (Files.getLastModifiedTime(serverConfigPath).compareTo(Files.getLastModifiedTime(centralConfigPath)) > 0) {
+                    GatheringChunksConstants.LOGGER.info(
+                            "[ConfigSystem] serverconfig/{} was edited more recently than the central config - using it for this boot",
+                            GatheringChunksConstants.CONFIG_FILE);
+                    source = serverConfigPath;
+                }
+            } catch (java.io.IOException e) {
+                GatheringChunksConstants.LOGGER.warn("[ConfigSystem] Could not compare config file timestamps, defaulting to central config", e);
+            }
+            configSystem.synchConfig(source, ChunkByChunkConfig.get());
+        }
+
+        configSystem.write(centralConfigPath, ChunkByChunkConfig.get());
+        configSystem.write(serverConfigPath, ChunkByChunkConfig.get());
 
         if (ChunkByChunkConfig.get().getGeneration().isEnabled()) {
             GatheringChunksConstants.LOGGER.info("Applying sky dimension configuration EARLY (before level load)");

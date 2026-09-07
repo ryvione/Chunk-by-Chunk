@@ -1,144 +1,111 @@
-# Gathering Chunks — Ryvione's Fork
-
-> ⚠️ **WARNING: THIS IS A DEVELOPMENT BRANCH!**
->
-> The mod can still be compiled successfully, but some features may be incomplete or unstable and could potentially cause **world corruption, crashes, or other unexpected behavior**.
->
-> **Back up your worlds before using this development version.**
+# Gathering Chunks (Ryvione's Fork)
 
 [![Minecraft Version](https://img.shields.io/badge/Minecraft-1.21.1-brightgreen.svg)](https://www.minecraft.net/)
-[![NeoForge](https://img.shields.io/badge/NeoForge-1.21.1-orange.svg)](https://neoforged.net/)
-[![Fabric](https://img.shields.io/badge/Fabric-1.21.1-blue.svg)](https://fabricmc.net/)
+[![Mod Loader](https://img.shields.io/badge/NeoForge-1.21.1-orange)](https://neoforged.net)
+[![Mod Loader](https://img.shields.io/badge/Fabric-1.21.1-blue)](https://fabricmc.net)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**[Join the Discord Server](https://discord.gg/3S9aKukmmJ)**
+Discord Server Link : https://discord.gg/3S9aKukmmJ
 
----
+Gathering Chunks is a unique Minecraft mod where players start their journey in a single isolated chunk surrounded by the void. Your goal is to gather resources, craft specialized items, and expand your world chunk by chunk.
 
-## About
+## Core Gameplay Loop
 
-**Gathering Chunks** is a Minecraft mod where players begin their journey in a single isolated chunk surrounded by the void.
+Begin your journey by gathering resources from your initial chunk to craft World Cores. By combining these cores with materials like copper, you can create Chunk Spawners. Place these spawners in the void and activate them to generate new adjacent chunks, gradually rebuilding the world around you.
 
-Your goal is to **gather resources, craft specialized items, and expand your world chunk by chunk**.
-
-This project is a maintained fork of the original **[Chunk By Chunk](https://github.com/immortius/chunkbychunk)** by [immortius](https://github.com/immortius).
+This is a maintained fork of the original [Chunk By Chunk](https://github.com/immortius/chunkbychunk) by immortius.
 
 ## About This Fork
 
-The original **Chunk By Chunk** is an excellent mod that deserves to be kept alive and updated.
+The original Chunk By Chunk is an excellent mod that deserves to be kept alive and updated. Since the original repository appears to be discontinued, I've decided to continue its development, fixing bugs, adding features, and ensuring compatibility with newer Minecraft versions.
 
-This fork continues development with the goal of:
+## Features
 
-* Fixing bugs and issues
-* Adding new features
-* Maintaining compatibility with supported mod loaders
-* Improving stability and overall gameplay
-
-This repository is maintained independently from the original project.
+- World Expansion: Start with a single chunk and expand your world manually.
+- Multiple Chunk Types: Support for normal, unstable, and biome-themed spawners.
+- Custom Blocks: World Forge, Scanner, Mender, World Eraser, and Chunk Engine.
+- Admin Commands: Comprehensive management tools for server administrators.
 
 ## Building from Source
-
-### Requirements
-
-* Minecraft **1.21.1**
-* Java version required by the project
-* Git
-
-### Build
 
 ```bash
 # Clone the repository
 git clone https://github.com/ryvione/Gathering-Chunks.git
-
-# Enter the project directory
 cd Gathering-Chunks
 
 # Build the mod
 ./gradlew build
+
+# The compiled JARS will be in Fabric/build/libs/ and NeoForge/build/libs
 ```
 
-The compiled JAR files will be generated in:
+## Commands
 
-```text
-Fabric/build/libs/
-NeoForge/build/libs/
-```
+| Command | Permission | Description |
+|---------|-----------|-------------|
+| `/chests` | Player | List all available chests in current dimension |
+| `/chests tracker enable` | Player | Enable chest location notifications |
+| `/chests tracker disable` | Player | Disable chest location notifications |
+| `/spawnchunk` | Admin | Manually spawn a chunk |
+| `/gatheringchunks help` | Player | Show help information |
+| `/gatheringchunks config reload` | Admin | Reload configuration from disk |
+| `/gatheringchunks config modify` | Admin | Open the configuration menu UI |
+
+
+## Roadmap
+
+- [ ] Support for Minecraft 1.21.2+
+- [x] NeoForge compatibility
+- [x] Additional configuration options
+- [x] Performance optimizations
+- [ ] More biome-specific features
+- [ ] Nether specific blocks
+- [ ] Integration with popular mods
+- [x] Enhanced multiplayer features
 
 ## Contributing
 
-Contributions are welcome!
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
-If you'd like to contribute:
+### Development Setup
 
-1. Fork the repository.
-2. Create a feature branch:
-
-```bash
-git checkout -b feature/AmazingFeature
-```
-
-3. Make your changes.
-4. Commit your changes:
-
-```bash
-git commit -m "Add some AmazingFeature"
-```
-
-5. Push your branch:
-
-```bash
-git push origin feature/AmazingFeature
-```
-
-6. Open a Pull Request.
-
-For major changes, please open an issue first so the proposed changes can be discussed before implementation.
-
-## Bug Reports
-
-Found a bug? Please report it through the repository's **Issues** page.
-
-When reporting a bug, please include:
-
-* Minecraft version
-* Mod version
-* Mod loader and version
-* Steps to reproduce the issue
-* Expected behavior
-* Actual behavior
-* Crash logs or relevant logs, if applicable
-* Any other mods installed, if relevant
-
-**Please avoid reporting bugs without enough information to reproduce them.**
+1. Fork the repository
+2. Create your feature branch (git checkout -b feature/AmazingFeature)
+3. Commit your changes (git commit -m 'Add some AmazingFeature')
+4. Push to the branch (git push origin feature/AmazingFeature)
+5. Open a Pull Request
 
 ## Credits
 
-**Original Author:** [immortius](https://github.com/immortius)
-**Fork Maintainer & Active Developer:** [Ryvione](https://github.com/Ryvione)
+Original Author: [immortius](https://github.com/immortius)
+Fork Maintainer & Active Developer: [Ryvione](https://github.com/Ryvione)
 
 ### Original Repository
-
-The original project can be found here:
-
-**[github.com/immortius/chunkbychunk](https://github.com/immortius/chunkbychunk)**
+The original mod can be found at: [github.com/immortius/chunkbychunk](https://github.com/immortius/chunkbychunk)
 
 ## License
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 Original work Copyright (c) immortius
 Modified work Copyright (c) 2026 Ryvione
 
+## Bug Reports
+
+Found a bug? Please report it on our Issues page with:
+- Minecraft version
+- Mod version
+- Steps to reproduce
+- Expected vs actual behavior
+- Crash logs (if applicable)
+
 ## Community
 
-* [Discord Server](https://discord.gg/3S9aKukmmJ)
-* [GitHub Issues](../../issues)
-* [GitHub Discussions](../../discussions)
-* [Modrinth](https://modrinth.com/mod/gathering-chunks)
-* [CurseForge](https://www.curseforge.com/minecraft/mc-mods/gathering-chunks)
+- Issues: [GitHub Issues](../../issues)
+- Discussions: [GitHub Discussions](../../discussions)
+- Download (Modrinth): [Modrinth](https://modrinth.com/mod/gathering-chunks)
+- Download (CurseForge): [CurseForge](https://www.curseforge.com/minecraft/mc-mods/gathering-chunks)
 
 ---
 
-**If you enjoy Gathering Chunks, consider starring the repository!**
-
-Every star helps the project get more visibility and lets others know that the project is actively maintained.
+*If you enjoy this mod, please consider starring the repository!*

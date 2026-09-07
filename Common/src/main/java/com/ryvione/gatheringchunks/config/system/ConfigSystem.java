@@ -223,7 +223,12 @@ public class ConfigSystem {
 
                         FieldMetadata<?> fieldMetadata = currentMetadata.getFields().get(fieldName.toLowerCase(Locale.ROOT));
                         if (fieldMetadata != null) {
-                            fieldMetadata.deserializeValue(currentObject, value);
+                            try {
+                                fieldMetadata.deserializeValue(currentObject, value);
+                            } catch (RuntimeException e) {
+                                LOGGER.warn("[ConfigSystem] Ignoring invalid value '{}' for field '{}' ({}) - keeping previous/default value",
+                                        value, fieldName, e.getMessage());
+                            }
                         } else {
                             LOGGER.warn("Unexpected field {}", fieldName);
                         }

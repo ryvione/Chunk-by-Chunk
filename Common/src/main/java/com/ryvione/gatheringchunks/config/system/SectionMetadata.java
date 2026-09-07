@@ -20,7 +20,7 @@ public class SectionMetadata extends ObjectMetadata {
         this.name = name;
         this.sectionField = sectionField;
         this.sectionField.setAccessible(true);
-        this.displayName = Component.translatable("config.chunkbychunk.section." + name.toLowerCase(Locale.ROOT));
+        this.displayName = Component.translatable("config.gatheringchunks.section." + name.toLowerCase(Locale.ROOT));
         ImmutableMap.Builder<String, SectionMetadata> builder = ImmutableMap.builder();
         for (SectionMetadata sub : subsections) {
             builder.put(sub.getName().toLowerCase(Locale.ROOT), sub);

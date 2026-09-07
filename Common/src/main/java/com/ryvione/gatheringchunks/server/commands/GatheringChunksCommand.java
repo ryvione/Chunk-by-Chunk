@@ -13,6 +13,7 @@ package com.ryvione.gatheringchunks.server.commands;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -25,6 +26,10 @@ import com.ryvione.gatheringchunks.common.network.S2COpenConfigPacket;
 import com.ryvione.gatheringchunks.common.network.S2CSyncConfigPacket;
 import com.ryvione.gatheringchunks.common.util.ConfigUtil;
 import com.ryvione.gatheringchunks.config.ChunkByChunkConfig;
+import com.ryvione.gatheringchunks.config.system.ConfigMetadata;
+import com.ryvione.gatheringchunks.config.system.FieldMetadata;
+import com.ryvione.gatheringchunks.config.system.MetadataBuilder;
+import com.ryvione.gatheringchunks.config.system.SectionMetadata;
 import com.ryvione.gatheringchunks.interop.Services;
 import com.ryvione.gatheringchunks.server.world.ChunkSpawnController;
 import com.ryvione.gatheringchunks.server.world.SkyChunkGenerator;
@@ -44,6 +49,9 @@ import net.minecraft.world.phys.Vec3;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class GatheringChunksCommand {
@@ -94,7 +102,27 @@ public class GatheringChunksCommand {
                         .then(Commands.literal("reload")
                                 .executes(GatheringChunksCommand::reloadConfig))
                         .then(Commands.literal("modify")
-                                .executes(GatheringChunksCommand::modifyConfig))));
+                                .executes(GatheringChunksCommand::modifyConfig))
+                        .then(Commands.literal("set")
+                                .then(Commands.argument("field", StringArgumentType.word())
+                                        .then(Commands.argument("value", StringArgumentType.greedyString())
+                                                .executes(GatheringChunksCommand::setConfigValue))))
+                        .then(Commands.literal("list")
+                                .executes(GatheringChunksCommand::listConfigFields)
+                                .then(Commands.argument("search", StringArgumentType.word())
+                                        .executes(GatheringChunksCommand::listConfigFields))))
+                .then(Commands.literal("devmode")
+                        .requires(x -> x.hasPermission(2))
+                        .executes(GatheringChunksCommand::toggleDevMode)
+                        .then(Commands.literal("on").executes(context -> setDevMode(context, true)))
+                        .then(Commands.literal("off").executes(context -> setDevMode(context, false))))
+                .then(Commands.literal("debug")
+                        .requires(x -> x.hasPermission(2))
+                        .then(Commands.literal("chunk")
+                                .executes(GatheringChunksCommand::debugChunk)
+                                .then(Commands.argument("x", IntegerArgumentType.integer())
+                                        .then(Commands.argument("z", IntegerArgumentType.integer())
+                                                .executes(GatheringChunksCommand::debugChunk))))));
     }
 
     private static class BiomeThemeSuggestionProvider implements SuggestionProvider<CommandSourceStack> {
@@ -110,8 +138,6 @@ public class GatheringChunksCommand {
         @Override
         public CompletableFuture<Suggestions> getSuggestions(CommandContext<CommandSourceStack> context,
                                                              SuggestionsBuilder builder) {
-            builder.suggest("tree");
-            builder.suggest("selflocked");
             builder.suggest("commands");
             return builder.buildFuture();
         }
@@ -121,8 +147,6 @@ public class GatheringChunksCommand {
         CommandSourceStack source = context.getSource();
         source.sendSuccess(() -> Component.literal("§6===== Gathering Chunks Help ====="), false);
         source.sendSuccess(() -> Component.literal("§e/gatheringchunks help §7- Show this help"), false);
-        source.sendSuccess(() -> Component.literal("§e/gatheringchunks help tree §7- Tree spawning help"), false);
-        source.sendSuccess(() -> Component.literal("§e/gatheringchunks help selflocked §7- Self-locked help"), false);
         source.sendSuccess(() -> Component.literal("§e/gatheringchunks spawnChunk <pos> §7- Spawn a chunk (OP)"),
                 false);
         source.sendSuccess(
@@ -136,6 +160,16 @@ public class GatheringChunksCommand {
                 false);
         source.sendSuccess(() -> Component.literal("§e/gatheringchunks config modify §7- Open config menu UI (OP)"),
                 false);
+        source.sendSuccess(() -> Component.literal("§e/gatheringchunks config list [search] §7- List config fields and current values (OP)"),
+                false);
+        source.sendSuccess(() -> Component.literal("§e/gatheringchunks config set <field> <value> §7- Set a config value and save it (OP)"),
+                false);
+        source.sendSuccess(() -> Component.literal("§e/gatheringchunks devmode [on|off] §7- Toggle verbose debug logging + /debug commands (OP)"),
+                false);
+        source.sendSuccess(() -> Component.literal("§e/gatheringchunks debug chunk [x] [z] §7- Compare visible vs generation dimension at a chunk (OP)"),
+                false);
+        source.sendSuccess(() -> Component.literal("§e/gatheringchunksdev §7- Client-only: toggle version watermark HUD"),
+                false);
         source.sendSuccess(() -> Component.literal("§e/chests §7- List nearby chests"), false);
         source.sendSuccess(() -> Component.literal("§e/chests tracker enable/disable §7- Toggle chest notifications"),
                 false);
@@ -147,33 +181,12 @@ public class GatheringChunksCommand {
         String topic = StringArgumentType.getString(context, "topic").toLowerCase();
 
         switch (topic) {
-            case "tree" -> {
-                source.sendSuccess(() -> Component.literal("§6===== Tree Spawning Help ====="), false);
-                source.sendSuccess(() -> Component.literal("§7Trees automatically spawn in chunks without wood."),
-                        false);
-                source.sendSuccess(() -> Component.literal("§7This can be toggled in the config menu (pause menu)."),
-                        false);
-                source.sendSuccess(
-                        () -> Component.literal("§7If disabled, you may need to craft saplings or find villages."),
-                        false);
-                return 1;
-            }
-            case "selflocked" -> {
-                source.sendSuccess(() -> Component.literal("§6===== Self-Locked Help ====="), false);
-                source.sendSuccess(() -> Component.literal("§7If you're stuck without resources:"), false);
-                source.sendSuccess(() -> Component.literal("§71. §eProgression Helper §7will give you a chunk spawner"),
-                        false);
-                source.sendSuccess(() -> Component.literal("§72. Enable in config if disabled"), false);
-                source.sendSuccess(() -> Component.literal("§73. Check nearby chests with §e/chests"), false);
-                source.sendSuccess(() -> Component.literal("§74. Break blocks to get fragments from mobs"), false);
-                return 1;
-            }
             case "commands" -> {
                 return showHelp(context);
             }
             default -> {
                 source.sendFailure(Component.literal("§cUnknown help topic: " + topic));
-                source.sendSuccess(() -> Component.literal("§7Available topics: tree, selflocked, commands"), false);
+                source.sendSuccess(() -> Component.literal("§7Available topics: commands"), false);
                 return 0;
             }
         }
@@ -234,12 +247,276 @@ public class GatheringChunksCommand {
     }
 
 
+    private static int listConfigFields(CommandContext<CommandSourceStack> context) {
+        String search;
+        try {
+            search = StringArgumentType.getString(context, "search").toLowerCase(java.util.Locale.ROOT);
+        } catch (IllegalArgumentException e) {
+            search = "";
+        }
+        final String finalSearch = search;
+        CommandSourceStack source = context.getSource();
+
+        Object rootConfig = ChunkByChunkConfig.get();
+        ConfigMetadata metadata = MetadataBuilder.build(rootConfig.getClass());
+
+        List<String> lines = new ArrayList<>();
+        collectFieldLines(metadata.getFields(), rootConfig, search, lines);
+        for (SectionMetadata section : metadata.getSections().values()) {
+            collectSectionLines(section, section.getSectionObject(rootConfig), search, lines);
+        }
+
+        if (lines.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("§7No config fields match '" + finalSearch + "'"), false);
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal("§6===== Gathering Chunks Config (" + lines.size() + " fields) ====="), false);
+        for (String line : lines) {
+            source.sendSuccess(() -> Component.literal(line), false);
+        }
+        return lines.size();
+    }
+
+    private static void collectSectionLines(SectionMetadata section, Object sectionObject, String search, List<String> lines) {
+        collectFieldLines(section.getFields(), sectionObject, search, lines);
+        for (SectionMetadata sub : section.getSubsections().values()) {
+            collectSectionLines(sub, sub.getSectionObject(sectionObject), search, lines);
+        }
+    }
+
+    private static void collectFieldLines(Map<String, FieldMetadata<?>> fields, Object owner, String search, List<String> lines) {
+        for (FieldMetadata<?> field : fields.values()) {
+            String name = field.getName();
+            if (!search.isEmpty() && !name.toLowerCase(java.util.Locale.ROOT).contains(search)) {
+                continue;
+            }
+            String value = field.serializeValue(owner);
+            String comment = field.getComments().isEmpty() ? "" : " §8- " + field.getComments().get(0);
+            lines.add("§e" + name + " §f= §b" + value + comment);
+        }
+    }
+
+    private static int toggleDevMode(CommandContext<CommandSourceStack> context) {
+        boolean nowEnabled = com.ryvione.gatheringchunks.server.DevMode.toggle();
+        return reportDevMode(context.getSource(), nowEnabled);
+    }
+
+    private static int setDevMode(CommandContext<CommandSourceStack> context, boolean value) {
+        com.ryvione.gatheringchunks.server.DevMode.set(value);
+        return reportDevMode(context.getSource(), value);
+    }
+
+    private static int reportDevMode(CommandSourceStack source, boolean enabled) {
+        source.sendSuccess(() -> Component.literal("§e[Gathering Chunks] Server Dev Mode " + (enabled ? "§aenabled" : "§cdisabled")
+                + "§e - verbose chunk-copy/biome/structure logging and /gatheringchunks debug are " + (enabled ? "on" : "off")), true);
+        return 1;
+    }
+
+    private static int debugChunk(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        if (!(source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) &&
+                !hasCoordArgs(context)) {
+            source.sendFailure(Component.literal("§cMust be run by a player, or with explicit x/z coordinates"));
+            return 0;
+        }
+
+        net.minecraft.server.level.ServerLevel visibleLevel = source.getLevel();
+        ChunkPos chunkPos;
+        try {
+            int x = IntegerArgumentType.getInteger(context, "x");
+            int z = IntegerArgumentType.getInteger(context, "z");
+            chunkPos = new ChunkPos(x, z);
+        } catch (IllegalArgumentException e) {
+            chunkPos = new ChunkPos(net.minecraft.core.BlockPos.containing(source.getPosition()));
+        }
+
+        if (!(visibleLevel.getChunkSource().getGenerator() instanceof com.ryvione.gatheringchunks.server.world.SkyChunkGenerator skyGen)) {
+            source.sendFailure(Component.literal("§cCurrent dimension isn't a Gathering Chunks sky dimension"));
+            return 0;
+        }
+        net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> effectiveGenLevelKey =
+                com.ryvione.gatheringchunks.server.world.ChunkSpawnController.get(source.getServer())
+                        .getEffectiveGenerationLevel(visibleLevel.dimension().location().toString(), skyGen.getGenerationLevel());
+        net.minecraft.server.level.ServerLevel genLevel = source.getServer().getLevel(effectiveGenLevelKey);
+        if (genLevel == null) {
+            source.sendFailure(Component.literal("§cGeneration dimension " + effectiveGenLevelKey.location() + " isn't loaded"));
+            return 0;
+        }
+        if (!effectiveGenLevelKey.equals(skyGen.getGenerationLevel())) {
+            source.sendSuccess(() -> Component.literal("§7(Using origin-locked generation dimension " + effectiveGenLevelKey.location()
+                    + " instead of this generator's default " + skyGen.getGenerationLevel().location() + ")"), false);
+        }
+
+        net.minecraft.world.level.chunk.ChunkAccess visibleChunk =
+                visibleLevel.getChunkSource().getChunkNow(chunkPos.x, chunkPos.z);
+        net.minecraft.world.level.chunk.ChunkAccess genChunk =
+                genLevel.getChunk(chunkPos.x, chunkPos.z, net.minecraft.world.level.chunk.status.ChunkStatus.FULL, true);
+
+        final ChunkPos finalChunkPos = chunkPos;
+        source.sendSuccess(() -> Component.literal("§6===== Chunk debug: " + finalChunkPos + " ====="), false);
+        source.sendSuccess(() -> Component.literal("§7Visible: " + visibleLevel.dimension().location()
+                + "  Generation: " + genLevel.dimension().location()), false);
+
+        int centerX = chunkPos.getMinBlockX() >> 2;
+        int centerZ = chunkPos.getMinBlockZ() >> 2;
+        String visBiome = visibleChunk == null ? "(chunk not loaded)"
+                : describeBiomeHolder(visibleChunk.getNoiseBiome(centerX, 8, centerZ));
+        String genBiome = describeBiomeHolder(genChunk.getNoiseBiome(centerX, 8, centerZ));
+        source.sendSuccess(() -> Component.literal("§eBiome (center column): §fvisible=" + visBiome + " §7| §fgeneration=" + genBiome
+                + (visBiome.equals(genBiome) ? " §a(match)" : " §c(MISMATCH)")), false);
+
+        boolean spawned = skyGen.isChunkSpawned(chunkPos.toLong());
+        source.sendSuccess(() -> Component.literal("§eGathered/spawned flag: §f" + spawned), false);
+
+        if (visibleChunk != null) {
+            int barrierCount = countBoundaryBarriers(visibleLevel, chunkPos);
+            source.sendSuccess(() -> Component.literal("§eBarrier blocks on chunk boundary: §f" + barrierCount
+                    + (barrierCount > 0 ? " §7(non-zero after neighbors are gathered usually means a stuck barrier - "
+                    + "removal is normally triggered by the neighbor's own spawn event, so this can be left behind "
+                    + "if that chunk was spawned/overwritten through a path that skipped it, e.g. the origin-chunk guard)" : "")), false);
+        }
+
+        java.util.Map<net.minecraft.world.level.levelgen.structure.Structure, net.minecraft.world.level.levelgen.structure.StructureStart> genStarts = genChunk.getAllStarts();
+        source.sendSuccess(() -> Component.literal("§eStructure starts in generation chunk: §f" + genStarts.size()), false);
+        for (var entry : genStarts.entrySet()) {
+            if (!entry.getValue().isValid()) continue;
+            source.sendSuccess(() -> Component.literal("  §7- " + entry.getKey() + " §7(" + entry.getValue().getPieces().size() + " pieces, bb=" + entry.getValue().getBoundingBox() + ")"), false);
+        }
+        if (visibleChunk != null) {
+            java.util.Map<net.minecraft.world.level.levelgen.structure.Structure, net.minecraft.world.level.levelgen.structure.StructureStart> visStarts = visibleChunk.getAllStarts();
+            source.sendSuccess(() -> Component.literal("§eStructure starts in visible chunk: §f" + visStarts.size()), false);
+            for (var entry : visStarts.entrySet()) {
+                if (!entry.getValue().isValid()) continue;
+                source.sendSuccess(() -> Component.literal("  §7- " + entry.getKey() + " §7(" + entry.getValue().getPieces().size() + " pieces, bb=" + entry.getValue().getBoundingBox() + ")"), false);
+            }
+            if (!genStarts.isEmpty() && visStarts.isEmpty()) {
+                source.sendSuccess(() -> Component.literal("§c-> Generation dimension has structure data here but the visible chunk doesn't: copy failed or hasn't run yet (chunk not gathered)."), false);
+            } else if (genStarts.isEmpty()) {
+                source.sendSuccess(() -> Component.literal("§7-> Generation dimension has no structure start anchored in THIS chunk. If you expected one, it's likely centered in a neighboring chunk - try this command on adjacent chunk coordinates."), false);
+            }
+        } else {
+            source.sendSuccess(() -> Component.literal("§7Visible chunk isn't loaded server-side right now (fly closer first)."), false);
+        }
+
+        return 1;
+    }
+
+    private static int countBoundaryBarriers(net.minecraft.server.level.ServerLevel level, ChunkPos chunkPos) {
+        int count = 0;
+        int minY = level.getMinBuildHeight();
+        int maxY = level.getMaxBuildHeight();
+        int minX = chunkPos.getMinBlockX();
+        int maxX = chunkPos.getMaxBlockX();
+        int minZ = chunkPos.getMinBlockZ();
+        int maxZ = chunkPos.getMaxBlockZ();
+        net.minecraft.core.BlockPos.MutableBlockPos pos = new net.minecraft.core.BlockPos.MutableBlockPos();
+        for (int y = minY; y < maxY; y++) {
+            for (int x = minX; x <= maxX; x++) {
+                pos.set(x, y, minZ);
+                if (level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.BARRIER)) count++;
+                pos.set(x, y, maxZ);
+                if (level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.BARRIER)) count++;
+            }
+            for (int z = minZ; z <= maxZ; z++) {
+                pos.set(minX, y, z);
+                if (level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.BARRIER)) count++;
+                pos.set(maxX, y, z);
+                if (level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.BARRIER)) count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean hasCoordArgs(CommandContext<CommandSourceStack> context) {
+        try {
+            IntegerArgumentType.getInteger(context, "x");
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private static String describeBiomeHolder(net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> biome) {
+        if (biome == null) return "?";
+        return biome.unwrapKey().map(k -> k.location().toString()).orElse(biome.toString());
+    }
+
+    private record FoundField(FieldMetadata<?> field, Object owner) {
+    }
+
+    private static FoundField findField(String fieldName) {
+        Object rootConfig = ChunkByChunkConfig.get();
+        ConfigMetadata metadata = MetadataBuilder.build(rootConfig.getClass());
+        String key = fieldName.toLowerCase(java.util.Locale.ROOT);
+
+        FieldMetadata<?> direct = metadata.getFields().get(key);
+        if (direct != null) {
+            return new FoundField(direct, rootConfig);
+        }
+        for (SectionMetadata section : metadata.getSections().values()) {
+            FoundField found = findFieldInSection(section, section.getSectionObject(rootConfig), key);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
+    }
+
+    private static FoundField findFieldInSection(SectionMetadata section, Object sectionObject, String key) {
+        FieldMetadata<?> field = section.getFields().get(key);
+        if (field != null) {
+            return new FoundField(field, sectionObject);
+        }
+        for (SectionMetadata sub : section.getSubsections().values()) {
+            FoundField found = findFieldInSection(sub, sub.getSectionObject(sectionObject), key);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
+    }
+
+    private static int setConfigValue(CommandContext<CommandSourceStack> context) {
+        String fieldName = StringArgumentType.getString(context, "field");
+        String value = StringArgumentType.getString(context, "value");
+        CommandSourceStack source = context.getSource();
+
+        FoundField found = findField(fieldName);
+        if (found == null) {
+            source.sendFailure(Component.literal("§c[Gathering Chunks] Unknown config field '" + fieldName
+                    + "'. Use /gatheringchunks config list [search] to see field names and current values."));
+            return 0;
+        }
+
+        try {
+            found.field().deserializeValue(found.owner(), value);
+        } catch (RuntimeException e) {
+            source.sendFailure(Component.literal(
+                    "§c[Gathering Chunks] Invalid value '" + value + "' for '" + fieldName + "': " + e.getMessage()));
+            return 0;
+        }
+
+        ConfigUtil.saveDefaultConfig(source.getServer());
+        LOGGER.info("[Command] {} set config field '{}' to '{}'", source.getTextName(), fieldName, value);
+        source.sendSuccess(() -> Component.literal(
+                "§a[Gathering Chunks] Set '" + fieldName + "' to '" + found.field().serializeValue(found.owner()) + "' and saved to disk."), true);
+
+        try {
+            syncConfigToAllClients(source.getServer());
+        } catch (Exception syncError) {
+            LOGGER.error("[Command] Failed to sync config to clients after set", syncError);
+            source.sendSuccess(() -> Component.literal("§6[Gathering Chunks] Value saved but client sync had errors. Check logs."), true);
+        }
+        return 1;
+    }
+
     private static int reloadConfig(CommandContext<CommandSourceStack> context) {
         LOGGER.info("[Command] Config reload requested by {}", context.getSource().getTextName());
         context.getSource().sendSuccess(() -> Component.literal("§e[Gathering Chunks] Reloading config..."), true);
 
         try {
-            ConfigUtil.reloadConfig();
+            ConfigUtil.reloadConfig(context.getSource().getServer());
             LOGGER.info("[Command] Config successfully reloaded!");
             context.getSource().sendSuccess(() -> Component.literal("§a[Gathering Chunks] Config reloaded successfully!"), true);
 

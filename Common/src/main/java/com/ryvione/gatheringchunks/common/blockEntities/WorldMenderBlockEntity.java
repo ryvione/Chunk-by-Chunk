@@ -43,7 +43,7 @@ public class WorldMenderBlockEntity extends BaseContainerBlockEntity implements 
     public static final int NUM_ITEM_SLOTS = 1;
     public static final int DATA_CHUNKS_SPAWNED = 0;
     public static final int NUM_DATA_ITEMS = 1;
-    public static final int SLEEP_TICKS_WHEN_NOTHING_TO_GENERATE = 1200000;
+    public static final int LEGACY_SLEEP_TICKS_WHEN_NOTHING_TO_GENERATE = 1200000;
     private static final int[] SLOTS = new int[]{SLOT_INPUT};
     private NonNullList<ItemStack> items;
     private int cooldown;
@@ -112,7 +112,11 @@ public class WorldMenderBlockEntity extends BaseContainerBlockEntity implements 
                 chunksSpawned++;
                 spiralIterator.next();
             }
-            entity.cooldown += SLEEP_TICKS_WHEN_NOTHING_TO_GENERATE;
+            int sleepTicks = ChunkByChunkConfig.get().getWorldMenderConfig().getEmptyRescanInterval();
+            if (sleepTicks < 1 || sleepTicks > LEGACY_SLEEP_TICKS_WHEN_NOTHING_TO_GENERATE) {
+                sleepTicks = LEGACY_SLEEP_TICKS_WHEN_NOTHING_TO_GENERATE;
+            }
+            entity.cooldown = sleepTicks;
             entity.chunksSpawned = chunksSpawned;
         }
     }

@@ -16,6 +16,7 @@
     "MobSpawnVoidChunkMixin",
     "MultiNoiseBiomeSourceAccessor",
     "NoiseBasedChunkGeneratorMixin",
+    "NoiseSettingsFixMixin",
     "OverworldBiomeBuilderAccessor",
     "StructureCheckMixin"
   ],

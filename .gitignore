@@ -66,6 +66,7 @@ desktop.ini
 Thumbs.db
 
 # Backups & Temp Files
+BUGS/*
 **/recipes_backup_*
 **/recipes_backup_*/
 *.bak
@@ -76,7 +77,9 @@ temp.sh
 *.tmp
 tmp.txt
 todo
-
+to-do.md
+report.md
+CHANGES-*.MD
 # ==============================================================================
 # Testing & Custom Scripts
 # ==============================================================================

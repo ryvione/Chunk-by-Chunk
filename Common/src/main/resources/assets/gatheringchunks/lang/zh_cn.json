@@ -71,6 +71,7 @@
    "config.gatheringchunks.option.spawnChunkStrip": "生成线条世界",
    "config.gatheringchunks.section.worldmender": "世界修复器",
    "config.gatheringchunks.option.cooldown": "区块生成之間的時間",
+   "config.gatheringchunks.option.emptyRescanInterval": "空置区域重新扫描间隔（刻）",
    "enumvalue.gatheringchunks.ChunkRewardChestContent.ChunkSpawner": "区块生成器",
    "enumvalue.gatheringchunks.ChunkRewardChestContent.UnstableChunkSpawner": "随机区块生成器",
    "enumvalue.gatheringchunks.ChunkRewardChestContent.WorldCore": "世界核心",

@@ -96,6 +96,7 @@
   "config.gatheringchunks.option.fragmentOreCount": "Veins per chunk",
   "config.gatheringchunks.section.worldmender": "World Mender",
   "config.gatheringchunks.option.cooldown": "Ticks between chunk spawns",
+  "config.gatheringchunks.option.emptyRescanInterval": "Empty-area re-scan interval (ticks)",
   "enumvalue.gatheringchunks.ChunkRewardChestContent.ChunkSpawner": "Chunk Spawner",
   "enumvalue.gatheringchunks.ChunkRewardChestContent.UnstableChunkSpawner": "Unstable Chunk Spawner",
   "enumvalue.gatheringchunks.ChunkRewardChestContent.WorldCore": "World Core",

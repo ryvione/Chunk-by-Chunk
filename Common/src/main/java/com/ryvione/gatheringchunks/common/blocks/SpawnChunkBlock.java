@@ -67,11 +67,22 @@ public class SpawnChunkBlock extends Block {
 
         ChunkSpawnerMode mode = ChunkByChunkConfig.get().getGeneration().getChunkSpawnerMode();
         ChunkPos ownChunk = new ChunkPos(pos);
+
+        ChunkPos originChunk = chunkSpawnController.getOriginChunk(serverLevel.dimension().location().toString());
+        if (originChunk != null && originChunk.equals(ownChunk)) {
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                    "§c[ChunkByChunk] §eThis chunk holds this dimension's origin data and can't be spawned into."));
+            return InteractionResult.CONSUME;
+        }
+
         boolean ownChunkEmpty = SpawnChunkHelper.isEmptyChunk(serverLevel, ownChunk);
-        
-        if (ownChunkEmpty && serverLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
-            if (generator.isChunkSpawned(ownChunk.toLong())) {
+
+        if (serverLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
+            if (ownChunkEmpty && generator.isChunkSpawned(ownChunk.toLong())) {
                 ownChunkEmpty = false;
+            } else if (!ownChunkEmpty && generator.getGenerationType() == SkyChunkGenerator.EmptyGenerationType.Sealed
+                    && !generator.isChunkSpawned(ownChunk.toLong())) {
+                ownChunkEmpty = true;
             }
         }
 
@@ -101,11 +112,15 @@ public class SpawnChunkBlock extends Block {
 
             for (ChunkPos targetChunkPos : adjacentChunks) {
                 if (!serverLevel.hasChunk(targetChunkPos.x, targetChunkPos.z)) continue;
+                if (originChunk != null && originChunk.equals(targetChunkPos)) continue;
                 
                 boolean targetEmpty = SpawnChunkHelper.isEmptyChunk(level, targetChunkPos);
-                if (targetEmpty && serverLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
-                    if (generator.isChunkSpawned(targetChunkPos.toLong())) {
+                if (serverLevel.getChunkSource().getGenerator() instanceof SkyChunkGenerator generator) {
+                    if (targetEmpty && generator.isChunkSpawned(targetChunkPos.toLong())) {
                         targetEmpty = false;
+                    } else if (!targetEmpty && generator.getGenerationType() == SkyChunkGenerator.EmptyGenerationType.Sealed
+                            && !generator.isChunkSpawned(targetChunkPos.toLong())) {
+                        targetEmpty = true;
                     }
                 }
                 
@@ -172,19 +187,12 @@ public class SpawnChunkBlock extends Block {
 
 
     private String findAdjacentBiomeTheme(ServerLevel level, ChunkPos currentChunk) {
-        ChunkSpawnController chunkSpawnController = ChunkSpawnController.get(level.getServer());
-
         for (Direction dir : HORIZONTAL_DIR) {
             ChunkPos adjacentChunk = new ChunkPos(
                     currentChunk.x + dir.getStepX(),
                     currentChunk.z + dir.getStepZ());
 
             if (!SpawnChunkHelper.isEmptyChunk(level, adjacentChunk)) {
-                String theme = chunkSpawnController.getChunkBiomeTheme(adjacentChunk);
-                if (theme != null && !theme.isEmpty()) {
-                    return theme;
-                }
-
                 BlockPos centerPos = adjacentChunk.getMiddleBlockPosition(level.getMaxBuildHeight() - 10);
                 for (int y = level.getMaxBuildHeight() - 10; y >= level.getMinBuildHeight(); y--) {
                     BlockPos checkPos = new BlockPos(centerPos.getX(), y, centerPos.getZ());

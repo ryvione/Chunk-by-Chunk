@@ -404,7 +404,10 @@ public final class ServerEventHandler {
             ServerLevel generationLevel = server.getLevel(skyGenerator.getGenerationLevel());
             overworldSpawnPos = generationLevel.getSharedSpawnPos();
             ChunkPos chunkSpawnPos = new ChunkPos(overworldSpawnPos);
-            if (SpawnChunkHelper.isEmptyChunk(overworldLevel, chunkSpawnPos)) {
+            boolean needsInitialSpawn = skyGenerator.getGenerationType() == SkyChunkGenerator.EmptyGenerationType.Sealed
+                    ? !skyGenerator.isChunkSpawned(chunkSpawnPos.toLong())
+                    : SpawnChunkHelper.isEmptyChunk(overworldLevel, chunkSpawnPos);
+            if (needsInitialSpawn) {
                 overworldSpawnPos = findAppropriateSpawnChunk(overworldLevel, generationLevel, server.registryAccess());
                 String initialBiomeTheme = resolveInitialBiomeTheme(server);
                 spawnInitialChunks(overworldLevel, skyGenerator.getInitialChunks(), overworldSpawnPos,
@@ -423,26 +426,28 @@ public final class ServerEventHandler {
         }
     }
 
-    /**
-     * Returns the biome theme name (e.g. "cherryblossum") that matches the configured
-     * initial chunk biome filter, or "" if no filter is set.
-     */
     private static String resolveInitialBiomeTheme(MinecraftServer server) {
         java.util.List<String> allowedBiomes = ChunkByChunkConfig.get().getGeneration().getInitialChunkBiomes();
         if (allowedBiomes == null || allowedBiomes.isEmpty()) {
             return "";
         }
+        java.util.List<String> candidateThemes = new ArrayList<>();
         for (com.ryvione.gatheringchunks.common.data.SkyDimensionData config : SkyDimensions.getSkyDimensions().values()) {
             if (!"minecraft:overworld".equals(config.dimensionId)) continue;
             for (Map.Entry<String, List<String>> themeEntry : config.biomeThemes.entrySet()) {
                 String themeName = themeEntry.getKey();
                 List<String> themeBiomes = themeEntry.getValue();
-                if (themeBiomes.stream().anyMatch(allowedBiomes::contains)) {
-                    return themeName;
+                if (themeBiomes.stream().anyMatch(allowedBiomes::contains) && !candidateThemes.contains(themeName)) {
+                    candidateThemes.add(themeName);
                 }
             }
         }
-        return "";
+        if (candidateThemes.isEmpty()) {
+            return "";
+        }
+        String chosen = candidateThemes.get(new Random().nextInt(candidateThemes.size()));
+        LOGGER.info("[InitialSpawn] Randomly selected initial theme '{}' from {} candidates", chosen, candidateThemes.size());
+        return chosen;
     }
 
     private static BlockPos findAppropriateSpawnChunk(ServerLevel overworldLevel, ServerLevel generationLevel,
@@ -776,7 +781,7 @@ public final class ServerEventHandler {
                 ChunkPos targetPos = new ChunkPos(centerChunkPos.x + offset[0], centerChunkPos.z + offset[1]);
                 boolean isInitial = (offset[0] == 0 && offset[1] == 0);
 
-                if (chunkSpawnController.request(targetPos, level.dimension(), targetPos, sourceLevelKey, true, false, isInitial, null)) {
+                if (chunkSpawnController.request(targetPos, level.dimension(), targetPos, sourceLevelKey, true, true, isInitial, null)) {
                     chunkSpawnController.registerChunkTheme(targetPos, effectiveTheme);
                     queuedChunks.add(targetPos);
                     LOGGER.info("[InitialSpawn] Spawned chunk {} (immediate, theme='{}')", targetPos, effectiveTheme);
@@ -794,7 +799,7 @@ public final class ServerEventHandler {
                 ChunkPos targetPos = new ChunkPos(spiralIterator.getX(), spiralIterator.getY());
                 boolean isInitial = (i == 0);
 
-                if (chunkSpawnController.request(targetPos, level.dimension(), targetPos, sourceLevelKey, true, false, isInitial, null)) {
+                if (chunkSpawnController.request(targetPos, level.dimension(), targetPos, sourceLevelKey, true, true, isInitial, null)) {
                     chunkSpawnController.registerChunkTheme(targetPos, effectiveTheme);
                     queuedChunks.add(targetPos);
                     LOGGER.info("[InitialSpawn] Spawned chunk {} (immediate, theme='{}')", targetPos, effectiveTheme);

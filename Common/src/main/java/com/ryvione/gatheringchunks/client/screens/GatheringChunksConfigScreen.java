@@ -548,6 +548,22 @@ public class GatheringChunksConfigScreen extends Screen {
         });
         currentY += SPACING;
 
+        this.addRenderableWidget(Button.builder(
+                        Component.literal("Themed Spawner Source: " + config.getThemedSpawnerSource().name()),
+                        button -> {
+                            GatheringChunksConfig.ThemedSpawnerSource[] values = GatheringChunksConfig.ThemedSpawnerSource.values();
+                            int nextIndex = (config.getThemedSpawnerSource().ordinal() + 1) % values.length;
+                            config.setThemedSpawnerSource(values[nextIndex]);
+                            button.setMessage(Component.literal("Themed Spawner Source: " + values[nextIndex].name()));
+                        })
+                .bounds(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(Component.literal(
+                        "DIRECT = themed chunk copies terrain from the same coordinate (matches surroundings). "
+                        + "RANDOM = terrain comes from a random spot in the theme dimension (theme-shaped landform, may not blend). "
+                        + "Affects themed spawner blocks and the World Mender.")))
+                .build());
+        currentY += SPACING;
+
         this.addRenderableWidget(new AbstractSliderButton(centerX - BUTTON_WIDTH / 2, currentY, BUTTON_WIDTH, BUTTON_HEIGHT,
                 Component.literal("Max Fragment Drop: " + config.getMaxFragmentDrop()),
                 (config.getMaxFragmentDrop() - 1) / 15.0) {
@@ -730,7 +746,7 @@ public class GatheringChunksConfigScreen extends Screen {
                     .warn("[ConfigScreen] Failed to send config to server: {}", e.getMessage());
             }
         } else {
-            com.ryvione.gatheringchunks.common.util.ConfigUtil.saveDefaultConfig();
+            com.ryvione.gatheringchunks.common.util.ConfigUtil.saveDefaultConfig(mc.getSingleplayerServer());
         }
         if (mc != null) mc.setScreen(parentScreen);
     }
@@ -1020,7 +1036,7 @@ public class GatheringChunksConfigScreen extends Screen {
                         .warn("[ConfigScreen] Failed to send config to server: {}", e.getMessage());
                 }
             } else {
-                com.ryvione.gatheringchunks.common.util.ConfigUtil.saveDefaultConfig();
+                com.ryvione.gatheringchunks.common.util.ConfigUtil.saveDefaultConfig(mc.getSingleplayerServer());
             }
             if (mc != null) mc.setScreen(parentScreen);
         }

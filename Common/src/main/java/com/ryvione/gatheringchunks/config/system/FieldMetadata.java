@@ -26,7 +26,7 @@ public abstract class FieldMetadata<T> {
         this.field.setAccessible(true);
         this.name = name;
         this.comment = comment;
-        this.displayName = Component.translatable("config.chunkbychunk.option." + field.getName());
+        this.displayName = Component.translatable("config.gatheringchunks.option." + field.getName());
     }
     public String getName() {
         return name;

@@ -17,10 +17,24 @@ public class WorldMenderConfig {
     @IntRange(min = 1, max = 72000)
     @Comment("Ticks between chunk spawns per world mender (world menders will not spawn chunks if chunks are already being spawned)")
     private int cooldown = 1;
+    @Name("emptyRescanInterval")
+    @IntRange(min = 1, max = 1200000)
+    @Comment("When a world mender finds no empty chunks to fill, it sleeps this many ticks before "
+            + "scanning again. Keeps the empty-chunk scan off the tick loop in settled areas, while "
+            + "letting a dormant mender notice chunks erased nearby (e.g. by a Chunk Eraser) within "
+            + "about half a minute at the default value. Upstream Chunk By Chunk hard-coded 1200000 "
+            + "(~16.7 in-game hours), which made menders effectively permanently dormant.")
+    private int emptyRescanInterval = 600;
     public int getCooldown() {
         return cooldown;
     }
     public void setCooldown(int cooldown) {
         this.cooldown = cooldown;
+    }
+    public int getEmptyRescanInterval() {
+        return emptyRescanInterval;
+    }
+    public void setEmptyRescanInterval(int emptyRescanInterval) {
+        this.emptyRescanInterval = Math.max(1, emptyRescanInterval);
     }
 }

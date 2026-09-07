@@ -2,6 +2,8 @@ package com.ryvione.gatheringchunks.config.system;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,9 +56,27 @@ public final class MetadataBuilder {
                 fields.add(processEnumField(declaredField));
             } else if (String.class.isAssignableFrom(fieldType)) {
                 fields.add(processStringField(declaredField));
+            } else if (isStringListField(declaredField)) {
+                fields.add(processStringListField(declaredField));
             }
         }
         return fields;
+    }
+
+    private static boolean isStringListField(Field field) {
+        if (!List.class.isAssignableFrom(field.getType())) {
+            return false;
+        }
+        Type generic = field.getGenericType();
+        if (!(generic instanceof ParameterizedType parameterized)) {
+            return false;
+        }
+        Type[] arguments = parameterized.getActualTypeArguments();
+        return arguments.length == 1 && String.class.equals(arguments[0]);
+    }
+
+    private static FieldMetadata<?> processStringListField(Field field) {
+        return new ListFieldMetadata(field, getName(field), getComment(field));
     }
 
     private static FieldMetadata<?> processStringField(Field field) {
